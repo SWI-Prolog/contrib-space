@@ -1,0 +1,8 @@
+index name -> atom
+uri -> atom
+(alles -> atom)
+PL_register_atom (delete -> PL_unregister_atom)
+valid_shape -> shape
+shape -> uri_shape
+kml.pl use html_write
+

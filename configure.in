@@ -1,0 +1,59 @@
+AC_INIT(src/space.cc)
+#AC_CONFIG_SUBDIRS(src)
+AC_CONFIG_HEADER(config.h)
+
+CXXFLAGS=
+
+AC_PROG_CXX
+AC_LANG_CPLUSPLUS
+
+AC_PROG_INSTALL
+AC_PROG_MAKE_SET
+
+VERSION="0.0.1"
+AC_SUBST(VERSION)
+
+plcandidates="swi-prolog swipl pl"
+AC_CHECK_PROGS(PL, $plcandidates, "none")
+if test $PL = "none"; then
+   AC_ERROR("Cannot find SWI-Prolog. SWI-Prolog must be installed first")
+else
+   AC_CHECKING("Running $PL -dump-runtime-variables")
+   eval `$PL -dump-runtime-variables`
+fi
+AC_MSG_RESULT("PLVERSION=$PLVERSION")
+AC_MSG_RESULT("PLBASE=$PLBASE")
+AC_MSG_RESULT("PLARCH=$PLARCH")
+AC_MSG_RESULT("PLLIBS=$PLLIBS")
+AC_MSG_RESULT("PLLDFLAGS=$PLLDFLAGS")
+AC_MSG_RESULT("PLSHARED=$PLSHARED")
+AC_MSG_RESULT("PLSOEXT=$PLSOEXT")
+AC_SUBST(SO_EXT,$PLSOEXT)
+
+if test $PLVERSION -lt "50664"; then
+   AC_ERROR("SWI-Prolog version 5.6.64 or greater required for C++ support")
+else 
+   AC_CHECKING("SWI-Prolog version $PLVERSION sufficient")
+fi
+
+AC_CHECK_PROGS(PLLD, plld, "none")
+if test $PLLD = "none"; then
+   AC_ERROR("Cannot find plld, which is part of SWI Prolog, and must be installed first")
+fi
+
+AC_CHECK_HEADERS(spatialindex/SpatialIndex.h,[si=1],[si=0])
+#AC_TRY_LINK([#include <spatialindex/SpatialIndex.h>],[SpatialIndex::Point *p=new SpatialIndex::Point();],[si=1],[si=0])
+if test $si == 0; then
+   AC_ERROR("Cannot find spatialindex. Spatialindex must be installed first (http://trac.gispython.org/spatialindex/)")
+fi
+
+AC_CHECK_HEADERS(geos_c.h,[geos=1],[geos=0])
+if test $si == 0; then
+   AC_ERROR("Cannot find GEOS library. GEOS must be installed first (http://trac.osgeo.org/geos/)")
+fi
+
+AC_OUTPUT([
+Makefile
+src/Makefile
+])
+

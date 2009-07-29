@@ -1,0 +1,23 @@
+2009-07-15  Willem Robert van Hage  <wrvhage@few.vu.nl>
+
+	* Shapes.cc, Shapes.h: added polygon support for queries and indexed objects
+
+	* Index.cc, Index.h: added bulkloading facility for fast loading from Prolog
+
+	* space.cc: simplified interface, taking arbitrary Prolog term shapes instead of coordinates
+
+	* space.pl: simplified interface, added bulkload function and shape-URI predicates
+
+	* test_space.pl: added simple unit tests
+	
+	* wkt.pl: added WKT serialization support, back and forth to Prolog term shapes
+
+	* kml.pl: added basic KML serialization support (no style support yet)
+
+	* wgs84.pl: added W3C WGS84 coordinate support for loading
+
+	* georss.pl: added GeoRSS Simple and GML RDF property support
+
+	* demo_space.pl: adapted demo to new interface
+
+	

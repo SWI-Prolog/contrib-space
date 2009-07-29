@@ -1,0 +1,6 @@
+SWI-cpp.h replaces SWI-cpp.h in the include directory of SWI-Prolog 5.6.63
+This provides C++ support for non-deterministic predicates (predicates with redo calls, 'more').
+
+spatialindex-1.3.2-adapted is a modified version of spatialindex-1.3.2
+This provides access to the data of child nodes. This was missing in version 1.3.2.
+This functionality might be added in future versions of spatialindex.

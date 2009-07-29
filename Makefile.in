@@ -1,0 +1,15 @@
+SO=@SO_EXT@
+
+all:
+	cd src; $(MAKE) all && cp space.$(SO) ..; cd ..
+
+clean:
+	rm -f space.dylib space.so space.dll *.dat *.idx ./*~ tmp*; cd src; $(MAKE) clean; cd ..
+
+test: clean all
+	# echo "run" | gdb --args swipl -s test_space.pl
+	swipl -s test_space.pl -g "test_space,halt"
+
+demo: clean all
+	swipl -q -s demo_space.pl
+

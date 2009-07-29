@@ -1,0 +1,32 @@
+CXX = @CXX@
+VERSION = @VERSION@
+CXXFLAGS = @CXXFLAGS@
+
+LIBPL = space.pl
+TARGETS = space.@SO@
+OBJ = space.o globals.o Index.o Search.o Shapes.o
+
+all: $(TARGETS)
+
+space.@SO@: $(OBJ)
+	plld -g -ld g++ -shared -o space $(OBJ) -lspatialindex -lgeos_c
+
+
+clean:
+	rm -f *.o *.dylib *.so *.dll *.dat *.idx ./*~
+
+Index.o: Index.cc
+	plld -g -Wall -shared -c Index.cc
+
+Search.o: Search.cc
+	plld -g -Wall -shared -c Search.cc
+
+Shapes.o: Shapes.cc
+	plld -g -Wall -shared -c Shapes.cc
+	
+globals.o: globals.cc
+	plld -g -Wall -shared -c globals.cc
+
+space.o: space.cc
+	plld -g -Wall -shared -c space.cc
+

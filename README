@@ -1,0 +1,33 @@
+---++ INSTRUCTIONS
+
+Make sure you have SWI-Prolog 5.6.64.
+Otherwise, if you have SWI-Prolog 5.6.63 you can substitute SWI-cpp.h in Prolog's include directory by the version in the adaptations directory of this package.
+
+Install spatialindex. (Use spatialindex release >= 1.3.3, the current source in the Trac repository at http://trac.gispython.org/spatialindex , or the version supplied with this package in the adaptations directory.)
+Install GEOS. The space package has been tested with version 3.1.1.
+
+If you install spatialindex or geos with a prefix (with ./configure --prefix=$PREFIX),
+make sure that the directory where the spatialindex library or geos library was installed,
+e.g. /usr/local/lib, is in the environment variables LD_LIBRARY_PATH and LIBRARY_PATH.
+Make sure that the directory where the spatialindex header files were installed,
+e.g. /usr/local/include, is in the environment variable CPLUS_INCLUDE_PATH.
+
+On unixlike systems using bash, for example, you could add this to your .bashrc or .bash_profile before running ./configure --prefix=$PREFIX:
+export PREFIX=/home/yourself
+export CPLUS_INCLUDE_PATH=$PREFIX/include
+export LIBRARY_PATH=$PREFIX/lib
+export LD_LIBRARY_PATH=$PREFIX/lib
+
+There is no installation procedure for this demo yet, but you can run the demo from the shared object file in the current working directory.
+
+run:
+./configure
+make test 
+make demo
+
+If the compilation finished without errors the demo script will prompt you with instructions.
+
+If it does not work, please contact me.
+
+Willem Robert van Hage <wrvhage@few.vu.nl>
+
