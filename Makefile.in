@@ -17,6 +17,8 @@ PLARCH=@PLARCH@
 PLINCL=@PLINCL@
 PKGDOC=$(PLBASE)/doc/packages
 PCEHOME=../xpce
+LIBDIR=$(PLBASE)/library/space
+EXDIR=$(PKGDOC)/examples/space
 DESTDIR=
 
 COFLAGS=@COFLAGS@
@@ -44,7 +46,7 @@ INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
-LIBPL=		space.pl
+LIBPL=		space.pl wkt.pl kml.pl gml.pl georss.pl wgs84.pl
 TARGETS=	space.@SO@
 
 OBJ=		src/space.o src/globals.o src/Index.o src/Search.o src/Shapes.o
@@ -54,18 +56,15 @@ all:		$(TARGETS)
 space.@SO@:	$(OBJ)
 		$(LD) $(LDFLAGS) -o $@ $(OBJ) $(LIBS)
 
-install:	$(TARGETS) $(LIBPL)
+install:	$(LIBPL)
 		mkdir -p $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
-		for f in $(TARGETS); do \
-		  $(INSTALL_PROGRAM) $$f $(DESTDIR)$(PLBASE)/lib/$(PLARCH); \
-		done
-		mkdir -p $(DESTDIR)$(PLBASE)/library
-		for f in $(LIBPL); do \
-		  $(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/library; \
-		done
+		$(INSTALL_PROGRAM) $(TARGETS) $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
+		mkdir -p $(DESTDIR)$(LIBDIR)
+		$(INSTALL_DATA) $(LIBPL) $(DESTDIR)$(LIBDIR)
+		$(INSTALL_DATA) README $(DESTDIR)$(LIBDIR)
 		$(PL) -f none -g make -t halt
 
-ln-install::
+ln-install::	$(LIBPL)
 		$(MAKE) INSTALL_DATA="../ln-install" INSTALL_PROGRAM="../ln-install" install
 
 rpm-install:	install
@@ -88,7 +87,7 @@ uninstall::
 ################################################################
 
 check::
-		$(PL) -q -f test.pl -g true -t run_tests
+		$(PL) -q -f test_space.pl -g test_space,halt -t 'halt(1)'
 
 ################################################################
 # Documentation
