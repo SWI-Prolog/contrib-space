@@ -19,9 +19,12 @@ test(space_clear, [ fail ]) :-
 	space_clear(I),
 	space_nearest(point(0.0,0.0),_N,I).
 
-test(space_bulkload, [ true(space_bulkload(space,uri_shape,I)),
-		       true(once(space_nearest(point(0.0,0.0),_N,I))) ]) :-
-	I = test_index.
+test(space_bulkload, [cleanup(space_clear(test_index))]) :-
+	space_bulkload(space,uri_shape, test_index).
+
+test(space_nearest) :-
+	space_bulkload(space,uri_shape, test_index),
+	space_nearest(point(0.0,0.0),_N,test_index).
 
 % FIXME: fill in shape, because this test will always succeed now
 test(shape, [ true(Maas1Shape = polygon(_)),
@@ -31,13 +34,13 @@ test(shape, [ true(Maas1Shape = polygon(_)),
 	uri_shape(Maas1URI,Maas1Shape),
 	uri_shape(Maas4URI,Maas4Shape),
 	!.
-	
+
 test(space_intersects, [ true(space_intersects(Maas4Shape,NoordURI,I)) ]) :-
 	I = test_index,
 	rdf_global_id(poseidon:'ScheepvaartrouteMaas_1',Maas1URI),
 	rdf_global_id(poseidon:'ScheepvaartrouteMaas_4',Maas4URI),
 	uri_shape(Maas1URI,Maas1Shape),
-	uri_shape(Maas4URI,Maas4Shape),	
+	uri_shape(Maas4URI,Maas4Shape),
 	rdf_global_id(poseidon:'ScheepvaartrouteZuid_richting_noord',NoordURI),
 	findall(Inter,space_intersects(Maas1Shape,Inter,I),Inters),
 	\+member(NoordURI,Inters),
@@ -64,7 +67,7 @@ test(space_index) :-
 	space_assert(P2,point(52.3983,3.13086),I),
 	space_assert(P3,point(52.3254,3.06849),I),
 	space_index(I),
-	!.	
+	!.
 
 
 test(space_contains, [ true(space_contains(Maas4Shape,P1,I)),
@@ -91,7 +94,7 @@ test(space_intersects, [ true(space_intersects(Maas4Shape,P1,I)),
 	findall(Int,space_intersects(Maas4Shape,Int,I),Ints),
 	\+member(P3,Ints),
 	!.
-	
+
 
 test(space_nearest, [ true(Pts = [P2,P1,P3]) ]) :-
 	I = test_index,
