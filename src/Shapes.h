@@ -4,7 +4,7 @@
     E-mail:        wrvhage@few.vu.nl
     WWW:           http://www.few.vu.nl/~wrvhage
     Copyright (C): 2009, Vrije Universiteit Amsterdam
-    
+
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
     as published by the Free Software Foundation; either version 2
@@ -76,22 +76,22 @@ namespace SpatialIndex
     GEOSPoint(const GEOSPoint& p);
     GEOSPoint(const geos::geom::Coordinate &coordinate);
     virtual ~GEOSPoint();
-    
+
      GEOSPoint& operator=(const GEOSPoint& p);
      bool operator==(const GEOSPoint& p) const;
-    
+
     //
     // IObject interface
     //
      GEOSPoint* clone();
-  
+
     //
     // ISerializable interface
     //
      size_t getByteArraySize();
      void loadFromByteArray(const byte* data);
      void storeToByteArray(byte** data, size_t& length);
-  
+
     //
     // IShape interface
     //
@@ -107,57 +107,57 @@ namespace SpatialIndex
      double getArea() const;
      double getMinimumDistance(const GEOSShape& in) const;
      double getMinimumDistance(const IShape& in) const;
-      
+
      double getCoordinate(size_t index) const;
-    
+
      void makeInfinite(size_t dimension);
      void makeDimension(size_t dimension);
-    
+
   private:
     Point* GEOSPoint::toPoint() const;
-    
+
   public:
     size_t m_dimension;
 
     friend class Region;
     friend class GEOSPolygon;
     friend std::ostream& operator<<(std::ostream& os, const GEOSPoint& pt);
-    
+
   };
-  
-  
-  
+
+
+
   /*
    * GEOSPolygon
    */
-  
-  
+
+
   class GEOSPolygon : public GEOSShape {
   public:
-    
-    GEOSPolygon();              
+
+    GEOSPolygon();
     GEOSPolygon(const double** verts, size_t nverts, size_t dimension); // verts[nverts][dimension]
     GEOSPolygon(const GEOSPoint*& points, size_t nverts); // [GEOSPoint][nverts]
     GEOSPolygon(const GEOSPolygon& poly);
     GEOSPolygon(const geos::geom::Polygon& poly);
-    
+
     virtual ~GEOSPolygon();
-    
+
      GEOSPolygon& operator=(const GEOSPolygon& p);
      bool operator==(const GEOSPolygon&) const;
-    
+
     //
     // IObject interface
     //
      GEOSPolygon* clone();
-    
+
     //
     // ISerializable interface
     //
      size_t getByteArraySize();
      void loadFromByteArray(const byte* data);
      void storeToByteArray(byte** data, size_t& length);
-    
+
     //
     // IShape interface
     //
@@ -179,21 +179,21 @@ namespace SpatialIndex
      double getArea() const;
      double getMinimumDistance(const GEOSShape& in) const;
      double getMinimumDistance(const IShape& in) const;
-    
+
      GEOSPolygon* getIntersectingGEOSPolygon(const GEOSPolygon& r) const;
      double getIntersectingArea(const GEOSPolygon& in) const;
      double getMargin() const;
-    
+
      void combineRegion(const Region& in);
      void combineGEOSPoint(const GEOSPoint& in);
      void getCombinedGEOSPolygon(GEOSPolygon& out, const GEOSPolygon& in) const;
-    
+
      GEOSPoint* getVertex(size_t vert) const;
      double getCoordinate(size_t vert, size_t index) const;
-    
+
      void makeInfinite(size_t dimension);
      void makeDimension(size_t dimension);
-    
+
   private:
     void initialize(const double* verts, size_t nverts, size_t dimension);
 
@@ -201,9 +201,9 @@ namespace SpatialIndex
     friend class Region;
     friend std::ostream& operator<<(std::ostream& os, const GEOSPolygon& r);
   }; // GEOSPolygon
-  
+
 }
 
 geos::geom::Geometry* regionToBox(const Region& r);
 
-#endif __SHAPES_H
+#endif /*__SHAPES_H*/
