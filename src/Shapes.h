@@ -114,7 +114,7 @@ namespace SpatialIndex
      void makeDimension(size_t dimension);
     
   private:
-    Point* GEOSPoint::toPoint() const;
+    Point* toPoint() const;
     
   public:
     size_t m_dimension;

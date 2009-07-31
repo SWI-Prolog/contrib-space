@@ -28,7 +28,8 @@
 */
 
 :- module(gml,
-	  [ gml_shape/2
+	  [ gml_shape/2,
+            poslist/3
 	  ]).
 	    
 :- use_module(library(http/html_write)).
