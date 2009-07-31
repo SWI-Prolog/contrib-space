@@ -31,7 +31,7 @@
 :- assert(file_search_path(foreign,'.')).
 
 % load the Prolog module that uses the space shared object file
-:- use_module(space).
+:- use_module(library(space/space)).
 
 % load the semantic web package
 :- use_module(library('semweb/rdf_db.pl')).

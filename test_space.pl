@@ -1,5 +1,5 @@
 :- use_module(library(plunit)).
-:- use_module(space).
+:- use_module(library(space/space)).
 :- use_module(library(semweb/rdf_db)).
 
 :- rdf_register_ns(poseidon,'http://semanticweb.cs.vu.nl/poseidon/ns/instances/').
