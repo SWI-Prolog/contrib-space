@@ -3,9 +3,16 @@
 *.so
 *.dll
 *~
+*.aux
+*.idx
+*.ilg
+*.log
+*.out
+*.pdf
+*.tex
+*.dat
 Makefile
 configure
 config.h
 config.status
-config.log
 autom4te.cache
