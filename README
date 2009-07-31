@@ -22,8 +22,9 @@ There is no installation procedure for this demo yet, but you can run the demo f
 
 run:
 autoconf
+autoheader
 ./configure
-make test 
+make test
 make demo
 
 If the compilation finished without errors the demo script will prompt you with instructions.
