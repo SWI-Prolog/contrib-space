@@ -18,14 +18,17 @@ export CPLUS_INCLUDE_PATH=$PREFIX/include
 export LIBRARY_PATH=$PREFIX/lib
 export LD_LIBRARY_PATH=$PREFIX/lib
 
-There is no installation procedure for this demo yet, but you can run the demo from the shared object file in the current working directory.
-
 run:
 autoconf
 autoheader
 ./configure
-make test
-make demo
+pl -s test_space.pl -g test_space,halt
+pl -s demo_space.pl
+
+-- Mac OS X
+On Mac OS X you might have to help ./configure a bit by telling it how to call the preprocessor. This should work: 
+CXXCPP="g++ -E" ./configure
+Also, since 'pl' is a reserved command, Prolog should be called with 'swipl'.
 
 If the compilation finished without errors the demo script will prompt you with instructions.
 
