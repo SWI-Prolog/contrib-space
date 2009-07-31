@@ -8,7 +8,7 @@
 
 
 :- begin_tests(space, [ setup( rdf_load(clearways) ),
-			cleanup((   rdf_unload(clearways),
+			cleanup((   rdf_reset_db,
 				    space_clear(test_index)
 				)) ]).
 
@@ -24,7 +24,7 @@ test(space_bulkload, [cleanup(space_clear(test_index))]) :-
 
 test(space_nearest) :-
 	space_bulkload(space,uri_shape, test_index),
-	space_nearest(point(0.0,0.0),_N,test_index).
+	space_nearest(point(0.0,0.0),_N,test_index), !.
 
 % FIXME: fill in shape, because this test will always succeed now
 test(shape, [ true(Maas1Shape = polygon(_)),
@@ -35,7 +35,7 @@ test(shape, [ true(Maas1Shape = polygon(_)),
 	uri_shape(Maas4URI,Maas4Shape),
 	!.
 
-test(space_intersects, [ true(space_intersects(Maas4Shape,NoordURI,I)) ]) :-
+test(space_intersects) :-
 	I = test_index,
 	rdf_global_id(poseidon:'ScheepvaartrouteMaas_1',Maas1URI),
 	rdf_global_id(poseidon:'ScheepvaartrouteMaas_4',Maas4URI),
@@ -44,7 +44,8 @@ test(space_intersects, [ true(space_intersects(Maas4Shape,NoordURI,I)) ]) :-
 	rdf_global_id(poseidon:'ScheepvaartrouteZuid_richting_noord',NoordURI),
 	findall(Inter,space_intersects(Maas1Shape,Inter,I),Inters),
 	\+member(NoordURI,Inters),
-	!.
+	!,
+	space_intersects(Maas4Shape,NoordURI,I).
 
 test(space_index) :-
 	I = test_index,
@@ -70,8 +71,7 @@ test(space_index) :-
 	!.
 
 
-test(space_contains, [ true(space_contains(Maas4Shape,P1,I)),
-		       true(space_contains(Maas4Shape,P2,I)) ]) :-
+test(space_contains) :-
 	I = test_index,
 	rdf_global_id(poseidon:'ScheepvaartrouteMaas_4',Maas4URI),
 	rdf_global_id(poseidon:testPoint1,P1),
@@ -80,11 +80,12 @@ test(space_contains, [ true(space_contains(Maas4Shape,P1,I)),
 	uri_shape(Maas4URI,Maas4Shape),
 	findall(C,space_contains(Maas4Shape,C,I),Cs),
 	\+member(P3,Cs),
-	!.
+	!,
+	space_contains(Maas4Shape,P1,I),
+	space_contains(Maas4Shape,P2,I).
 
 
-test(space_intersects, [ true(space_intersects(Maas4Shape,P1,I)),
-			 true(space_intersects(Maas4Shape,NoordURI,I)) ]) :-
+test(space_intersects) :-
 	I = test_index,
 	rdf_global_id(poseidon:'ScheepvaartrouteZuid_richting_noord',NoordURI),
 	rdf_global_id(poseidon:'ScheepvaartrouteMaas_4',Maas4URI),
@@ -93,7 +94,9 @@ test(space_intersects, [ true(space_intersects(Maas4Shape,P1,I)),
 	uri_shape(Maas4URI,Maas4Shape),
 	findall(Int,space_intersects(Maas4Shape,Int,I),Ints),
 	\+member(P3,Ints),
-	!.
+	!,
+	space_intersects(Maas4Shape,P1,I),
+	space_intersects(Maas4Shape,NoordURI,I).
 
 
 test(space_nearest, [ true(Pts = [P2,P1,P3]) ]) :-
