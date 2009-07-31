@@ -123,8 +123,9 @@ spacepl.tex:	space.pl
 
 clean:
 		rm -f $(OBJ) *~ *.o *% a.out core config.log
+		rm -f $(DOC).aux $(DOC).ilg $(DOC).log $(DOC).out $(DOC).toc
+		rm -f $(DOC).idx $(TEX)
 
 distclean:	clean
 		rm -f $(TARGETS) config.cache config.h config.status Makefile
-		rm -f $(DOC).aux $(DOC).log $(DOC).out $(DOC).toc
 		rm -rf html
