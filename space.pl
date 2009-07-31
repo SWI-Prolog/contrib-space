@@ -51,6 +51,8 @@
 	   space_intersects/2,        % uses default index
            space_nearest/3,           % +Shape, -URI, +IndexName
            space_nearest/2,           % uses default index
+           space_nearest_bounded/4,   % +Shape, -URI, +WithinRange, +IndexName
+           space_nearest_bounded/3,   % uses default index
 
 	   shape/1,                   % +Shape
 	   uri_shape/2,		      % ?URI, ?Shape
@@ -222,7 +224,7 @@ space_intersects(Shape,Inter,IndexName) :-
         space_index(IndexName),
 	rtree_incremental_intersection_query(Shape, Inter, IndexName).
         
-%%	space_nearest(+Shape,?Near,IndexName) is nondet.
+%%	space_nearest(+Shape,?Near,+IndexName) is nondet.
 %%	space_nearest(+Shape,?Near) is nondet.
 %
 %	Incremental Nearest-Neighbor query. Unifies Near with shapes
@@ -236,6 +238,29 @@ space_nearest(Shape, Near, IndexName) :-
 	shape(Shape),
         space_index(IndexName),
 	rtree_incremental_nearest_neighbor_query(Shape, Near, IndexName).
+
+%%	space_nearest(+Shape,?Near,+WithinRange,+IndexName) is nondet.
+%%	space_nearest(+Shape,?Near,+WithinRange) is nondet.
+%
+%	Incremental Nearest-Neighbor query with a bounded distance
+%	scope. Unifies Near with shapes in order of increasing distance
+%	to Shape according to index IndexName or the default index.
+%	Fails when no more objects are within the range WithinRange.
+
+space_nearest_bounded(Shape, Near, WithinRange) :-
+	rtree_default_index(I),
+	space_nearest_bounded(Shape,Near,WithinRange,I).
+space_nearest_bounded(Shape, Near, WithinRange, IndexName) :-
+	shape(Shape),
+        space_index(IndexName),
+	rtree_incremental_nearest_neighbor_query(Shape, Near, IndexName),
+	uri_shape(Near,NearShape),
+	space_distance(Shape,NearShape,Distance),
+	(   Distance > WithinRange
+	->  !, fail
+	;   true
+	).
+
 
 space_display(IndexName) :-
         rtree_display(IndexName).
