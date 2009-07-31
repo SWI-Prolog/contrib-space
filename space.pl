@@ -197,7 +197,10 @@ space_contains(Shape,Cont) :-
 space_contains(Shape,Cont,IndexName) :-
 	shape(Shape),
         space_index(IndexName),
-	rtree_incremental_containment_query(Shape,Cont,IndexName).
+	(   ground(Cont)
+	->  rtree_incremental_containment_query(Shape,Cont,IndexName), !
+	;   rtree_incremental_containment_query(Shape,Cont,IndexName)
+	).
 
 %%	space_intersects(+Shape,?Inter,+IndexName) is nondet.
 %%	space_intersects(+Shape,?Inter) is nondet.
@@ -212,7 +215,11 @@ space_intersects(Shape,Inter) :-
 space_intersects(Shape,Inter,IndexName) :-
 	shape(Shape),
         space_index(IndexName),
-	rtree_incremental_intersection_query(Shape, Inter, IndexName).
+	(   ground(Inter)
+	->  rtree_incremental_intersection_query(Shape, Inter, IndexName), !
+	;   rtree_incremental_intersection_query(Shape, Inter, IndexName)
+	).
+
 
 %%	space_nearest(+Shape,?Near,+IndexName) is nondet.
 %%	space_nearest(+Shape,?Near) is nondet.
