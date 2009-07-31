@@ -34,7 +34,7 @@ PUBLICPL=$(PL)
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
 DOC=space
-TEX=$(DOC).tex spacepl.tex
+TEX=$(DOC).tex spacepl.tex georss.tex wgs84.tex wkt.tex kml.tex gml.tex
 DVI=$(DOC).dvi
 PDF=$(DOC).pdf
 RUNTEX=../../man/runtex
@@ -109,7 +109,17 @@ html:		$(TEX)
 $(TEX):		$(DOCTOTEX)
 
 spacepl.tex:	space.pl
-		$(PLTOTEX) --out=$@ --section 'library(space/space)'
+		$(PLTOTEX) --out=$@ --subsection 'library(space/space)'
+georss.tex:	georss.pl
+		$(PLTOTEX) --out=$@ --subsection 'library(space/georss)'
+wgs84.tex:	wgs84.pl
+		$(PLTOTEX) --out=$@ --subsection 'library(space/wgs84)'
+wkt.tex:	wkt.pl
+		$(PLTOTEX) --out=$@ --subsection 'library(space/wkt)'
+kml.tex:	kml.pl
+		$(PLTOTEX) --out=$@ --subsection 'library(space/kml)'
+gml.tex:	gml.pl
+		$(PLTOTEX) --out=$@ --subsection 'library(space/gml)'
 
 .doc.tex:
 		$(DOCTOTEX) $*.doc > $*.tex

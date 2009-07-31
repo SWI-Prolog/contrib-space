@@ -262,6 +262,11 @@ An alternative implementation would be to take the exact IncNearest algorithm de
 \section{Documentation}
 
 \input{spacepl}
+\input{georss}
+\input{wgs84}
+\input{wkt}
+\input{kml}
+\input{gml}
 
 \printindex
 
