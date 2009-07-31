@@ -1,0 +1,42 @@
+\documentclass[11pt]{article}
+\usepackage{times}
+\usepackage{pl}
+\usepackage{html}
+\sloppy
+\makeindex
+
+\onefile
+\htmloutput{html}				% Output directory
+\htmlmainfile{index}				% Main document file
+\bodycolor{white}				% Page colour
+
+\begin{document}
+
+\title{SWI-Prolog Spatial Indexing}
+\author{Willem Robert van Hage \\
+	VU University Amsterdam \\
+	The Netherlands \\
+	E-mail: \email{wrvhage@few.vu.nl}}
+
+\maketitle
+
+\begin{abstract}
+Prolog interface to Spatial Index and GEOS libraries
+\end{abstract}
+
+\pagebreak
+\tableofcontents
+
+\vfill
+\vfill
+
+\newpage
+
+\section{Introduction}
+
+\input{spacepl}
+
+\printindex
+
+\end{document}
+

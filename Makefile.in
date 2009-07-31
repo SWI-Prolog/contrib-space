@@ -28,10 +28,11 @@ LIBS=@LIBS@
 CC=@CC@ $(CFLAGS)
 CXX=@CXX@ $(CFLAGS)
 
+PUBLICPL=pl
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
-PLTOTEX=$(PCEHOME)/bin/pl2tex
+PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
 DOC=space
-TEX=$(DOC).tex
+TEX=$(DOC).tex spacepl.tex
 DVI=$(DOC).dvi
 PDF=$(DOC).pdf
 RUNTEX=../../man/runtex
@@ -43,7 +44,7 @@ INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
-LIBPL=		@PLTARGETS@
+LIBPL=		space.pl
 TARGETS=	space.@SO@
 
 OBJ=		src/space.o src/globals.o src/Index.o src/Search.o src/Shapes.o
@@ -107,6 +108,9 @@ html:		$(TEX)
 		rm -r html
 
 $(TEX):		$(DOCTOTEX)
+
+spacepl.tex:	space.pl
+		$(PLTOTEX) --out=$@ --section 'library(space)'
 
 .doc.tex:
 		$(DOCTOTEX) $*.doc > $*.tex
