@@ -4,7 +4,7 @@
     E-mail:        wrvhage@few.vu.nl
     WWW:           http://www.few.vu.nl/~wrvhage
     Copyright (C): 2009, Vrije Universiteit Amsterdam
-    
+
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
     as published by the Free Software Foundation; either version 2
@@ -55,36 +55,36 @@ void PrintGnuplotVisitor::visitNode(const INode& n) {
   n.getShape(&ps);
   Region r;
   ps->getMBR(r);
-  
+
   // print node MBRs gnuplot style!
   cout << r.m_pLow[0] << " " << r.m_pLow[1] << endl;
   cout << r.m_pHigh[0] << " " << r.m_pLow[1] << endl;
   cout << r.m_pHigh[0] << " " << r.m_pHigh[1] << endl;
   cout << r.m_pLow[0] << " " << r.m_pHigh[1] << endl;
   cout << r.m_pLow[0] << " " << r.m_pLow[1] << endl << endl << endl;
-  
+
   delete ps;
 }
 
 // ignore data, only show index MBRs
 void PrintGnuplotVisitor::visitData(const IData& d) {};
 void PrintGnuplotVisitor::visitData(std::vector<const IData*>& v) {};
-    
+
 
 // class TraverseBreadthFirst : public SpatialIndex::IQueryStrategy
 TraverseBreadthFirst::TraverseBreadthFirst(IVisitor *vis) {
   v = vis;
 }
 
-void TraverseBreadthFirst::getNextEntry(const IEntry& entry, id_type& nextEntry, bool& hasNext) {    
+void TraverseBreadthFirst::getNextEntry(const IEntry& entry, id_type& nextEntry, bool& hasNext) {
   const INode* n = dynamic_cast<const INode*>(&entry);
   v->visitNode(*n);
-  
+
   if (n != 0 && n->getLevel() > 0) {
     for (size_t cChild = 0; cChild < n->getChildrenCount(); cChild++) {
       ids.push(n->getChildIdentifier(cChild));
     }
-  } else if (n != 0 && n->getLevel() == 0) {      
+  } else if (n != 0 && n->getLevel() == 0) {
     for (size_t cChild = 0; cChild < n->getChildrenCount(); cChild++) {
       IShape* childShape;
       n->getChildShape(cChild,&childShape);
@@ -99,7 +99,7 @@ void TraverseBreadthFirst::getNextEntry(const IEntry& entry, id_type& nextEntry,
       delete e;
     }
   }
-  
+
   if (! ids.empty()) {
     nextEntry = ids.front(); ids.pop();
     hasNext = true;
@@ -115,15 +115,15 @@ TraverseDepthFirst::TraverseDepthFirst(IVisitor *vis) {
   v = vis;
 }
 
-void TraverseDepthFirst::getNextEntry(const IEntry& entry, id_type& nextEntry, bool& hasNext) {    
+void TraverseDepthFirst::getNextEntry(const IEntry& entry, id_type& nextEntry, bool& hasNext) {
   const INode* n = dynamic_cast<const INode*>(&entry);
   v->visitNode(*n);
-  
+
   if (n != 0 && n->getLevel() > 0) {
     for (size_t cChild = 0; cChild < n->getChildrenCount(); cChild++) {
       ids.push(n->getChildIdentifier(cChild));
     }
-  } else if (n != 0 && n->getLevel() == 0) {      
+  } else if (n != 0 && n->getLevel() == 0) {
     for (size_t cChild = 0; cChild < n->getChildrenCount(); cChild++) {
       IShape* childShape;
       n->getChildShape(cChild,&childShape);
@@ -138,7 +138,7 @@ void TraverseDepthFirst::getNextEntry(const IEntry& entry, id_type& nextEntry, b
       delete e;
     }
   }
-  
+
   if (! ids.empty()) {
     nextEntry = ids.top(); ids.pop();
     hasNext = true;
@@ -150,7 +150,7 @@ void TraverseDepthFirst::getNextEntry(const IEntry& entry, id_type& nextEntry, b
 
 // class IncrementalRangeStrategy : public SpatialIndex::IQueryStrategy
 
-IncrementalRangeStrategy::IncrementalRangeStrategy(RangeQueryType type,const IShape* queryp,IVisitor* vp,Index* idx) 
+IncrementalRangeStrategy::IncrementalRangeStrategy(RangeQueryType type,const IShape* queryp,IVisitor* vp,Index* idx)
   : result(NULL), result_length(0), continuation(false), child_idx(0) {
   query = queryp;
   v = vp;
@@ -174,7 +174,7 @@ void IncrementalRangeStrategy::getNextEntry(const IEntry& entry, id_type& nextEn
 #ifdef DEBUG
   cout << "visiting node " << entry.getIdentifier() << endl;
 #endif
-  
+
   /*
    * IQueryStrategy.queryStrategy always starts at the root node, for every call,
    * even when it is a successive call, a continuation.
@@ -200,24 +200,24 @@ void IncrementalRangeStrategy::getNextEntry(const IEntry& entry, id_type& nextEn
           if (qs != NULL) {
             b = qs->intersectsShape(*childShape);
 #ifdef DEBUG
-            cout << "Query GEOSShape intersects Shape? " << b << endl;           
+            cout << "Query GEOSShape intersects Shape? " << b << endl;
 #endif
           } else {
             b = query->intersectsShape(*childShape);
 #ifdef DEBUG
-            cout << "Query IShape intersects Shape? " << b << endl;           
+            cout << "Query IShape intersects Shape? " << b << endl;
 #endif
           }
         } else { // ContainmentQuery
           if (qs != NULL) {
             b = qs->containsShape(*childShape);
 #ifdef DEBUG
-            cout << "Query GEOSShape contains Shape? " << b << endl;     
-#endif      
+            cout << "Query GEOSShape contains Shape? " << b << endl;
+#endif
           } else {
             b = query->containsShape(*childShape);
 #ifdef DEBUG
-            cout << "Query GEOSShape contains Shape? " << b << endl;          
+            cout << "Query GEOSShape contains Shape? " << b << endl;
 #endif
           }
         }
@@ -254,14 +254,14 @@ void IncrementalRangeStrategy::getNextEntry(const IEntry& entry, id_type& nextEn
         n->getChildShape(cChild,&childShape); // using MBRs, not the actual Shape, for speed.
         // Continue searching in every intersecting (and thus possibly overlapping) child node.
         if (query->intersectsShape(*childShape)) {
-          ids.push(n->getChildIdentifier(cChild));                     
+          ids.push(n->getChildIdentifier(cChild));
         }
       }
     }
   } else { // end if !continuation
     continuation = false; // Reset the continuation flag.
   }
-  
+
   if (ids.empty()) {
     // When the queue is empty the options are exhausted.
     // Either we just found the last result or we found no results at all.
@@ -279,14 +279,14 @@ void IncrementalRangeStrategy::getNextEntry(const IEntry& entry, id_type& nextEn
       nextEntry = ids.top(); // continue with the next option.
       // Don't pop the queue, because we continue with the next child of the same leaf node.
     }
-  } 
+  }
 }
 
 
 
 // class IncrementalNearestNeighborStrategy : public SpatialIndex::IQueryStrategy
 
-IncrementalNearestNeighborStrategy::IncrementalNearestNeighborStrategy(const IShape* queryp,IVisitor* vp,Index *idx) 
+IncrementalNearestNeighborStrategy::IncrementalNearestNeighborStrategy(const IShape* queryp,IVisitor* vp,Index *idx)
   : result(NULL), result_length(0), continuation(false), child_idx(0), first_call(true) {
   query = queryp;
   v = vp;
@@ -302,13 +302,13 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
 #ifdef DEBUG
   cout << "visiting node " << entry.getIdentifier() << endl;
 #endif
-  
-  if (first_call && !continuation) { 
+
+  if (first_call && !continuation) {
     // if this is the first call, put the root node on the stack
     queue.push(new NNEntry(entry.getIdentifier(),NULL,0));
     first_call = false;
   }
-  
+
   if (continuation) { // continuation after returning a result
     continuation = false;
     if (!queue.empty()) {
@@ -321,7 +321,7 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
     if (!queue.empty()) {
       const INode* n = dynamic_cast<const INode*>(&entry);
       const NNEntry* e = queue.top();
-#ifdef DEBUG        
+#ifdef DEBUG
       cout << "taking " << e->m_id << " from the queue" << endl;
 #endif
       if (e->m_pEntry == NULL) {
@@ -335,8 +335,8 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
         cout << queue.top()->m_id << endl;
 #endif
       }
-      
-      if (n->isLeaf() || e->m_pEntry != NULL) { // leaf node or data 
+
+      if (n->isLeaf() || e->m_pEntry != NULL) { // leaf node or data
 #ifdef DEBUG
         cout << "leaf\n";
 #endif
@@ -381,7 +381,7 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
 #ifdef DEBUG
               cout << "dist > mindist (Shape)\n";
 #endif
-              // we push the actual shape of the object on the queue, 
+              // we push the actual shape of the object on the queue,
               // because there are already objects in the queue that are closer than the MBR.
               double shapeDist = nnc.getMinimumDistance(*query,*childShape);
               queue.push(new NNEntry(childId, e, shapeDist));
@@ -411,7 +411,7 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
           Region childMBR;
           childShape->getMBR(childMBR);
           double dist = nnc.getMinimumDistance(*query,childMBR);
-          queue.push(new NNEntry(n->getChildIdentifier(cChild),NULL,dist));                     
+          queue.push(new NNEntry(n->getChildIdentifier(cChild),NULL,dist));
 #ifdef DEBUG
           cout << "push " << n->getChildIdentifier(cChild) << endl;
 #endif
@@ -422,16 +422,16 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
       hasNext = false;
       continuation = false;
     }
-    
+
   }
-  
+
   // This takes care that the nextEntry is never data,
   // to circumvent the readNode call in the queryStrategy method.
   if (queue.top()->m_pEntry != NULL) {
 #ifdef DEBUG
     cout << "next is data, setting entry to NULL" << endl;
 #endif
-    nextEntry = NULL;          
+    nextEntry = NULL;
   } else {
 #ifdef DEBUG
     cout << "next is " << queue.top()->m_id << endl;

@@ -4,7 +4,7 @@
     E-mail:        wrvhage@few.vu.nl
     WWW:           http://www.few.vu.nl/~wrvhage
     Copyright (C): 2009, Vrije Universiteit Amsterdam
-    
+
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
     as published by the Free Software Foundation; either version 2
@@ -29,10 +29,10 @@
 
 :- module(space,
           [
-	   
+
 	   space_index_all/1,         % +IndexNames
 	   space_index_all/0,         % uses default index
-	   
+
            space_assert/3,            % +URI, +Shape, +IndexName
            space_assert/2,            % uses default index
            space_retract/3,           % +URI, +Shape, +IndexName
@@ -44,7 +44,7 @@
 
            space_bulkload/3,          % +ModuleOfPred, +CandidatePred, +IndexName
            space_bulkload/1,          % +CandidatePred (uses default index and 'user' module)
-           
+
            space_contains/3,          % +Shape, -URI, +IndexName
            space_contains/2,          % uses default index
 	   space_intersects/3,        % +Shape, -URI, +IndexName
@@ -57,24 +57,19 @@
 	   shape/1,                   % +Shape
 	   uri_shape/2,		      % ?URI, ?Shape
 	   space_distance/3,           % +FromShape, +ToShape, -Distance
-	   
-	   % space_display_index/1,      % +IndexName
-	   % space_display_index_mbrs/1, % +IndexName
-	   
-	   % space_load_file/2,       % +InputFile, +IndexName
-	   % space_write/2,           % +OutputFile, +IndexName
 
 	   space_distance/3,              % +Shape1, +Shape2, -Distance
 	   space_distance_pythagorean/3,  % +Shape1, +Shape2, -Distance
 	   space_distance_greatcircle/4,  % +Shape1, +Shape2, -Distance, +Unit
 	   space_distance_greatcircle/3   % +Shape1, +Shape2, -Distance (km)
-	   
+
           ]).
 
 :- use_module(wkt).
 :- use_module(kml).
 :- use_module(georss). % also GML support
 :- use_module(wgs84).
+:- use_module(library(error)).
 
 :- dynamic space_queue/4.
 :- dynamic uri_shape/2. % allows you to adapt space_index_all.
@@ -100,9 +95,9 @@ rtree_default_index('space_index').
 %       the index with name IndexName or the default index.
 %       Indexing happens lazily at the next call of a query or
 %       manually by calling space_index/1.
-       
-space_assert(URI,Shape) :- 
-	rtree_default_index(I), 
+
+space_assert(URI,Shape) :-
+	rtree_default_index(I),
 	space_assert(URI,Shape,I).
 space_assert(URI,Shape,IndexName) :-
 	shape(Shape),
@@ -142,12 +137,12 @@ space_index :-
 	space_index(I).
 space_index(IndexName) :-
 	(   space_queue(IndexName,assert,_,_)
-	->  (   findall(object(URI,Shape), space_queue(IndexName,assert,URI,Shape), List), 
+	->  (   findall(object(URI,Shape), space_queue(IndexName,assert,URI,Shape), List),
 	        rtree_insert_list(IndexName,List),
 	        retractall(space_queue(IndexName,assert,_,_))
 	    )
 	;   (   space_queue(IndexName,retract,_,_)
-	    ->  (   findall(object(URI,Shape), space_queue(IndexName,retract,URI,Shape), List), 
+	    ->  (   findall(object(URI,Shape), space_queue(IndexName,retract,URI,Shape), List),
 		    rtree_delete_list(IndexName,List),
 	            retractall(space_queue(IndexName,retract,_,_))
 	        )
@@ -170,30 +165,25 @@ space_clear(IndexName) :-
 
 %%	space_bulkload(+Module,+Functor,+IndexName) is det.
 %%	space_bulkload(+Functor) is det.
-%	
+%
 %	Fast loading of many Shapes into the index IndexName.
 %	Functor is the functor of a predicate with two arguments:
 %	URI and Shape, that finds candidate URI-Shape
 %	pairs to index in the index IndexName. Module is the module name
 %	where Functor is defined.
-%	
+%
 %	space_bulkload/1 uses the default index and 'user' module
-%	
+%
 %	@see the uri_shape/2 predicate for an example of a suitable functor.
 
 space_bulkload(Functor) :-
 	rtree_default_index(I),
         space_bulkload('user',Functor,I).
 space_bulkload(Module,Functor,IndexName) :-
-        Call =.. [Functor,_Uri,Shape],
-        once(call(Call)),
+        once(call(Functor, _Uri, Shape)),
         dimensionality(Shape,Dimensionality),
+	must_be(between(1,3), Dimensionality),
         rtree_bulkload(IndexName,Module,Functor,Dimensionality).
-
-space_load_file(File, IndexName) :-
-        rtree_nodesize(RTree_NodeSize),
-        rtree_utilization(RTree_Utilization),
-	rtree_load_file(File, IndexName, RTree_Utilization, RTree_NodeSize).
 
 %%	space_contains(+Shape,?Cont,+IndexName) is nondet.
 %%	space_contains(+Shape,?Cont) is nondet.
@@ -223,7 +213,7 @@ space_intersects(Shape,Inter,IndexName) :-
 	shape(Shape),
         space_index(IndexName),
 	rtree_incremental_intersection_query(Shape, Inter, IndexName).
-        
+
 %%	space_nearest(+Shape,?Near,+IndexName) is nondet.
 %%	space_nearest(+Shape,?Near) is nondet.
 %
@@ -274,7 +264,7 @@ space_display_mbrs(IndexName) :-
 %	WGS84 RDF properties (e.g. wgs84:lat), GeoRSS Simple properties
 %       (e.g. georss:polygon), and GeoRSS GML properties
 %       (e.g. georss:where).
-%       
+%
 %	uri_shape/2 is a dynamic predicate, which means it can be
 %	extended. If you use uri_shape/2 in this way, the URI argument
 %	has to be a canonical URI, not a QName.
@@ -310,7 +300,7 @@ box_polygon(box(point(Lx,Ly),point(Hx,Hy)),
 %%	shape(+Shape) is det.
 %
 %       Checks whether Shape is a valid supported shape.
-       
+
 shape(Shape) :- once(dimensionality(Shape,_)).
 
 dimensionality(Shape,Dim) :- functor(Shape,point,Dim).
@@ -327,7 +317,7 @@ dimensionality(geometrycollection([Geom|_]),Dim) :- dimensionality(Geom,Dim).
 %
 %	Calculates the distance between Point1 and Point2
 %	by default using pythagorean distance.
-%	
+%
 %	@see space_distance_greatcircle/4 for great circle distance.
 
 space_distance(X, Y, D) :-
@@ -348,13 +338,13 @@ space_distance_greatcircle(A, B, D) :-
 	space_distance_greatcircle(A, B, D, nm).
 
 space_distance_greatcircle(A, B, D, km) :-
-	R is 6371, % kilometers 
+	R is 6371, % kilometers
 	space_distance_greatcircle_aux(A, B, D, R).
 
 space_distance_greatcircle(A, B, D, nm) :-
 	R is 3440.06, % nautical miles
 	space_distance_greatcircle_aux(A, B, D, R).
-	
+
 % Haversine formula
 space_distance_greatcircle_aux(point(Lat1deg, Long1deg), point(Lat2deg, Long2deg), D, R) :-
 	deg2rad(Lat1deg,Lat1),

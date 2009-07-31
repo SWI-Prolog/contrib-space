@@ -1,7 +1,16 @@
 /* config.h.in.  Generated from configure.in by autoheader.  */
 
+/* Define to 1 if you have the `bzero' function. */
+#undef HAVE_BZERO
+
+/* Define to 1 if you have the <geos_c.h> header file. */
+#undef HAVE_GEOS_C_H
+
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
+
+/* Define to 1 if you have the `geos_c' library (-lgeos_c). */
+#undef HAVE_LIBGEOS_C
 
 /* Define to 1 if you have the `spatialindex' library (-lspatialindex). */
 #undef HAVE_LIBSPATIALINDEX
@@ -9,8 +18,8 @@
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
-/* Define to 1 if you have the <SpatialIndex.h> header file. */
-#undef HAVE_SPATIALINDEX_H
+/* Define to 1 if you have the <spatialindex/SpatialIndex.h> header file. */
+#undef HAVE_SPATIALINDEX_SPATIALINDEX_H
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
@@ -50,3 +59,6 @@
 
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
+
+/* Define for multi-thread support */
+#undef _REENTRANT

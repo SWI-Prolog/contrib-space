@@ -30,6 +30,7 @@
 #ifndef __SHAPES_H
 #define __SHAPES_H
 
+#include "globals.h"
 #include <spatialindex/SpatialIndex.h>
 #include <geos/geom/PrecisionModel.h>
 #include <geos/geom/Geometry.h>
@@ -48,8 +49,6 @@
 #include <vector>
 #include <sstream>
 #include <typeinfo> // to check if we have a GEOS shape or a SpatialIndex shape
-#include <SWI-cpp.h>
-#include "globals.h"
 
 using namespace std;
 using namespace SpatialIndex;

@@ -4,7 +4,7 @@
     E-mail:        wrvhage@few.vu.nl
     WWW:           http://www.few.vu.nl/~wrvhage
     Copyright (C): 2009, Vrije Universiteit Amsterdam
-    
+
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
     as published by the Free Software Foundation; either version 2
@@ -29,6 +29,10 @@
 
 #ifndef __GLOBALS_H
 #define __GLOBALS_H
+
+#ifdef HAVE_CONFIG_H
+#include "../config.h"
+#endif
 
 #include <SWI-cpp.h>
 #include <geos/geom/GeometryFactory.h>

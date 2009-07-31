@@ -4,7 +4,7 @@
     E-mail:        wrvhage@few.vu.nl
     WWW:           http://www.few.vu.nl/~wrvhage
     Copyright (C): 2009, Vrije Universiteit Amsterdam
-    
+
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
     as published by the Free Software Foundation; either version 2
@@ -30,9 +30,9 @@
 #ifndef __SEARCH_H
 #define __SEARCH_H
 
-#include <spatialindex/SpatialIndex.h>
 #include <SWI-cpp.h>
 #include "globals.h"
+#include <spatialindex/SpatialIndex.h>
 #include "Index.h"
 
 using namespace std;
@@ -62,14 +62,14 @@ class PrintGnuplotVisitor : public IVisitor
   void visitData(const IData& d);
   void visitData(std::vector<const IData*>& v);
 };
-    
+
 
 class TraverseBreadthFirst : public SpatialIndex::IQueryStrategy
 {
  private:
   queue<id_type> ids;
   IVisitor *v;
-  
+
  public:
   TraverseBreadthFirst(IVisitor *vis);
   void getNextEntry(const IEntry& entry, id_type& nextEntry, bool& hasNext);
@@ -81,7 +81,7 @@ class TraverseDepthFirst : public SpatialIndex::IQueryStrategy
  private:
   stack<id_type> ids;
   IVisitor *v;
-  
+
  public:
   TraverseDepthFirst(IVisitor *vis);
   void getNextEntry(const IEntry& entry, id_type& nextEntry, bool& hasNext);
@@ -118,16 +118,16 @@ private:
     id_type m_id;
     IEntry* m_pEntry;
     double m_minDist;
-    
+
     NNEntry(id_type id, IEntry* e, double f) : m_id(id), m_pEntry(e), m_minDist(f) {}
     ~NNEntry() {}
-    
+
     struct ascending : public std::binary_function<NNEntry*, NNEntry*, bool>
     {
       bool operator()(const NNEntry* __x, const NNEntry* __y) const { return __x->m_minDist > __y->m_minDist; }
     };
   }; // NNEntry
-  
+
   class NNComparator : public INearestNeighborComparator
   {
   public:
@@ -135,7 +135,7 @@ private:
     {
       return query.getMinimumDistance(entry);
     }
-    
+
     double getMinimumDistance(const IShape& query, const IData& data)
     {
       IShape* pS;
@@ -145,7 +145,7 @@ private:
       return ret;
     }
   }; // NNComparator
-  
+
  public:
   char* result;
   size_t result_length;
@@ -157,7 +157,7 @@ private:
   std::priority_queue<NNEntry*, std::vector<NNEntry*>, NNEntry::ascending> queue;
   NNComparator nnc;
   Index *index;
-  
+
   IncrementalNearestNeighborStrategy(const IShape* queryp,IVisitor* vp, Index* index);
   void getNextEntry(const IEntry& entry, id_type& nextEntry, bool& hasNext);
   ~IncrementalNearestNeighborStrategy();
