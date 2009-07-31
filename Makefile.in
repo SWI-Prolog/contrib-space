@@ -109,7 +109,7 @@ html:		$(TEX)
 $(TEX):		$(DOCTOTEX)
 
 spacepl.tex:	space.pl
-		$(PLTOTEX) --out=$@ --section 'library(space)'
+		$(PLTOTEX) --out=$@ --section 'library(space/space)'
 
 .doc.tex:
 		$(DOCTOTEX) $*.doc > $*.tex
