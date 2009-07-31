@@ -4,7 +4,7 @@
     E-mail:        wrvhage@few.vu.nl
     WWW:           http://www.few.vu.nl/~wrvhage
     Copyright (C): 2009, Vrije Universiteit Amsterdam
-    
+
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
     as published by the Free Software Foundation; either version 2
@@ -31,11 +31,13 @@
 	  [ gml_shape/2,
             poslist/3
 	  ]).
-	    
+
 :- use_module(library(http/html_write)).
 :- use_module(library(http/dcg_basics)).
 :- use_module(library(memfile)).
-:- use_module(xpath).
+:- use_module(library(xpath)).
+:- use_module(library(sgml)).
+:- use_module(library(lists)).
 :- use_module(gml).
 
 %%	gml_shape(?GML,?Shape) is semidet.
@@ -47,11 +49,15 @@ gml_shape(GML, Geom) :-
         (   var(Geom)
 	->  atom_to_memory_file(GML, Memfile),
 	    open_memory_file(Memfile, read, Stream),
-	    load_structure(Stream, XML, []),
+	    call_cleanup(load_structure(Stream, XML, []),
+			 free_data(Stream, Memfile)),
 	    transform_gml(XML, Geom)
 	;   construct_gml(GML, Geom)
 	).
 
+free_data(Stream, Memfile) :-
+	close(Stream),
+	free_memory_file(Memfile).
 
 linearring('gml:LinearRing'('gml:posList'(LSC)),LR) :-
 	phrase(poslist(LR),LinearRing),
@@ -63,36 +69,36 @@ interior(['gml:interior'(LR1)|T1],[LR2|T2]) :-
 	interior(T1,T2).
 
 construct_gml(GML,point(X,Y)) :-
-	concat_atom([X,Y],' ',PosList),
+	atomic_list_concat([X,Y],' ',PosList),
 	phrase(html('gml:Point'('gml:pos'(PosList))),Atoms),
-	concat_atom(Atoms,GML).
+	atomic_list_concat(Atoms,GML).
 construct_gml(GML,point(X,Y,Z)) :-
-	concat_atom([X,Y,Z],' ',PosList),
+	atomic_list_concat([X,Y,Z],' ',PosList),
 	phrase(html('gml:Point'('gml:pos'(PosList))),Atoms),
-	concat_atom(Atoms,GML).
+	atomic_list_concat(Atoms,GML).
 construct_gml(GML,point(X,Y,Z,M)) :-
-	concat_atom([X,Y,Z,M],' ',PosList),
+	atomic_list_concat([X,Y,Z,M],' ',PosList),
 	phrase(html('gml:Point'('gml:pos'(PosList))),Atoms),
-	concat_atom(Atoms,GML).
+	atomic_list_concat(Atoms,GML).
 
 construct_gml(GML,linestring(LS)) :-
 	phrase(poslist(LS),LineString),
 	atom_codes(LSC,LineString),
 	phrase(html('gml:LineString'('gml:posList'(LSC))),Atoms),
-	concat_atom(Atoms,GML).
+	atomic_list_concat(Atoms,GML).
 
 construct_gml(GML,polygon([Ext|Int])) :-
 	linearring(ExtT,Ext),
 	interior(InteriorTerms,Int),
 	phrase(html('gml:Polygon'(['gml:exterior'(ExtT)|InteriorTerms])),Atoms),
-	concat_atom(Atoms,GML).
+	atomic_list_concat(Atoms,GML).
 
 construct_gml(GML,box(point(X1,Y1),point(X2,Y2))) :-
-	concat_atom([X1,Y1],' ',PosList1),
-	concat_atom([X2,Y2],' ',PosList2),
+	atomic_list_concat([X1,Y1],' ',PosList1),
+	atomic_list_concat([X2,Y2],' ',PosList2),
 	phrase(html('gml:Envelope'(['gml:lowerCorner'(PosList1),
 				    'gml:upperCorner'(PosList2)])),Atoms),
-	concat_atom(Atoms,GML).
+	atomic_list_concat(Atoms,GML).
 
 transform_gml(Elts,P) :-
 	member(element('gml:point',_,PointElts),Elts),
@@ -131,7 +137,7 @@ get_polygon_interior(Polygon,Int) :-
 	xpath(Polygon, //'gml:interior'/'gml:linearring'/'gml:poslist', element(_,_,[A])),
 	atom_codes(A,C),
 	phrase(poslist(Int),C).
-	
+
 get_box(Elts,LBC,UBC) :-
 	xpath(Elts, //'gml:lowercorner', element(_,_,[LA])),
 	xpath(Elts, //'gml:lowercorner', element(_,_,[UA])),
@@ -139,7 +145,7 @@ get_box(Elts,LBC,UBC) :-
 	atom_codes(UA,UC),
 	phrase(pos(LBC),LC),
 	phrase(pos(UBC),UC).
-	
+
 
 poslist(T) --> blank_star, poslist_plus(T), blank_star, !.
 poslist_plus([H|T]) --> pos(H), poslist_star(T).

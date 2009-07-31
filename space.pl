@@ -70,13 +70,12 @@
 :- use_module(georss). % also GML support
 :- use_module(wgs84).
 :- use_module(library(error)).
+:- use_module(library(shlib)).
 
 :- dynamic space_queue/4.
 :- dynamic uri_shape/2. % allows you to adapt space_index_all.
 
-:- assert(user:file_search_path(foreign,'.')).
-
-:- load_foreign_library(foreign(space)).
+:- use_foreign_library(foreign(space)).
 
 
 /** <module> Core spatial database
