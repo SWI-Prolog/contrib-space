@@ -4,7 +4,7 @@
     E-mail:        wrvhage@few.vu.nl
     WWW:           http://www.few.vu.nl/~wrvhage
     Copyright (C): 2009, Vrije Universiteit Amsterdam
-    
+
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
     as published by the Free Software Foundation; either version 2
@@ -32,8 +32,9 @@
 	    georss_simple_candidate/2,
 	    georss_gml_candidate/2
 	  ]).
-	    
+
 :- use_module(library(semweb/rdf_db)).
+:- use_module(library(http/dcg_basics)).
 :- use_module(gml).
 
 :- rdf_register_ns(georss,'http://www.georss.org/georss/').
@@ -44,7 +45,7 @@
 %	link URI to a Shape with GeoRSS RDF properties
 %	(e.g. georss:where, georss:line, georss:polygon).
 %	Both GeoRSS Simple and GML are supported.
-	
+
 georss_candidate(URI, Shape) :-
 	georss_simple_candidate(URI, Shape) ;
 	georss_gml_candidate(URI, Shape).
@@ -97,7 +98,7 @@ circle(circle(Center,Radius)) -->
 
 
 %
-% GeoRSS GML	
+% GeoRSS GML
 %
 
 %%	georss_gml_candidate(?URI,?Shape) is nondet.
@@ -114,3 +115,17 @@ georss_gml_candidate(URI, Shape) :-
 	gml_shape(GML, Shape).
 
 
+poslist(T) --> blank_star, poslist_plus(T), blank_star, !.
+poslist_plus([H|T]) --> pos(H), poslist_star(T).
+poslist_star(T) --> blank_plus, poslist(T).
+poslist_star([]) --> [], !.
+
+pos(point(X,Y)) --> c(X), blank_plus, c(Y).
+pos(point(X,Y,Z)) --> c(X), blank_plus, c(Y), blank_plus, c(Z).
+pos(point(X,Y,Z,M)) --> c(X), blank_plus, c(Y), blank_plus, c(Z), blank_plus, c(M).
+c(X) --> float(X).
+
+blank_plus --> blank, blank_star, !.
+blank_plus --> " ", !.
+blank_star --> blanks, !.
+blank_star --> [], !.
