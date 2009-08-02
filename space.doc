@@ -1,32 +1,11 @@
 \documentclass[11pt]{article}
 \usepackage{times}
 \usepackage{pl}
+\usepackage{plpage}
 \usepackage{html}
 \sloppy
 \makeindex
 
-\usepackage{fancyvrb}
-\usepackage{color}
-\definecolor{gray}{rgb}{0.5,0.5,0.5}
-\definecolor{red}{rgb}{1,0,0}
-\definecolor{green}{rgb}{0,1,0}
-\bibliographystyle{plain}
-\usepackage{url}
-\usepackage{graphicx}
-
-\newcommand{\todo}[1]{{\bf\textsf{(TODO: #1)}}}
-\newcommand{\topic}[2]{\noindent{\small {\bf #1} #2}\\}
-\newcommand{\smooth}[1]{\textsf{#1}}
-%\newcommand{\wrvhcode}[1]{\DefineShortVerb{\|}|#1|\UndefineShortVerb{\|}}
-\newcommand{\wrvhcode}[1]{\texttt{\small #1}}
-\newcommand{\footnoteremember}[2]{
-  \footnote{#2}
-  \newcounter{#1}
-  \setcounter{#1}{\value{footnote}}
-}
-\newcommand{\footnoterecall}[1]{
-  \footnotemark[\value{#1}]
-}
 \newcommand{\curversion}{0.1.1}
 
 \onefile
@@ -60,39 +39,34 @@ Simple, GeoRSS GML, and W3C WGS84 vocabulary properties.
 
 \section{Introduction}
 The Space package provides spatial indexing for SWI-Prolog. It is based on
-Geometry Engine Open Source (\url{http://geos.refractions.net/}) and the Spatial
-Index Library (\url{http://trac.gispython.org/spatialindex/}).
+\url[Geometry Engine Open Source]{http://geos.refractions.net/} and the \url[Spatial
+Index Library]{http://trac.gispython.org/spatialindex/}.
 
 \section{Shapes as Prolog Terms}
 The central objects of the Space package are pairs, $\langle u, s\rangle$ of a URI, $u$, and its associated shape, $s$.
-The URIs are linked to the shapes with the \wrvhcode{uri\_shape/2} predicate. This is illustrated in figure~\ref{fig:shapes}. We will support all OpenGIS Simple Features, points, linestrings, polygons (with $\geq0$ holes), multi-points, multi-polygons, and geometry collections; and some utility shapes like box and circle regions.\footnote{The current version of the Space package, \curversion, only supports points and polygons (with holes) and box regions. Development on the other shape types is underway.}
+The URIs are linked to the shapes with the uri\_shape/2 predicate. We will support all OpenGIS Simple Features, points, linestrings, polygons (with $\geq0$ holes), multi-points, multi-polygons, and geometry collections; and some utility shapes like box and circle regions.\footnote{The current version of the Space package, \curversion, only supports points and polygons (with holes) and box regions. Development on the other shape types is underway.}
 
 Both the URIs and the shapes are represented as Prolog terms. This makes them first-class Prolog citizens, which allows the construction and transformation of shapes using regular Prolog clauses, or Definite Clause Grammars (DCGs).
-We support input from locations encoded in RDF with the W3C WGS84 vocabulary \footnote{\url{http://www.w3.org/2003/01/geo/}} and with the GeoRSS Simple properties and the GeoRSS \wrvhcode{where} property leading to an XML literal consisting of a GML element.\footnote{\textit{cf.} \url{http://georss.org/}}
-The \wrvhcode{uri\_shape/2} predicate searches for URI-Shape pairs in SWI-Prolog's RDF triple store. It matches URIs to Shapes by using WGS84 and GeoRSS properties. For example, a URI $u$ is associated with the shape $s=$\wrvhcode{point(}$lat,long$\wrvhcode{)} if the triple store contains the triples: $\langle u,$ \wrvhcode{wgs84\_pos:lat} $, lat\rangle$ and $\langle u,$ \wrvhcode{wgs84\_pos:long} $, long\rangle$; or when it contains one of the following triples:\\
-  $\langle u,$ \wrvhcode{georss:point}$,$\wrvhcode{"}$lat$ $long$\wrvhcode{"}$\rangle$ or $\langle u,$ \wrvhcode{georss:where}$,$\wrvhcode{"<gml:Point>}\wrvhcode{<gml:pos>} $lat$ $long$\\ \wrvhcode{</gml:pos>}\wrvhcode{</gml:Point>"}$\rangle$.
+We support input from locations encoded in RDF with the \url[W3C WGS84 vocabulary]{http://www.w3.org/2003/01/geo/} and with the \url[GeoRSS]{http://georss.org} Simple properties and the GeoRSS \const{where} property leading to an XML literal consisting of a GML element.
+The uri\_shape/2 predicate searches for URI-Shape pairs in SWI-Prolog's RDF triple store. It matches URIs to Shapes by using WGS84 and GeoRSS properties. For example, a URI $u$ is associated with the shape $s=$\const{point(}$lat,long$\const{)} if the triple store contains the triples: $\langle u,$ \const{wgs84\_pos:lat} $, lat\rangle$ and $\langle u,$ \const{wgs84\_pos:long} $, long\rangle$; or when it contains one of the following triples:\\
+  $\langle u,$ \const{georss:point}$,$\const{"}$lat$ $long$\const{"}$\rangle$ or $\langle u,$ \const{georss:where}$,$\const{"<gml:Point>}\const{<gml:pos>} $lat$ $long$\\ \const{</gml:pos>}\const{</gml:Point>"}$\rangle$.
 The XML literal containing the GML description of the geometric shape is parsed with a DCG that can also be used to generate GML from Prolog shape terms.
-\begin{figure}[h]
-\begin{Verbatim}[frame=lines,commandchars=\\\{\},numbers=none,numbersep=2.5pt,fontsize=\small]
+
+\begin{code}
 ?- shape(point(52.3325,4.8673)),
    shape(box(point(52.3324,4.8621),point(52.3348,4.8684))),
    shape(
-   polygon([[point(52.3632,4.981)|_],    \textcolor{gray}{% the outer shell of the polygon}
-            [point(52.3631,4.9815)|_] |_ \textcolor{gray}{% any number of holes 0..*}
+   polygon([[point(52.3632,4.981)|_],    % the outer shell of the polygon
+            [point(52.3631,4.9815)|_] |_ % any number of holes 0..*
            ])).
 true.
-\textcolor{gray}{%% uri_shape(?URI, ?Shape) is nondet.}
-?- uri_shape('http://www.example.org/myoffice', Shape).  \textcolor{gray}{% read from RDF}
+%% uri_shape(?URI, ?Shape) is nondet.
+?- uri_shape('http://www.example.org/myoffice', Shape).  % read from RDF
 Shape = point(52.3325,4.8673).
-\end{Verbatim}
-
-\caption{Examples of supported shapes that can be used both as data and queries in Space package version \curversion . Shapes are associated to a URI by the \wrvhcode{uri\_shape/2} predicate and verified with the \wrvhcode{shape/1} predicate.}
-\label{fig:shapes}
-
-\end{figure}
+\end{code}
 
 \section{Adding, Removing, and Bulkloading Shapes}
-The spatial index can be modified in two ways: By inserting or retracting single URI-shape pairs respectively using the \wrvhcode{space\_assert/3}, or the \wrvhcode{space\_retract/3} predicate; or by loading many pairs at once using the \wrvhcode{space\_bulkload/3} predicate or its parameterless counterpart \wrvhcode{space\_index\_all/0} which simply loads all the shapes it can find with the \wrvhcode{uri\_shape/2} predicate into the default index.
+The spatial index can be modified in two ways: By inserting or retracting single URI-shape pairs respectively using the space\_assert/3, or the space\_retract/3 predicate; or by loading many pairs at once using the space\_bulkload/3 predicate or its parameterless counterpart space\_index\_all/0 which simply loads all the shapes it can find with the uri\_shape/2 predicate into the default index.
 The former method is best for small manipulations of indices, while the latter method is best for the loading of large numbers of URI-shape pairs into an index.
 The Space package can deal with multiple indices to make it possible to divide sets of features. Indices are identified with a name handle, which can be any Prolog atom.\footnote{Every predicate in the Space package that must be given an index handle also has an abbreviated version without the index handle argument which automatically uses the default index.}
 The actual indexing of the shapes is performed using lazy evaluation. Assertions
@@ -101,145 +75,92 @@ committed to the index whenever a query is performed, or when a different kind
 of modification is called for (\textit{i.e.} when the queue contains assertions
 and a retraction is requested or vice versa).
 
-\begin{figure}[h]
-\begin{Verbatim}[frame=lines,commandchars=\\\{\},numbers=none,numbersep=2.5pt,fontsize=\small]
-\textcolor{gray}{%% space_assert(+URI, +Shape, +IndexName) is det.}
-\textcolor{gray}{%% space_retract(+URI, +Shape, +IndexName) is det.}
-\textcolor{gray}{%% space_index(+IndexName) is det.}
-?- space_assert(ex:myoffice, point(52.3325,4.8673), 
-                demo_index).  \textcolor{gray}{% only adds it to the 'demo_index' queue}
+\begin{code}
+?- space_assert(ex:myoffice, point(52.3325,4.8673), demo_index).  % only adds it to the 'demo_index' queue
 true.
 ?- space_contains(box(point(52.3324,4.8621), point(52.3348,4.8684)),
                   Cont, demo_index).
-\textcolor{gray}{% uses 'demo_index', so triggers a call to space_index('demo_index').}
-Cont = 'http://www.example.org/myoffice' .    \textcolor{gray}{% first instantiation, etc.}
-\end{Verbatim}
+% uses 'demo_index', so triggers a call to space_index('demo_index').
+Cont = 'http://www.example.org/myoffice' .    % first instantiation, etc.
+\end{code}
 
-\caption{The \wrvhcode{space\_assert/3} and \wrvhcode{space\_retract/3} predicates put modifications to the index in a queue that is processed by \wrvhcode{space\_index/1} before the execution of a query on the index (lazy evaluation). \wrvhcode{ex:myoffice} is a QName using an example namespace.}
-\label{fig:index}
-
-\end{figure}
-
-\begin{figure}[h]
-\begin{Verbatim}[frame=lines,commandchars=\\\{\},numbers=none,numbersep=2.5pt,fontsize=\small]
-\textcolor{gray}{%% space_bulkload(+Module, +Predicate, +IndexName) is det.}
-\textcolor{gray}{%% uri_shape(?URI, ?Shape) is nondet.}
+\begin{code}
 ?- space_bulkload(space, uri_shape, demo_index).
 true.
-\end{Verbatim}
-
-\caption{Bulkloading is done with the \wrvhcode{space\_bulkload/3} predicate, which creates a new index of all URI-Shape pairs it can find with the supplied predicate. In this example we use the \wrvhcode{uri\_shape/2} predicate from the \wrvhcode{space} module to find candidates for indexing.}
-\label{fig:bulkload}
-
-\end{figure}
-
+\end{code}
 
 \section{Query types}
 We chose three basic spatial query types as our basic building blocks: \emph{containment}, \emph{intersection}, and \emph{nearest neighbor}.
-These three query types are implemented as pure Prolog predicates, respectively \wrvhcode{space\_contains/3}, \wrvhcode{space\_intersects/3}, and \wrvhcode{space\_nearest/3}.
-These predicates work completely analogously, taking an index handle and a query shape to retrieve the URI of a shape matching the query, which is bound to the second argument. Any successive calls to the predicate try to re-instantiate the second argument with a different matching URI. This is illustrated in figure~\ref{fig:queries}. The results of containment and intersection queries are instantiated in no particular order, while the nearest neighbor results are instantiated in order of increasing distance to the query shape.
-The \wrvhcode{space\_nearest\_bounded/4} predicate is a containment query based on
-\wrvhcode{space\_nearest/3}, which returns objects within a certain range of the
+These three query types are implemented as pure Prolog predicates, respectively space\_contains/3, space\_intersects/3, and space\_nearest/3.
+These predicates work completely analogously, taking an index handle and a query shape to retrieve the URI of a shape matching the query, which is bound to the second argument. Any successive calls to the predicate try to re-instantiate the second argument with a different matching URI. The results of containment and intersection queries are instantiated in no particular order, while the nearest neighbor results are instantiated in order of increasing distance to the query shape.
+The space\_nearest\_bounded/4 predicate is a containment query based on
+space\_nearest/3, which returns objects within a certain range of the
 query shape in order of increasing distance. 
 
-\begin{figure}[h]
-\begin{Verbatim}[frame=lines,commandchars=\\\{\},numbers=none,numbersep=2.5pt,fontsize=\small]
-\textcolor{gray}{%% space_contains(+QueryShape, -ContainedURI, +IndexName) is nondet.}
-\textcolor{gray}{%% space_intersects(+QueryShape, -IntersectedURI, +IndexName) is nondet.}
-\textcolor{gray}{%% space_nearest(+QueryShape, -NearURI, +IndexName) is nondet.}
-\textcolor{gray}{%% space_nearest_bounded(+Query, -NearURI, +Range, +IndexName) is nondet.}
+\begin{code}
 ?- space_nearest(point(52.3325,4.8673), N, 'demo_index').
-N = 'http://sws.geonames.org/2759113/' ;      \textcolor{gray}{% retry, ask for more}
-N = 'http://sws.geonames.org/2752058/' ;      \textcolor{gray}{% retry}
-N = 'http://sws.geonames.org/2754074/' .      \textcolor{gray}{% cut, satisfied}
-\end{Verbatim}
-
-\caption{Three types of queries: containment, intersection, and incremental nearest neighbor. All query types return one value, a URI, at a time.
-There exist short notations of these predicates with arity two that automatically use the default index.}
-\label{fig:queries}
-
-\end{figure}
-
-
+N = 'http://sws.geonames.org/2759113/' ;      % retry, ask for more
+N = 'http://sws.geonames.org/2752058/' ;      % retry
+N = 'http://sws.geonames.org/2754074/' .      % cut, satisfied
+\end{code}
 
 \section{Importing and Exporting Shapes}
-Besides supporting input from RDF we support input and output for other standards, like GML,\footnote{\url{http://www.opengeospatial.org/standards/gml}} KML\footnote{\url{http://code.google.com/apis/kml/}} and WKT.\footnote{\url{http://en.wikipedia.org/wiki/Well-known_text}} All shapes can be converted from and to these standards with the \wrvhcode{gml\_shape/2}, \wrvhcode{kml\_shape/2}, and \wrvhcode{wkt\_shape/2} predicates.
-An illustration of this is shown in figure~\ref{fig:export}.
+Besides supporting input from RDF we support input and output for other standards, like\url[GML]{http://www.opengeospatial.org/standards/gml}, \url[KML]{http://code.google.com/apis/kml/} and \url[WKT]{http://en.wikipedia.org/wiki/Well-known_text}. All shapes can be converted from and to these standards with the gml\_shape/2, kml\_shape/2, and wkt\_shape/2 predicates.
 
-\begin{figure}[h]
-\begin{Verbatim}[frame=lines,commandchars=\\\{\},numbers=none,numbersep=2.5pt,fontsize=\small]
-\textcolor{gray}{% Convert a WKT shape into GML and KML}
-?- wkt_shape('POINT ( 52.3325 4.8673 )', Shape),  \textcolor{gray}{% instantiate from WKT}
+\begin{code}
+% Convert a WKT shape into GML and KML}
+?- wkt_shape('POINT ( 52.3325 4.8673 )', Shape),  % instantiate from WKT
    gml_shape(GML, Shape),
    kml_shape(KML, Shape).
 Shape = point(52.3325, 4.8673),
 GML = '<gml:Point><gml:pos>52.3325 4.8673</gml:pos></gml:Point>',
 KML = '<Point><coordinates>4.8673,52.3325</coordinates></Point>' .
-\end{Verbatim}
-\caption{Converting a WKT geometry object into a Prolog shape term, and converting it to GML and KML. The conversion can be done in any direction between these formats using the same predicates with different variables instantiated.}
-\label{fig:export}
-\end{figure}
-
+\end{code}
 
 \section{Integration of Space and Semantics}
-The non-deterministic implementation of the queries makes them behave like a lazy stream of solutions. This allows tight integration with other types of reasoning, like RDF(S) and OWL reasoning or other Prolog rules. An example of combined RDF and spatial reasoning is shown in figure~\ref{fig:tight}.
+The non-deterministic implementation of the queries makes them behave like a lazy stream of solutions. This allows tight integration with other types of reasoning, like RDF(S) and OWL reasoning or other Prolog rules. An example of combined RDF and spatial reasoning is shown below.
 
-\begin{figure}[h]
-\begin{Verbatim}[frame=lines,commandchars=\\\{\},numbers=none,numbersep=2.5pt,fontsize=\small,lastline=17]
-\textcolor{gray}{% Finds nearest railway stations in the province Utrecht (in GeoNames)}
+\begin{code}
+% Finds nearest railway stations in the province Utrecht (in GeoNames)
 ?- uri_shape(ex:myoffice, Office),
    rdf(Utrecht, geo:name, literal('Provincie Utrecht')), 
    space_nearest(Office, Near),
-   \textcolor{gray}{% 'S' stands for a spot, like a building, 'RSTN' for railway station}
+   % 'S' stands for a spot, like a building, 'RSTN' for railway station
    rdf(Near, geo:featureCode, geo:'S.RSTN'),
-   \textcolor{gray}{% 'Near' connected to 'Utrecht' by transitive 'parentFeature'}
+   % 'Near' connected to 'Utrecht' by transitive 'parentFeature'
    rdf_reachable(Near, geo:parentFeature, Utrecht), 
-   rdf(Near, geo:name, literal(Name)),  \textcolor{gray}{% fetch name of 'Near'}
-   uri_shape(Near, Station),  \textcolor{gray}{% fetch shape of station}
-   \textcolor{gray}{% compute actual distance in km}
+   rdf(Near, geo:name, literal(Name)),  % fetch name of 'Near'
+   uri_shape(Near, Station),  % fetch shape of station
+   % compute actual distance in km}
    space_distance_greatcircle(Office, Station, Distance, km).
-Utrecht = 'http://sws.geonames.org/2745909/',  \textcolor{gray}{% first instantiation}
+Utrecht = 'http://sws.geonames.org/2745909/',  % first instantiation
 Near = 'http://sws.geonames.org/6639765/',
 Name = 'Station Abcoude' ,
 Station = point(52.2761, 4.97904), 
-Distance = 9.85408 ;                           \textcolor{gray}{% etc.}
-Utrecht = 'http://sws.geonames.org/2745909/',  \textcolor{gray}{% second instantiation}
+Distance = 9.85408 ;                           % etc.
+Utrecht = 'http://sws.geonames.org/2745909/',  % second instantiation
 Near = 'http://sws.geonames.org/6639764/',
 Name = 'Station Breukelen' ,
 Station = point(52.17, 4.9906),
-Distance = 19.9199 .                           \textcolor{gray}{% etc.}
-\end{Verbatim}
-\caption{Example code showing tight integration of a spatial query and RDFS reasoning. Query optimization would involve reordering the predicates.}
-\label{fig:tight}
-\end{figure}
+Distance = 19.9199 .                           % etc.
+\end{code}
 
-Integration of multiple spatial queries can be done in the same way. Since the queries return URIs an intermediate URI-Shape predicate is necessary to get a shape that can be used as a query. An example is shown in figure~\ref{fig:nesting}.
+Integration of multiple spatial queries can be done in the same way. Since the queries return URIs an intermediate URI-Shape predicate is necessary to get a shape that can be used as a query. An example is shown below.
 
-\begin{figure}[h]
-\begin{Verbatim}[frame=lines,commandchars=\\\{\},numbers=none,numbersep=2.5pt,fontsize=\small]
-\textcolor{gray}{% Find features inside nearby polygons.}
+\begin{code}
+% Find features inside nearby polygons.
 ?- uri_shape(ex:myoffice, Office),
    space_nearest(Office, NearURI),
-   uri_shape(NearURI, NearShape),  \textcolor{gray}{% look up the shape of the URI 'Near'}
-   NearShape = polygon(_),  \textcolor{gray}{% assert that it must be a polygon}
+   uri_shape(NearURI, NearShape),  % look up the shape of the URI 'Near'
+   NearShape = polygon(_),  % assert that it must be a polygon}
    space_contains(NearShape, Contained).
-\end{Verbatim}
-\caption{Example code showing nested spatial queries.}
-\label{fig:nesting}
-\end{figure}
+\end{code}
 
 
 \section{Architecture}
 \label{sec:architecture}
 The Space package consists of C++ and Prolog code.
-% The division into components is shown in figure~\ref{fig:architecture}. 
-The main component is the Prolog module \wrvhcode{space}. All parsing and generation of input and output formats is done in Prolog. All index manipulation is done through the foreign language interface (FLI) from Prolog to C++. The \wrvhcode{space\_bulkload/3} predicate also communicates back across the FLI from C++ to Prolog, allowing the indexing functions to ask for candidates to index from the Prolog database, for example, by calling the \wrvhcode{uri\_shape/2} predicate.
-% \begin{figure}[h]
-% \centering
-% \includegraphics[width=0.85\textwidth]{architecture}
-% \caption{The architecture of the Space package.}
-% \label{fig:architecture}
-% \end{figure}
+The main component is the Prolog module space.pl. All parsing and generation of input and output formats is done in Prolog. All index manipulation is done through the foreign language interface (FLI) from Prolog to C++. The space\_bulkload/3 predicate also communicates back across the FLI from C++ to Prolog, allowing the indexing functions to ask for candidates to index from the Prolog database, for example, by calling the uri\_shape/2 predicate.
 
 \subsection{Incremental Search and Non-determinism}
 The three search operations provided by the Space package all yield their results incrementally, \textit{i.e.} one at a time. Prolog predicates actually do not have return values, but instantiate parameters. Multiple return values are returned by subsequently instantiating the same variable, so the first call to a predicate can make different variable instantiations than the second call. This standard support of non-deterministic behavior makes it easy to write incremental algorithms in Prolog.
@@ -270,33 +191,7 @@ An alternative implementation would be to take the exact IncNearest algorithm de
 
 \printindex
 
-\begin{thebibliography}{10}
-
-\bibitem{Allemang:2008mg}
-Dean Allemang and James Hendler.
-\newblock {\em Semantic Web for the Working Ontologist}.
-\newblock Morgan Kaufmann, 2008.
-
-\bibitem{Bennett:1998yi}
-Brandon Bennett, Amar Isli, and Anthony~G. Cohn.
-\newblock A system handling rcc-8 queries on 2d regions representable in the
-  closure algebra of half-planes.
-\newblock In {\em Methodology and Tools in Knowledge-Based Systems}, 1998.
-
-\bibitem{bernard2003ontologies}
-L.~Bernard, U.~Einspanier, S.~Haubrock, S.~H\"{u}bner, W.~Kuhn, R.~Lessing,
-  M.~Lutz, and U.~Visser.
-\newblock Ontologies for intelligent search and semantic translation in spatial
-  data infrastructures.
-\newblock {\em Photogrammetrie - Fernerkundung - Geoinformation},
-  2003(6):451--462, 2003.
-
-\bibitem{fonseca1999ontology-driven-gis}
-Frederico~T. Fonseca and Max~J. Egenhofer.
-\newblock Ontology-driven geographic information systems.
-\newblock In {\em GIS '99: Proceedings of the 7th ACM international symposium
-  on Advances in geographic information systems}, pages 14--19, New York, NY,
-  USA, 1999. ACM.
+\begin{thebibliography}{2}
 
 \bibitem{Hadjieleftheriou:2005rz}
 Marios Hadjieleftheriou, Erik Hoel, and Vassilis~J. Tsotras.
@@ -308,63 +203,6 @@ G\'isli~R. Hjaltason and Hanan Samet.
 \newblock Distance browsing in spatial databases.
 \newblock {\em ACM Transactions on Database Systems (TODS)}, 24(2):265--318,
   1999.
-
-\bibitem{kolas2005geospatial-semantic-web}
-Dave Kolas, John Hebeler, and Mike Dean.
-\newblock Geospatial semantic web: Architecture of ontologies.
-\newblock In {\em GeoSpatial Semantics}, pages 183--194. Springer Berlin /
-  Heidelberg, 2005.
-
-\bibitem{Liang:2008ss}
-Senlin Liang, Paul Fodor, Hui Wan, and Michael Kifer.
-\newblock Openrulebench: An analysis of the performance of rule engines.
-\newblock In {\em Proceedings of the 17th International World Wide Web
-  Conference (WWW2008)}, 2008.
-
-\bibitem{Luscher:2009rf}
-Patrick L\"uscher, Robert Weibel, and Dirk Burghardt.
-\newblock Integrating ontological modelling and bayesian inference for urban
-  pattern classification in topographic vector data.
-\newblock {\em Computers, Environment and Urban Systems}, 2009.
-
-\bibitem{McBride:2002ly}
-Brian McBride.
-\newblock Jena: A semantic web toolkit.
-\newblock {\em IEEE Internet Computing}, 6(6):55--59, 2002.
-
-\bibitem{Orellana:2009lp}
-Daniel Orellana and Chiara Renso.
-\newblock Developing an interactions ontology for characterising pedestrian
-  movement behavior.
-\newblock In Monica Wachowicz, editor, {\em Movement-Aware Applications for
-  Sustainable Mobility: Technologies and Approaches}. IGI Global Publishing,
-  2009.
-
-\bibitem{Orellana:2009xp}
-Daniel Orellana, Monica Wachowicz, Natalia Andrienko, and Gennady Andrienko.
-\newblock Uncovering interaction patterns in mobile outdoor gaming.
-\newblock In {\em International Conference on Advanced Geographic Information
-  Systems \& Web Services}, 2009.
-
-\bibitem{van-Hage:2009yq}
-Willem~Robert {van Hage}, V\'eronique Malais\'e, Gerben de~Vries, Guus
-  Schreiber, and Maarten van Someren.
-\newblock Combining ship trajectories and semantics with the simple event model
-  (sem).
-\newblock In {\em Proceedings of the 1st ACM International Workshop on Events
-  in Multimedia}. Sheridan Publishers, 2009.
-
-\bibitem{Wielemaker:2005vq}
-Jan Wielemaker.
-\newblock An optimized semantic web query language implementation in prolog.
-\newblock In {\em Proceedings of the 21st International Conference on Logic
-  Programming (ICLP 2005)}, 2005.
-
-\bibitem{Wielemaker:2008ms}
-Jan Wielemaker, Zhisheng Huang, and Lourens {van der Meij}.
-\newblock Swi-prolog and the web.
-\newblock In A.~Bossi, editor, {\em Theory and Practice of Logic Programming},
-  volume~8, pages 363--392. Cambridge University Press, 2008.
 
 \end{thebibliography}
 

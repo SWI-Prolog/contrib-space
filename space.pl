@@ -179,7 +179,7 @@ space_bulkload(Functor) :-
 	rtree_default_index(I),
         space_bulkload('user',Functor,I).
 space_bulkload(Module,Functor,IndexName) :-
-        once(call(Functor, _Uri, Shape)),
+        once(call(Module:Functor, _Uri, Shape)),
         dimensionality(Shape,Dimensionality),
 	must_be(between(1,3), Dimensionality),
         rtree_bulkload(IndexName,Module,Functor,Dimensionality).
