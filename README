@@ -21,6 +21,8 @@ run:
 autoconf
 autoheader
 ./configure
+make
+make install
 pl -s test_space.pl -g test_space,halt
 pl -s demo_space.pl
 
