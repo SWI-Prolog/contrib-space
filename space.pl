@@ -42,7 +42,7 @@
            space_clear/1,             % +IndexName
            space_clear/0,             % uses default index
 
-           space_bulkload/3,          % +ModuleOfPred, +CandidatePred, +IndexName
+           space_bulkload/2,          % +CandidatePred, +IndexName
            space_bulkload/1,          % +CandidatePred (uses default index and 'user' module)
 
            space_contains/3,          % +Shape, -URI, +IndexName
@@ -163,27 +163,26 @@ space_clear(IndexName) :-
         retractall(space_queue(IndexName,_,_,_)),
         rtree_clear(IndexName).
 
-%%	space_bulkload(+Module,+Functor,+IndexName) is det.
-%%	space_bulkload(+Functor) is det.
+%%	space_bulkload(:Closure,+IndexName) is det.
+%%	space_bulkload(:Closure) is det.
 %
 %	Fast loading of many Shapes into the index IndexName.
-%	Functor is the functor of a predicate with two arguments:
+%	Closure is called with two additional arguments:
 %	URI and Shape, that finds candidate URI-Shape
-%	pairs to index in the index IndexName. Module is the module name
-%	where Functor is defined.
-%
-%	space_bulkload/1 uses the default index and 'user' module
+%	pairs to index in the index IndexName.
 %
 %	@see the uri_shape/2 predicate for an example of a suitable functor.
+
+:- meta_predicate space_bulkload(2), space_bulkload(2,+).
 
 space_bulkload(Functor) :-
 	rtree_default_index(I),
         space_bulkload('user',Functor,I).
-space_bulkload(Module,Functor,IndexName) :-
-        once(call(Module:Functor, _Uri, Shape)),
+space_bulkload(Functor,IndexName) :-
+        once(call(Functor, _Uri, Shape)),
         dimensionality(Shape,Dimensionality),
 	must_be(between(1,3), Dimensionality),
-        rtree_bulkload(IndexName,Module,Functor,Dimensionality).
+        rtree_bulkload(IndexName,Functor,Dimensionality).
 
 %%	space_contains(+Shape,?Cont,+IndexName) is nondet.
 %%	space_contains(+Shape,?Cont) is nondet.
@@ -299,7 +298,7 @@ space_index_all :-
 	space_index_all(IndexName).
 
 space_index_all(IndexName) :-
-	space_bulkload('space',uri_shape,IndexName).
+	space_bulkload(uri_shape,IndexName).
 
 
 /*

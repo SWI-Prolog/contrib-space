@@ -17,10 +17,10 @@ test(space_clear, [ fail ]) :-
 	space_nearest(point(0.0,0.0),_N,test_index).
 
 test(space_bulkload, [cleanup(space_clear(test_index))]) :-
-	space_bulkload(space,uri_shape, test_index).
+	space_bulkload(uri_shape, test_index).
 
 test(space_nearest) :-
-	space_bulkload(space,uri_shape, test_index),
+	space_bulkload(uri_shape, test_index),
 	space_nearest(point(0.0,0.0),_N,test_index), !.
 
 test(uri_shape) :-

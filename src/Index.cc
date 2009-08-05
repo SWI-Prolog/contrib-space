@@ -44,10 +44,11 @@ public:
   bool cached;
   RTreeIndex *index;
 public:
-  RTreePrologStream(const char* module, const char *goal,RTreeIndex* i) {
-    cache0 = PL_new_term_refs(2);
-    p = PL_predicate(goal,2,module);
+  RTreePrologStream(term_t goal,RTreeIndex* i) {
+    cache0 = PL_new_term_refs(3);
+    p = PL_predicate("call",3,"system");
     cached = false;
+    PL_put_term(cache0+0,goal);
     q = PL_open_query(NULL, PL_Q_NORMAL, p, cache0);
     index = i;
     index->bulkload_tmp_id_cnt = 0;
@@ -59,18 +60,19 @@ public:
   virtual IData* getNext() {
     if (!cached && !PL_next_solution(q)) return NULL;
     cached = false;
-    IShape *s = index->interpret_shape((term_t)(cache0+1));
+    IShape *s = index->interpret_shape((term_t)(cache0+2));
     Region r;
     s->getMBR(r);
-    char* uri;
-    PL_get_atom_chars((term_t)cache0,&uri);
+    term_t uri = PL_copy_term_ref((term_t)cache0+1);
     id_type id = index->get_uri_id(uri);
     if (id == -1) id = index->get_new_id(uri);
     index->storeShape(id,s);
 #ifdef DEBUG
-    cout << uri << " size " << strlen(uri)+1 << " shape " << r << " id " << id << endl;
+    char *uristr = NULL;
+    PL_get_atom_chars(uri,&uristr);
+    cout << "uri " << uristr << " shape " << r << " id " << id << endl;
 #endif
-    RTree::Data* next = new RTree::Data((size_t)strlen(uri)+1, (byte*)uri, r, id);
+    RTree::Data* next = new RTree::Data(sizeof(uri), (byte*)uri, r, id);
     return next;
   }
   virtual bool hasNext() throw (NotSupportedException)
@@ -98,161 +100,26 @@ public:
 };
 
 
-#define INSERT 1
-#define DELETE 0
-#define QUERY 2
-
-class RTreeFileStream : public IDataStream
-{
-private:
-  unsigned int count;
-public:
-  RTreeFileStream(string inputFile) : count(0), m_pNext(0)
-  {
-    m_fin.open(inputFile.c_str());
-    
-    if (! m_fin)
-      throw IllegalArgumentException("Input file not found.");
-    
-    id_type id;
-    uint32_t op;
-    double low[2], high[2];
-    string uri;
-
-    m_fin >> op >> id >> low[0] >> low[1] >> high[0] >> high[1] >> uri;
-    
-    #ifdef DEBUG
-    cout << "read URI [" << uri << "]\n";
-    #endif
-
-    if (m_fin.good())
-      {
-        if (op != INSERT)
-          throw IllegalArgumentException(
-                                         "The data input should contain insertions only."
-                                         );
-        
-        Region r = Region(low, high, 2);
-        char* uri_str = new char[uri.size()+1];
-        strcpy(uri_str,uri.c_str());
-        m_pNext = new RTree::Data(uri.size()+1, (byte*)uri_str, r, id);
-        count++;
-      }
-  }
-  
-  virtual ~RTreeFileStream()
-  {
-    if (m_pNext != 0) delete m_pNext;
-  }
-  
-  virtual IData* getNext()
-  {
-    if (m_pNext == 0) {
-      cout << "read " << count << " entries" << endl;
-      return 0;
-    }    
-    RTree::Data* ret = m_pNext;
-    m_pNext = 0;
-    
-    id_type id;
-    uint32_t op;
-    double low[2], high[2];
-    string uri;
-
-    m_fin >> op >> id >> low[0] >> low[1] >> high[0] >> high[1] >> uri;
-    
-    #ifdef DEBUG
-    cout << "read URI [" << uri << "]\n";
-    #endif
-
-    if (m_fin.good())
-      {
-        if (op != INSERT)
-          throw IllegalArgumentException(
-                                         "The data input should contain insertions only."
-                                         );
-        
-        Region r = Region(low, high, 2);
-        char* uri_str = new char[uri.size()+1];
-        strcpy(uri_str,uri.c_str());
-        m_pNext = new RTree::Data(uri.size()+1, (byte*)uri_str, r, id);
-        count++;
-      } 
-
-    return ret;
-  }
-  
-  virtual bool hasNext() throw (NotSupportedException)
-  {
-    return (m_pNext != 0);
-  }
-  
-  virtual size_t size() throw (NotSupportedException)
-  {
-    throw NotSupportedException("Operation not supported.");
-  }
-  
-  virtual void rewind() throw (NotSupportedException)
-  {
-    id_type id;
-    uint32_t op;
-    double low[2], high[2];
-    string uri;
-
-    if (m_pNext != 0)
-      {
-        delete m_pNext;
-        m_pNext = 0;
-      }
-    
-    m_fin.seekg(0, std::ios::beg);
-    m_fin >> op >> id >> low[0] >> low[1] >> high[0] >> high[1] >> uri;
-    
-    #ifdef DEBUG
-    cout << "rewound URI [" << uri << "]\n";
-    #endif
-    
-    if (m_fin.good())
-      {
-        if (op != INSERT)
-          throw IllegalArgumentException(
-                                         "The data input should contain insertions only."
-                                         );
-        
-        Region r = Region(low, high, 2);
-        char* uri_str = new char[uri.size()+1];
-        strcpy(uri_str,uri.c_str());
-        m_pNext = new RTree::Data(uri.size()+1, (byte*)uri_str, r, id);
-        count--;
-      }
-  }
-  
-  std::ifstream m_fin;
-  RTree::Data* m_pNext;
-};
-
-
 
 /*
  * -- RTreeIndex -------------------------------------
  */
 
-RTreeIndex::RTreeIndex(const char* indexname) : utilization(0.7), nodesize(4),  diskfile(NULL), file(NULL), tree(NULL) { 
-    baseName = new string(indexname);
-    bulkload_tmp_id_cnt = -1;
+RTreeIndex::RTreeIndex(term_t indexname) : utilization(0.7), nodesize(4),  diskfile(NULL), file(NULL), tree(NULL) { 
+  baseName = PL_copy_term_ref(indexname);
+  bulkload_tmp_id_cnt = -1;
 }
 
-RTreeIndex::RTreeIndex(const char* indexname, double util, int nodesz) : diskfile(NULL), file(NULL), tree(NULL) {
-    baseName = new string(indexname);
-    utilization = util;
-    nodesize = nodesz;
-    bulkload_tmp_id_cnt = -1;
+RTreeIndex::RTreeIndex(term_t indexname, double util, int nodesz) : diskfile(NULL), file(NULL), tree(NULL) {
+  baseName = PL_copy_term_ref(indexname);
+  utilization = util;
+  nodesize = nodesz;
+  bulkload_tmp_id_cnt = -1;
 }
 
 
 RTreeIndex::~RTreeIndex() {
   this->clear_tree();
-  delete baseName;
 }
 
 void RTreeIndex::clear_tree() {
@@ -290,7 +157,7 @@ IShape* RTreeIndex::getShape(id_type id) {
   return iter->second;
 }
 
-id_type  RTreeIndex::get_new_id(const char* uri) {
+id_type  RTreeIndex::get_new_id(term_t uri) {
   id_type id = -1;
   if (bulkload_tmp_id_cnt != -1) { // we're bulkloading
     id = bulkload_tmp_id_cnt++;
@@ -301,14 +168,13 @@ id_type  RTreeIndex::get_new_id(const char* uri) {
     tree->getStatistics(&stats);
     id = stats->getNumberOfData();
     uri_id_map[uri] = id;
-
     delete stats;
   }
   return id;
 }
 
-id_type   RTreeIndex::get_uri_id(const char* uri) {
-  map<const char*,id_type>::iterator iter = uri_id_map.find(uri);
+id_type   RTreeIndex::get_uri_id(term_t uri) {
+  map<term_t,id_type>::iterator iter = uri_id_map.find(uri);
   if (iter == uri_id_map.end()) return -1;
   return iter->second;
 }
@@ -320,7 +186,11 @@ void RTreeIndex::create_tree(size_t dimensionality) {
 void RTreeIndex::create_tree(size_t dimensionality, double util, int nodesz) {
   utilization = util;
   nodesize = nodesz;
-  diskfile = StorageManager::createNewDiskStorageManager(*baseName, 32);
+  char *baseNamestr = NULL;
+  PL_get_atom_chars(baseName,&baseNamestr);
+  string *bns = new string(baseNamestr);
+  diskfile = StorageManager::createNewDiskStorageManager(*bns, 32);
+  delete bns;
   file = StorageManager::createNewRandomEvictionsBuffer(*diskfile, 4096, false);
   tree = RTree::createNewRTree(*file, utilization,
                                nodesize, nodesize, dimensionality, 
@@ -329,16 +199,20 @@ void RTreeIndex::create_tree(size_t dimensionality, double util, int nodesz) {
 
 
 bool
-RTreeIndex::bulk_load(const char* module,const char* goal,size_t dimensionality) {
+RTreeIndex::bulk_load(term_t goal,size_t dimensionality) {
   if (dimensionality > 3 || dimensionality < 1) {
     cerr << "only dimensionality from 1 to 3 supported, not " << dimensionality << endl;
     return false;
   }
-  RTreePrologStream stream(module,goal,this); // assuming of the shape 'somepred(URI,Shape)'
+  RTreePrologStream stream(goal,this); // assuming of the shape 'somepred(URI,Shape)'
 
   // FIXME: add a nice customization interface that allows you to choose between disk and memory storage
   // and to set the parameters of the disk store and buffer
-  diskfile = StorageManager::createNewDiskStorageManager(*baseName, 32);
+  char *baseNamestr = NULL;
+  PL_get_atom_chars(baseName,&baseNamestr);
+  string *bns = new string(baseNamestr);
+  diskfile = StorageManager::createNewDiskStorageManager(*bns, 32);
+  delete bns;
   //diskfile = StorageManager::createNewMemoryStorageManager();
   file = StorageManager::createNewRandomEvictionsBuffer(*diskfile, 4096, false);
   id_type indexIdentifier;
@@ -492,7 +366,7 @@ IShape* RTreeIndex::interpret_shape(term_t shape) {
 }
 
 
-bool RTreeIndex::insert_single_object(const char* uri,term_t shape_term) {
+bool RTreeIndex::insert_single_object(term_t uri,term_t shape_term) {
   IShape *shape;
   id_type id;
   if ((shape = RTreeIndex::interpret_shape(shape_term)) == NULL) {
@@ -509,7 +383,7 @@ bool RTreeIndex::insert_single_object(const char* uri,term_t shape_term) {
     return FALSE;
   }
   try { 
-    tree->insertData((size_t)strlen(uri)+1, (byte*)uri, *shape, id);    
+    tree->insertData(sizeof(uri), (byte*)uri, *shape, id);    
   } catch (...) {
     return FALSE;
   }
@@ -517,7 +391,7 @@ bool RTreeIndex::insert_single_object(const char* uri,term_t shape_term) {
   return TRUE;
 }
 
-bool RTreeIndex::delete_single_object(const char* uri,term_t shape_term) {
+bool RTreeIndex::delete_single_object(term_t uri,term_t shape_term) {
   IShape *shape;
   id_type id;
   if ((shape = RTreeIndex::interpret_shape(shape_term)) == NULL) {
@@ -530,7 +404,11 @@ bool RTreeIndex::delete_single_object(const char* uri,term_t shape_term) {
     RTreeIndex::create_tree(dimensionality,utilization,nodesize);
   }
   if ((id = get_uri_id(uri)) == -1) {
-    cerr << "could not find ID for " << uri << " in " << *baseName << endl;
+    char *uristr = NULL;
+    char *baseNamestr = NULL;
+    PL_get_atom_chars(uri,&uristr);
+    PL_get_atom_chars(baseName,&baseNamestr);
+    cerr << "could not find ID for " << uristr << " in " << baseNamestr << endl;
     delete shape;
     return FALSE;
   }
@@ -538,54 +416,3 @@ bool RTreeIndex::delete_single_object(const char* uri,term_t shape_term) {
   delete shape;
   return rv;
 }
-
-// OBSOLETE
-bool RTreeIndex::load_from_file(const char* filename) {
-  clear_tree();
-  bool ret = true;
-  try
-    {  
-      //      delete baseName;
-      //      baseName = new string(filename);
-
-      // Create a new storage manager with the provided base name and a 4K page size.
-        diskfile = StorageManager::createNewDiskStorageManager(*baseName, 4096);
-      file = StorageManager::createNewRandomEvictionsBuffer(*diskfile, 10, false);
-      // applies a main memory random buffer on top of the persistent storage manager
-      // (LRU buffer, etc can be created the same way).
-      
-      RTreeFileStream stream(filename);
-      
-      cout << "creating with nodesize " << nodesize << endl;
-      
-      // Create and bulk load a new RTree with dimensionality 2, using "file" as
-      // the StorageManager and the RSTAR splitting policy.
-      tree = RTree::createAndBulkLoadNewRTree
-        ( RTree::BLM_STR, stream, *file, 
-          utilization, nodesize, nodesize, 2, 
-          SpatialIndex::RTree::RV_RSTAR, indexIdentifier );
-      
-      cerr << *tree;
-      cerr << "Buffer hits: " << file->getHits() << endl;
-      cerr << "Index ID: " << indexIdentifier << endl;
-      
-      ret = tree->isIndexValid();
-      if (ret == false) cerr << "ERROR: Structure is invalid!" << endl;
-      else cerr << "The stucture seems O.K." << endl;
-    }
-  catch (Exception& e)
-    {
-      cerr << "******ERROR******" << endl;
-      std::string s = e.what();
-      cerr << s << endl;
-      return -1;
-    }
-  catch (...)
-    {
-      cerr << "******ERROR******" << endl;
-      cerr << "other exception" << endl;
-      return -1;
-    }
-  return ret;
-}
-

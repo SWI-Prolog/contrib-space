@@ -91,8 +91,8 @@ class TraverseDepthFirst : public SpatialIndex::IQueryStrategy
 class IncrementalRangeStrategy : public SpatialIndex::IQueryStrategy
 {
  public:
-  char* result;
-  size_t result_length;
+  term_t result;
+  bool result_found;
   bool continuation;
   size_t child_idx;
   const IShape* query;
@@ -120,9 +120,7 @@ private:
     double m_minDist;
 
     NNEntry(id_type id, IEntry* e, double f) : m_id(id), m_pEntry(e), m_minDist(f) {}
-    ~NNEntry() {
-      if (m_pEntry != NULL) delete m_pEntry;
-    }
+    ~NNEntry() { }
 
     struct ascending : public std::binary_function<NNEntry*, NNEntry*, bool>
     {
@@ -149,8 +147,8 @@ private:
   }; // NNComparator
 
  public:
-  char* result;
-  size_t result_length;
+  term_t result;
+  bool result_found;
   bool continuation;
   size_t child_idx;
   bool first_call;

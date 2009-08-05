@@ -43,12 +43,18 @@
 #include <string.h>
 
 extern geos::geom::GeometryFactory* global_factory;
-map<string,Index*> index_map;
+map<term_t,Index*> index_map;
 
 
-static void index_clear(const char* indexname) {
+static void index_clear(term_t indexname) {
+  #ifdef DEBUG
+  char *idxstr = NULL;
+  PL_get_atom_chars(indexname,&idxstr);
+  cout << "clearing " << idxstr << endl;
+  #endif
   Index *idx = NULL;
-  map<string,Index*>::iterator iter = index_map.find(string(indexname));
+  term_t index = PL_copy_term_ref(indexname);
+  map<term_t,Index*>::iterator iter = index_map.find(index);
   if (iter != index_map.end()) {
     idx = iter->second;
     index_map.erase(iter);
@@ -59,13 +65,16 @@ static void index_clear(const char* indexname) {
   }
 }
 
-static RTreeIndex* assert_rtree_index(const char* indexname, double util, int nodesz) {
-  map<string,Index*>::iterator iter = index_map.find(string(indexname));
+static RTreeIndex* assert_rtree_index(term_t indexname, double util, int nodesz) {
+  map<term_t,Index*>::iterator iter = index_map.find(indexname);
   if (iter != index_map.end()) return dynamic_cast<RTreeIndex*>(iter->second);
   #ifdef DEBUG
-  cout << "did not find " << indexname << " creating new empty index" << endl;
+  char *idxstr = NULL;
+  PL_get_atom_chars(indexname,&idxstr);
+  cout << "did not find " << idxstr << " creating new empty index" << endl;
   #endif
-  RTreeIndex *idx = new RTreeIndex(indexname,util,nodesz);  
+  term_t index = PL_copy_term_ref(indexname);
+  RTreeIndex *idx = new RTreeIndex(index,util,nodesz);  
   if (index_map.size() == 0) {
     init_geos();
   }
@@ -73,13 +82,16 @@ static RTreeIndex* assert_rtree_index(const char* indexname, double util, int no
   return idx;
 }
 
-static RTreeIndex* assert_rtree_index(const char* indexname) {
-  map<string,Index*>::iterator iter = index_map.find(string(indexname));
+static RTreeIndex* assert_rtree_index(term_t indexname) {
+  map<term_t,Index*>::iterator iter = index_map.find(indexname);
   if (iter != index_map.end()) return dynamic_cast<RTreeIndex*>(iter->second);
   #ifdef DEBUG
-  cout << "did not find " << indexname << " creating new empty index" << endl;
+  char *idxstr = NULL;
+  PL_get_atom_chars(indexname,&idxstr);
+  cout << "did not find " << idxstr << " creating new empty index" << endl;
   #endif
-  RTreeIndex *idx = new RTreeIndex(indexname);  
+  term_t index = PL_copy_term_ref(indexname);
+  RTreeIndex *idx = new RTreeIndex(index);  
   if (index_map.size() == 0) {
     init_geos();
   }
@@ -92,9 +104,12 @@ static RTreeIndex* assert_rtree_index(const char* indexname) {
 PREDICATE(rtree_clear,1)
 {
   #ifdef DEBUG
-  cout << "clearing " << (char*)(A1) << endl;
+  char *idxstr = NULL;
+  PL_get_atom_chars(A1,&idxstr);
+  cout << "clearing " << idxstr << endl;
   #endif
-  index_clear((char*)(A1));
+  term_t index = PL_copy_term_ref(A1);
+  index_clear(index);
   PL_succeed;
 }
 
@@ -104,24 +119,31 @@ PREDICATE(rtree_clear,1)
 PREDICATE(rtree_insert_object,3)
 {
   #ifdef DEBUG
-  cout << "inserting object " << (char*)(A2) << " into " << (char*)(A1) << endl;
+  char *idxstr = NULL;
+  PL_get_atom_chars(A1,&idxstr);
+  char *objstr = NULL;
+  PL_get_atom_chars(A2,&objstr);
+  cout << "inserting object " << objstr << " into " << idxstr << endl;
   #endif
-  term_t shape = PL_copy_term_ref((term_t)A3);
-  size_t length = strlen((char*)(A2));
-  char* data = new char[length+1];
-  strcpy(data,(char*)(A2));
-  RTreeIndex* idx = dynamic_cast<RTreeIndex*> (assert_rtree_index((char*)(A1)));
-  return idx->insert_single_object(data,shape);
+  term_t index = PL_copy_term_ref(A1);
+  term_t uri = PL_copy_term_ref(A2);
+  term_t shape = PL_copy_term_ref(A3);
+  RTreeIndex* idx = dynamic_cast<RTreeIndex*> (assert_rtree_index((term_t)(A1)));
+  return idx->insert_single_object((term_t)A2,(term_t)A3);
 }
 
-// index_name, module of goal, candidate generating Prolog goal (of shape somepred(URI,Shape)), dimensionality
-PREDICATE(rtree_bulkload,4)
+// index_name, candidate generating Prolog goal (of shape somepred(URI,Shape)), dimensionality
+PREDICATE(rtree_bulkload,3)
 {
   #ifdef DEBUG
-  cout << "bulk loading of objects into " << (char*)(A1) << endl;
+  char *idxstr = NULL;
+  PL_get_atom_chars(A1,&idxstr);
+  cout << "bulk loading of objects into " << idxstr << endl;
   #endif
-  RTreeIndex *idx = dynamic_cast<RTreeIndex*> (assert_rtree_index((char*)(A1)));
-  if(!idx->bulk_load((char*)A2,(char*)A3,(int)A4)) PL_fail;
+  term_t index = PL_copy_term_ref(A1);
+  term_t goal = PL_copy_term_ref(A2);
+  RTreeIndex *idx = dynamic_cast<RTreeIndex*> (assert_rtree_index(index));
+  if(!idx->bulk_load(goal,(int)A3)) PL_fail;
   cout << "done loading " << idx->bulkload_tmp_id_cnt << " objects" << endl;
   PL_succeed;
 }
@@ -129,24 +151,23 @@ PREDICATE(rtree_bulkload,4)
 PREDICATE(rtree_insert_list,2)
 {
   #ifdef DEBUG
-  cout << "inserting list of objects into " << (char*)(A1) << endl;
+  char *idxstr = NULL;
+  PL_get_atom_chars(A1,&idxstr);
+  cout << "inserting list of objects into " << idxstr << endl;
   #endif
+  term_t index = PL_copy_term_ref(A1);
   term_t list = PL_copy_term_ref((term_t)(A2));
   term_t head = PL_new_term_ref();
   while( PL_get_list(list, head, list) ) { 
     term_t uri_term = PL_new_term_ref();
     term_t shape_term = PL_new_term_ref();
-    const char *uri_str, *name_str;
-    atom_t name_atom, uri_name_atom;
-    int arity, uri_arity;
+    atom_t name_atom;
+    int arity;
     if (!PL_get_name_arity(head,&name_atom,&arity)) PL_fail;
-    name_str = PL_atom_chars(name_atom);
     if (!PL_get_arg(1,head,uri_term) ||
-        !PL_get_arg(2,head,shape_term) ||
-        !PL_get_name_arity(uri_term,&uri_name_atom,&uri_arity)) PL_fail;
-    uri_str = PL_atom_chars(uri_name_atom);
-    RTreeIndex *idx = dynamic_cast<RTreeIndex*> (assert_rtree_index((char*)(A1)));
-    if (!idx->insert_single_object(uri_str,shape_term)) PL_fail;
+        !PL_get_arg(2,head,shape_term)) PL_fail;
+    RTreeIndex *idx = dynamic_cast<RTreeIndex*> (assert_rtree_index(index));
+    if (!idx->insert_single_object(uri_term,shape_term)) PL_fail;
   } 
   PL_succeed;
 }
@@ -155,72 +176,70 @@ PREDICATE(rtree_insert_list,2)
 PREDICATE(rtree_delete_object,3)
 {
   #ifdef DEBUG
-  cout << "deleting object " << (char*)(A2) << " from " << (char*)(A1) << endl;
+  char *idxstr = NULL;
+  PL_get_atom_chars(A1,&idxstr);
+  char *objstr = NULL;
+  PL_get_atom_chars(A2,&objstr);
+  cout << "deleting object " << objstr << " from " << idxstr << endl;
   #endif
-  term_t shape = PL_copy_term_ref((term_t)A3);
-  size_t length = strlen((char*)(A2));
-  char* data = new char[length+1];
-  strcpy(data,(char*)(A2));
-  RTreeIndex *idx = dynamic_cast<RTreeIndex*> (assert_rtree_index((char*)(A1)));
-  return idx->delete_single_object(data,shape);
+  term_t index = PL_copy_term_ref(A1);
+  term_t uri = PL_copy_term_ref(A2);
+  term_t shape = PL_copy_term_ref(A3);
+  RTreeIndex *idx = dynamic_cast<RTreeIndex*> (assert_rtree_index(index));
+  return idx->delete_single_object(uri,shape);
 }
 
 
 PREDICATE(rtree_delete_list,2)
 {
   #ifdef DEBUG
-  cout << "deleting list of objects from " << (char*)(A1) << endl;
+  char *idxstr = NULL;
+  PL_get_atom_chars(A1,&idxstr);
+  cout << "deleting list of objects from " << idxstr << endl;
   #endif
+  term_t index = PL_copy_term_ref(A1);
   term_t list = PL_copy_term_ref((term_t)(A2));
   term_t head = PL_new_term_ref();
   while( PL_get_list(list, head, list) ) { 
     term_t uri_term = PL_new_term_ref();
     term_t shape_term = PL_new_term_ref();
-    const char *uri_str, *name_str;
-    atom_t name_atom, uri_name_atom;
-    int arity, uri_arity;
+    atom_t name_atom;
+    int arity;
     if (!PL_get_name_arity(head,&name_atom,&arity)) PL_fail;
-    name_str = PL_atom_chars(name_atom);
     if (!PL_get_arg(1,head,uri_term) ||
-        !PL_get_arg(2,head,shape_term) ||
-        !PL_get_name_arity(uri_term,&uri_name_atom,&uri_arity)) PL_fail;
-    uri_str = PL_atom_chars(uri_name_atom);
-    RTreeIndex *idx = dynamic_cast<RTreeIndex*> (assert_rtree_index((char*)(A1)));
-    if (!idx->delete_single_object(uri_str,shape_term)) PL_fail;
+        !PL_get_arg(2,head,shape_term)) PL_fail;
+    RTreeIndex *idx = dynamic_cast<RTreeIndex*> (assert_rtree_index(index));
+    if (!idx->delete_single_object(uri_term,shape_term)) PL_fail;
   } 
   PL_succeed;
 }
 
 
-PREDICATE(rtree_load_file,4)
-{
-  RTreeIndex *idx = dynamic_cast<RTreeIndex*>(assert_rtree_index((char*)(A2),(double)(A3),(int)(A4)));
-  if (!(idx->load_from_file((char*)(A1)))) PL_fail; 
-  PL_succeed;
-}
-
 PREDICATE_NONDET(rtree_incremental_intersection_query,3)
 {
   try
     {
+      term_t index = PL_copy_term_ref(A3);
+      term_t query = PL_copy_term_ref(A1);
+
       IncrementalRangeStrategy* qs;
       RTreeIndex *idx = NULL;
       switch( PL_foreign_control((control_t)handle) ) 
         {
         case PL_FIRST_CALL: 
-          idx = dynamic_cast<RTreeIndex*>(assert_rtree_index((char*)(A3)));
+          idx = dynamic_cast<RTreeIndex*>(assert_rtree_index(index));
           if (idx->tree == NULL) PL_fail;
-          qs = new IncrementalRangeStrategy(IntersectionQuery,idx->interpret_shape((term_t)A1),NULL,idx);
+          qs = new IncrementalRangeStrategy(IntersectionQuery,idx->interpret_shape(query),NULL,idx);
           goto iterate;
           
         case PL_REDO: 
-          idx = dynamic_cast<RTreeIndex*>(assert_rtree_index((char*)(A3)));
+          idx = dynamic_cast<RTreeIndex*>(assert_rtree_index(index));
           if (idx->tree == NULL) PL_fail;
           qs = (IncrementalRangeStrategy*)PL_foreign_context_address((control_t)handle); 
         iterate:
           idx->tree->queryStrategy(*qs);
-          if (qs->result == NULL) goto cutted;
-          PL_unify_atom_nchars(A2,qs->result_length,qs->result);
+          if (!qs->result_found) goto cutted;
+          PL_unify_atom(A2,qs->result);
           PL_retry_address(qs); 
           
         case PL_CUTTED: 
@@ -256,25 +275,27 @@ PREDICATE_NONDET(rtree_incremental_containment_query,3)
 
   try
     {
+      term_t index = PL_copy_term_ref(A3);
+      term_t query = PL_copy_term_ref(A1);
 
       IncrementalRangeStrategy* qs;
       RTreeIndex *idx = NULL;
       switch( PL_foreign_control((control_t)handle) ) 
         {
         case PL_FIRST_CALL: 
-          idx = dynamic_cast<RTreeIndex*>(assert_rtree_index((char*)(A3)));
+          idx = dynamic_cast<RTreeIndex*>(assert_rtree_index(index));
           if (idx->tree == NULL) PL_fail;
-          qs = new IncrementalRangeStrategy(ContainmentQuery,idx->interpret_shape((term_t)A1),NULL,idx);
+          qs = new IncrementalRangeStrategy(ContainmentQuery,idx->interpret_shape(query),NULL,idx);
           goto iterate;
           
         case PL_REDO: 
-          idx = dynamic_cast<RTreeIndex*>(assert_rtree_index((char*)(A3)));
+          idx = dynamic_cast<RTreeIndex*>(assert_rtree_index(index));
           if (idx->tree == NULL) PL_fail;
           qs = (IncrementalRangeStrategy*)PL_foreign_context_address((control_t)handle); 
         iterate:
           idx->tree->queryStrategy(*qs);
-          if (qs->result == NULL) goto cutted;
-          PL_unify_atom_nchars(A2,qs->result_length,qs->result);
+          if (!qs->result_found) goto cutted;
+          PL_unify_atom(A2,qs->result);
           PL_retry_address(qs); 
           
       case PL_CUTTED: 
@@ -309,26 +330,29 @@ PREDICATE_NONDET(rtree_incremental_nearest_neighbor_query,3)
 
   try
     {
+      term_t index = PL_copy_term_ref(A3);
+      term_t query = PL_copy_term_ref(A1);
+
       IncrementalNearestNeighborStrategy* qs;
       RTreeIndex *idx = NULL;
 
       switch( PL_foreign_control((control_t)handle) ) 
         {
         case PL_FIRST_CALL: 
-          idx = dynamic_cast<RTreeIndex*>(assert_rtree_index((char*)(A3)));
+          idx = dynamic_cast<RTreeIndex*>(assert_rtree_index(index));
           if (idx->tree == NULL) PL_fail;
-          qs = new IncrementalNearestNeighborStrategy(idx->interpret_shape((term_t)A1),NULL,idx);
+          qs = new IncrementalNearestNeighborStrategy(idx->interpret_shape(query),NULL,idx);
           goto iterate;
           
         case PL_REDO: 
-          idx = dynamic_cast<RTreeIndex*>(assert_rtree_index((char*)(A3)));
+          idx = dynamic_cast<RTreeIndex*>(assert_rtree_index(index));
           if (idx->tree == NULL) PL_fail;
 
           qs = (IncrementalNearestNeighborStrategy*)PL_foreign_context_address((control_t)handle); 
         iterate:
           idx->tree->queryStrategy(*qs);
-          if (qs->result == NULL) goto cutted;
-          PL_unify_atom_nchars(A2,qs->result_length,qs->result);
+          if (!qs->result_found) goto cutted;
+          PL_unify_atom(A2,qs->result);
           PL_retry_address(qs); 
           
         case PL_CUTTED: 
@@ -361,7 +385,8 @@ PREDICATE_NONDET(rtree_incremental_nearest_neighbor_query,3)
 PREDICATE(rtree_display,1) {
   PrintVisitor pv;
   TraverseDepthFirst* qsd = new TraverseDepthFirst(&pv);
-  RTreeIndex *idx = dynamic_cast<RTreeIndex*> (assert_rtree_index((char*)(A1)));
+  term_t index = PL_copy_term_ref(A1);  
+  RTreeIndex *idx = dynamic_cast<RTreeIndex*> (assert_rtree_index(index));
   idx->tree->queryStrategy(*qsd);
   PL_succeed;
 }
@@ -369,7 +394,8 @@ PREDICATE(rtree_display,1) {
 PREDICATE(rtree_display_mbrs,1) {
   PrintGnuplotVisitor pgv;
   TraverseBreadthFirst* qsd = new TraverseBreadthFirst(&pgv);
-  RTreeIndex *idx = dynamic_cast<RTreeIndex*> (assert_rtree_index((char*)(A1)));
+  term_t index = PL_copy_term_ref(A1);  
+  RTreeIndex *idx = dynamic_cast<RTreeIndex*> (assert_rtree_index(index));
   idx->tree->queryStrategy(*qsd);
   PL_succeed;
 }

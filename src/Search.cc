@@ -151,7 +151,7 @@ void TraverseDepthFirst::getNextEntry(const IEntry& entry, id_type& nextEntry, b
 // class IncrementalRangeStrategy : public SpatialIndex::IQueryStrategy
 
 IncrementalRangeStrategy::IncrementalRangeStrategy(RangeQueryType type, IShape* queryp,IVisitor* vp,Index* idx)
-  : result(NULL), result_length(0), continuation(false), child_idx(0) {
+  : result_found(false), continuation(false), child_idx(0) {
   query = queryp;
   v = vp;
   t = type;
@@ -159,10 +159,6 @@ IncrementalRangeStrategy::IncrementalRangeStrategy(RangeQueryType type, IShape* 
 }
 IncrementalRangeStrategy::~IncrementalRangeStrategy() {
   delete query;
-  if (result != NULL) {
-    delete []result;
-    result = NULL;
-  }
   while (!ids.empty()) {
     ids.pop();
   }
@@ -170,11 +166,6 @@ IncrementalRangeStrategy::~IncrementalRangeStrategy() {
 
 void IncrementalRangeStrategy::getNextEntry(const IEntry& entry, id_type& nextEntry, bool& hasNext) {
   // This run we have not fetched a result yet, so the value is NULL.
-  if (result != NULL) {
-    delete []result;
-    result = NULL;
-    result_length = 0;
-  }
 #ifdef DEBUG
   cout << "visiting node " << entry.getIdentifier() << endl;
 #endif
@@ -236,13 +227,10 @@ void IncrementalRangeStrategy::getNextEntry(const IEntry& entry, id_type& nextEn
             id_type childIdentifier = n->getChildIdentifier(cChild);
             RTree::Data* e = new RTree::Data(length,data,childMBR,childIdentifier);
             v->visitData(*e);
-                        delete e;
+            delete e;
           }
-          char* result_str = new char[length]; // gets freed at the next call or by the destructor
-          strcpy(result_str,(char*)data);
-          // delete []data;  // pointer to same chars as in the URI-id map
-          result = result_str; // We store the result.
-          result_length = length - 1; // string length, not memory size.
+          result = PL_copy_term_ref((term_t)data);
+          result_found = true;
           hasNext = false; // We stop looking for other results (incremental behavior).
           continuation = true; // If we want to find more results we should not start from the root node,
           child_idx = cChild + 1; // but from the next child.
@@ -272,15 +260,14 @@ void IncrementalRangeStrategy::getNextEntry(const IEntry& entry, id_type& nextEn
     // When the queue is empty the options are exhausted.
     // Either we just found the last result or we found no results at all.
     hasNext = false; // No next node.
-    result = NULL; // No result.
-    result_length = 0;
+    result_found = false; // No result.
   } else {
     // There are still candidates to check in the queue.
     if (hasNext) {
       // We have not reached a matching leaf child yet.
       nextEntry = ids.top(); // continue with the next option.
       ids.pop();
-    } else if (result != NULL) {
+    } else if (result_found) {
       // We have reached a matching leaf child.
       nextEntry = ids.top(); // continue with the next option.
       // Don't pop the queue, because we continue with the next child of the same leaf node.
@@ -293,18 +280,13 @@ void IncrementalRangeStrategy::getNextEntry(const IEntry& entry, id_type& nextEn
 // class IncrementalNearestNeighborStrategy : public SpatialIndex::IQueryStrategy
 
 IncrementalNearestNeighborStrategy::IncrementalNearestNeighborStrategy(IShape* queryp,IVisitor* vp,Index *idx)
-  : result(NULL), result_length(0), continuation(false), child_idx(0), first_call(true) {
+  : result_found(false), continuation(false), child_idx(0), first_call(true) {
   query = queryp;
   v = vp;
   index = idx;
 }
 
 void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_type& nextEntry, bool& hasNext) {
-  if (result != NULL) { // clean up previous results
-    delete []result;
-    result = NULL;
-    result_length = 0;
-  }
 #ifdef DEBUG
   cout << "visiting node " << entry.getIdentifier() << endl;
 #endif
@@ -357,11 +339,8 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
           byte* data;
           size_t length;
           (dynamic_cast<const IData&>(*(queue.top()->m_pEntry))).getData(length,&data);
-          char* result_str = new char[length]; // gets freed at the next call or by the destructor
-          strcpy(result_str,(char*)data);
-          delete []data;
-          result = result_str; // We store the result.
-          result_length = length - 1; // string length, not memory size.
+          term_t uri = PL_copy_term_ref((term_t)data);
+          result_found = true;
           hasNext = false; // We stop looking for other results (incremental behavior).
           continuation = true; // If we want to find more results we should not start from the root node
           delete e;
@@ -384,7 +363,6 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
             n->getChildData(cChild,length,&data);
             id_type childIdentifier = n->getChildIdentifier(cChild);
             RTree::Data* e = new RTree::Data(length, data, childMBR ,childIdentifier);
-            //MML            delete []data;
             if (dist > queue.top()->m_minDist) {
 #ifdef DEBUG
               cout << "dist > mindist (Shape)\n";
@@ -452,11 +430,6 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
 
 IncrementalNearestNeighborStrategy::~IncrementalNearestNeighborStrategy() {
   delete query;
-  if (result != NULL) {
-    delete []result;
-    result = NULL;
-  }
-  
   while (!queue.empty()) {
     NNEntry *e = queue.top();
     delete e;

@@ -44,8 +44,8 @@ class Index
  public:
   virtual ~Index() {};
 
-  virtual id_type get_new_id(const char* uri) = 0;
-  virtual id_type get_uri_id(const char* uri) = 0;
+  virtual id_type get_new_id(term_t uri) = 0;
+  virtual id_type get_uri_id(term_t uri) = 0;
   virtual void storeShape(id_type id,IShape *s) = 0;
   virtual IShape* getShape(id_type id) = 0;
 
@@ -53,9 +53,8 @@ class Index
   virtual void clear_tree() = 0;
   virtual void create_tree(size_t dimensionality) = 0;
   virtual void create_tree(size_t dimensionality, double util, int nodesz) = 0;
-  virtual bool insert_single_object(const char* uri,term_t shape_term) = 0;
-  virtual bool delete_single_object(const char* uri,term_t shape_term) = 0;
-  virtual bool load_from_file(const char* filename) = 0;
+  virtual bool insert_single_object(term_t uri,term_t shape_term) = 0;
+  virtual bool delete_single_object(term_t uri,term_t shape_term) = 0;
 
 };
 
@@ -63,34 +62,32 @@ class Index
 class RTreeIndex : public Index
 {
  public:
-  string *baseName;
+  term_t baseName;
   double utilization;
   int nodesize;
   IStorageManager* diskfile;
   StorageManager::IBuffer* file;
   ISpatialIndex* tree;
   id_type indexIdentifier;
-  //  map<string,id_type> uri_id_map;
-  map<const char*,id_type> uri_id_map;
+  map<term_t,id_type> uri_id_map;
   map<id_type,IShape*> id_shape_map;
 
-  RTreeIndex(const char* indexname);
-  RTreeIndex(const char* indexname, double util, int nodesz);
+  RTreeIndex(term_t indexname);
+  RTreeIndex(term_t indexname, double util, int nodesz);
   virtual ~RTreeIndex();
 
-  virtual id_type get_new_id(const char* uri);
-  virtual id_type get_uri_id(const char* uri);
+  virtual id_type get_new_id(term_t uri);
+  virtual id_type get_uri_id(term_t uri);
   virtual void storeShape(id_type id,IShape *s);
   virtual IShape* getShape(id_type id);
 
   virtual IShape* interpret_shape(term_t shape_term);
-  virtual bool bulk_load(const char* module,const char* goal,size_t dimensionality);
+  virtual bool bulk_load(term_t goal,size_t dimensionality);
   virtual void clear_tree();
   virtual void create_tree(size_t dimensionality);
   virtual void create_tree(size_t dimensionality, double util, int nodesz);
-  virtual bool insert_single_object(const char* uri,term_t shape_term);
-  virtual bool delete_single_object(const char* uri,term_t shape_term);
-  virtual bool load_from_file(const char* filename);
+  virtual bool insert_single_object(term_t uri,term_t shape_term);
+  virtual bool delete_single_object(term_t uri,term_t shape_term);
   
  public:
   id_type bulkload_tmp_id_cnt;
