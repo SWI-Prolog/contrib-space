@@ -70,7 +70,8 @@ class RTreeIndex : public Index
   StorageManager::IBuffer* file;
   ISpatialIndex* tree;
   id_type indexIdentifier;
-  map<string,id_type> uri_id_map;
+  //  map<string,id_type> uri_id_map;
+  map<const char*,id_type> uri_id_map;
   map<id_type,IShape*> id_shape_map;
 
   RTreeIndex(const char* indexname);

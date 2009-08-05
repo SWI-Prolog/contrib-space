@@ -239,7 +239,6 @@ public:
 
 RTreeIndex::RTreeIndex(const char* indexname) : utilization(0.7), nodesize(4),  diskfile(NULL), file(NULL), tree(NULL) { 
     baseName = new string(indexname);
-    init_geos();
     bulkload_tmp_id_cnt = -1;
 }
 
@@ -247,11 +246,18 @@ RTreeIndex::RTreeIndex(const char* indexname, double util, int nodesz) : diskfil
     baseName = new string(indexname);
     utilization = util;
     nodesize = nodesz;
-    init_geos();
     bulkload_tmp_id_cnt = -1;
 }
 
+
+RTreeIndex::~RTreeIndex() {
+  this->clear_tree();
+  cout << "deleting tree " << baseName << endl;
+  delete baseName;
+}
+
 void RTreeIndex::clear_tree() {
+  cout << "cleaning tree " << endl;
   if (tree != NULL) {
     delete tree;
     tree = NULL;
@@ -265,6 +271,16 @@ void RTreeIndex::clear_tree() {
     diskfile = NULL;
   }
   uri_id_map.clear();
+  map<id_type,IShape*>::iterator id_shape_iter;
+  for( id_shape_iter = id_shape_map.begin(); id_shape_iter != id_shape_map.end(); ++id_shape_iter ) {
+    GEOSShape *s = dynamic_cast<GEOSShape*>(id_shape_iter->second);
+    if (s != NULL) {
+      global_factory->destroyGeometry(s->g);
+      s->g = NULL;
+    }    
+    delete id_shape_iter->second;
+  }
+  id_shape_map.clear();
 }
 
 void RTreeIndex::storeShape(id_type id,IShape *s) {
@@ -280,21 +296,32 @@ id_type  RTreeIndex::get_new_id(const char* uri) {
   id_type id = -1;
   if (bulkload_tmp_id_cnt != -1) { // we're bulkloading
     id = bulkload_tmp_id_cnt++;
+    /*
     string *q = new string(uri);
     uri_id_map[*q] = id;
+    delete q;
+    */
+    uri_id_map[uri] = id;
   } else {
     if (tree == NULL) return -1;
     IStatistics* stats;
     tree->getStatistics(&stats);
     id = stats->getNumberOfData();
+    /*
     string *q = new string(uri);
     uri_id_map[*q] = id;
+    delete q;
+    */
+    uri_id_map[uri] = id;
+
+    delete stats;
   }
   return id;
 }
 
 id_type   RTreeIndex::get_uri_id(const char* uri) {
-  map<string,id_type>::iterator iter = uri_id_map.find(string(uri));
+  //  map<string,id_type>::iterator iter = uri_id_map.find(string(uri));
+  map<const char*,id_type>::iterator iter = uri_id_map.find(uri);
   if (iter == uri_id_map.end()) return -1;
   return iter->second;
 }
@@ -309,19 +336,15 @@ RTreeIndex::bulk_load(const char* module,const char* goal,size_t dimensionality)
 
   // FIXME: add a nice customization interface that allows you to choose between disk and memory storage
   // and to set the parameters of the disk store and buffer
-  //diskfile = StorageManager::createNewDiskStorageManager(*baseName, 4096);
-  diskfile = StorageManager::createNewMemoryStorageManager();
-  file = StorageManager::createNewRandomEvictionsBuffer(*diskfile, 10, false);
+  diskfile = StorageManager::createNewDiskStorageManager(*baseName, 32);
+  //diskfile = StorageManager::createNewMemoryStorageManager();
+  file = StorageManager::createNewRandomEvictionsBuffer(*diskfile, 4096, true);
   id_type indexIdentifier;
   tree = RTree::createAndBulkLoadNewRTree(RTree::BLM_STR, 
                                           stream, *file, utilization,
                                           nodesize, nodesize, dimensionality, 
                                           SpatialIndex::RTree::RV_RSTAR, indexIdentifier);
   return tree->isIndexValid();
-}
-
-RTreeIndex::~RTreeIndex() {
-    delete baseName;
 }
 
 
@@ -375,7 +398,7 @@ IShape* RTreeIndex::interpret_shape(term_t shape) {
     }
     // assuming linear ring is already closed
     //    cl->add(cl->getAt(0)); 
-    geos::geom::LinearRing *lr = global_factory->createLinearRing(cl);
+    geos::geom::LinearRing *lr = global_factory->createLinearRing(*cl);
     vector<geos::geom::Geometry*> *holes = new vector<geos::geom::Geometry*>;
     while (linearrings.next(ring)) {
       geos::geom::CoordinateSequence *hcl = new geos::geom::CoordinateArraySequence();
@@ -406,6 +429,7 @@ IShape* RTreeIndex::interpret_shape(term_t shape) {
     p->normalize();
     GEOSPolygon *poly = new GEOSPolygon(*p);
     delete p;
+    delete cl;
     return poly;
 
   } else if (shape_term.name() == ATOM_box) {
@@ -436,16 +460,18 @@ IShape* RTreeIndex::interpret_shape(term_t shape) {
       cl->add(geos::geom::Coordinate(high_point[0], high_point[1]));
       cl->add(geos::geom::Coordinate(high_point[0], low_point[1]));
       cl->add(geos::geom::Coordinate(low_point[0], low_point[1]));
-      geos::geom::LinearRing *lr = global_factory->createLinearRing(cl);
+      geos::geom::LinearRing *lr = global_factory->createLinearRing(*cl);
       box = global_factory->createPolygon(lr, NULL);
       box->normalize();
+      delete cl;
     } else if (dim == 1) {
       geos::geom::CoordinateSequence *cl = new geos::geom::CoordinateArraySequence();
       cl->add(geos::geom::Coordinate(low_point[0]));
       cl->add(geos::geom::Coordinate(high_point[0]));
-      geos::geom::LinearRing *lr = global_factory->createLinearRing(cl);
+      geos::geom::LinearRing *lr = global_factory->createLinearRing(*cl);
       box = global_factory->createPolygon(lr, NULL);
       box->normalize();
+      delete cl;
     } else if (dim == 3) {
       cerr << "3d box regions not implemented yet" << endl;
       return NULL;
@@ -454,7 +480,7 @@ IShape* RTreeIndex::interpret_shape(term_t shape) {
       return NULL;
     }
     GEOSPolygon *poly = new GEOSPolygon(*box);
-    delete box;
+    global_factory->destroyGeometry(box);
     return poly;
   } else {
     cerr << "shape type \"" << (char*)shape_term.name() << "\" unsupported" << endl;
@@ -513,9 +539,12 @@ bool RTreeIndex::delete_single_object(const char* uri,term_t shape_term) {
   }
   if ((id = get_uri_id(uri)) == -1) {
     cerr << "could not find ID for " << uri << " in " << *baseName << endl;
+    delete shape;
     return FALSE;
   }
-  return tree->deleteData(*shape, id);
+  bool rv = tree->deleteData(*shape, id);
+  delete shape;
+  return rv;
 }
 
 bool RTreeIndex::load_from_file(const char* filename) {

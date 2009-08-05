@@ -58,7 +58,15 @@ void init_geos() {
   // We do not need PrecisionMode object anymore, it has
   // been copied to global_factory private storage
   delete pm;
+  pm = NULL;
 
+}
+
+void cleanup_geos() {
+  if (global_factory != NULL) {
+    delete global_factory;
+    global_factory = NULL;
+  }
 }
 
 
@@ -73,11 +81,17 @@ GEOSPoint::GEOSPoint(const double* pCoords, size_t dimension) {
 cout << "entering GEOSPoint::GEOSPoint(const double* pCoords, size_t dimension) " << endl;
 #endif
   if (dimension == 2) {
-    this->g = global_factory->createPoint(Coordinate(pCoords[0],pCoords[1]));
+    geos::geom::Coordinate *c = new geos::geom::Coordinate(pCoords[0],pCoords[1]);
+    this->g = global_factory->createPoint(*c);
+    delete c;
   } else if (dimension == 3) {
-    this->g = global_factory->createPoint(Coordinate(pCoords[0],pCoords[1],pCoords[2]));
+    geos::geom::Coordinate *c = new geos::geom::Coordinate(pCoords[0],pCoords[1],pCoords[2]);
+    this->g = global_factory->createPoint(*c);
+    delete c;
   } else if (dimension == 1) {
-    this->g = global_factory->createPoint(Coordinate(pCoords[0]));
+    geos::geom::Coordinate *c = new geos::geom::Coordinate(pCoords[0]);
+    this->g = global_factory->createPoint(*c);
+    delete c;
   } else {
     cerr << dimension << " dimensional points not supported" << endl;
     exit(1);
@@ -124,7 +138,8 @@ GEOSPoint::~GEOSPoint() {
 #ifdef DEBUG
 cout << "entering GEOSPoint::~GEOSPoint() " << endl;
 #endif
-  delete g;
+ global_factory->destroyGeometry(g);
+ g = NULL;
 }
 GEOSPoint* 
 GEOSPoint::clone() {
@@ -181,6 +196,7 @@ cout << "entering GEOSPoint::storeToByteArray(byte** data, size_t& length) " << 
   *data = new byte[length];
   memcpy(*data,&length,sizeof(size_t));
   s.read((char*)&((*data)[sizeof(size_t)]),length-sizeof(size_t));
+  delete wkbWriter;
 }
 
 bool
@@ -195,6 +211,7 @@ GEOSPoint::intersectsShape(const IShape& in) const {
 #ifdef DEBUG
 cout << "entering GEOSPoint::intersectsShape(const IShape& in) const " << endl;
 #endif
+ bool rv = false;
   try {
     const GEOSShape &s = dynamic_cast<const GEOSShape&>(in);
     return this->g->intersects(s.g);
@@ -202,17 +219,18 @@ cout << "entering GEOSPoint::intersectsShape(const IShape& in) const " << endl;
     Point *p = toPoint();
     try {
       const Region& pr = dynamic_cast<const Region&>(in);
-      return pr.intersectsShape(*p);
+      rv = pr.intersectsShape(*p);
     } catch (std::bad_cast &e) {
       try {
         const Point& ppt = dynamic_cast<const Point&>(in);
-        return p->intersectsShape(ppt);
+        rv = p->intersectsShape(ppt);
       } catch (std::bad_cast &e) {
         cerr << "unsupported type in GEOSPoint::intersectsShape, " << e.what() << endl;
       }
     }
+    delete p;
   }
-  return false;
+  return rv;
 }
 bool
 GEOSPoint::containsShape(const GEOSShape& in) const {
@@ -226,6 +244,7 @@ GEOSPoint::containsShape(const IShape& in) const {
 #ifdef DEBUG
 cout << "entering GEOSPoint::containsShape(const IShape& in) const " << endl;
 #endif
+ bool rv = false;
   try {
     const GEOSShape &s = dynamic_cast<const GEOSShape&>(in);
     return this->g->contains(s.g);
@@ -233,17 +252,18 @@ cout << "entering GEOSPoint::containsShape(const IShape& in) const " << endl;
     Point *p = toPoint();
     try {
       const Region& pr = dynamic_cast<const Region&>(in);
-      return pr.containsShape(*p);
+      rv = pr.containsShape(*p);
     } catch (std::bad_cast &e) {
       try {
         const Point& ppt = dynamic_cast<const Point&>(in);
-        return p->containsShape(ppt);
+        rv = p->containsShape(ppt);
       } catch (std::bad_cast &e) {
         cerr << "unsupported type in GEOSPoint::containsShape, " << e.what() << endl;
       }
     }
+    delete p;
   }
-  return false;
+  return rv;
 }
 bool
 GEOSPoint::touchesShape(const GEOSShape& in) const {
@@ -257,24 +277,26 @@ GEOSPoint::touchesShape(const IShape& in) const {
 #ifdef DEBUG
 cout << "entering GEOSPoint::touchesShape(const IShape& in) const " << endl;
 #endif
-  try {
-    const GEOSShape &s = dynamic_cast<const GEOSShape&>(in);
-    return this->g->touches(s.g);
-  } catch (std::bad_cast &e) {
-    Point *p = toPoint();
-    try {
-      const Region& pr = dynamic_cast<const Region&>(in);
-      return pr.touchesShape(*p);
-    } catch (std::bad_cast &e) {
+ bool rv = false;
+ try {
+   const GEOSShape &s = dynamic_cast<const GEOSShape&>(in);
+   return this->g->touches(s.g);
+ } catch (std::bad_cast &e) {
+   Point *p = toPoint();
+   try {
+     const Region& pr = dynamic_cast<const Region&>(in);
+     rv = pr.touchesShape(*p);
+   } catch (std::bad_cast &e) {
       try {
         const Point& ppt = dynamic_cast<const Point&>(in);
-        return p->touchesShape(ppt);
+        rv = p->touchesShape(ppt);
       } catch (std::bad_cast &e) {
         cerr << "unsupported type in GEOSPoint::touchesShape, " << e.what() << endl;
       }
     }
+   delete p;
   }
-  return false;
+  return rv;
 }
 
 SpatialIndex::Point*
@@ -285,7 +307,7 @@ cout << "entering GEOSPoint::toPoint() const " << endl;
   const Coordinate *c = g->getCoordinate();
   Point *p;
   if (m_dimension == 2) {
-    double *a = new double[2];
+    double a[2];
     a[0] = c->x;
     a[1] = c->y;
     p = new Point(a,2);
@@ -293,7 +315,7 @@ cout << "entering GEOSPoint::toPoint() const " << endl;
     cout << "created a 2 dimensional Point" << endl;
 #endif
   } else if (m_dimension == 3) {
-    double *a = new double[3];
+    double a[3];
     a[0] = c->x;
     a[1] = c->y;
     a[2] = c->z;
@@ -302,7 +324,7 @@ cout << "entering GEOSPoint::toPoint() const " << endl;
     cout << "created a 3 dimensional Point" << endl;
 #endif
   } else if (m_dimension == 1) {
-    double *a = new double[1];
+    double a[1];
     a[0] = c->x;
     p = new Point(a,1);
 #ifdef DEBUG
@@ -367,21 +389,22 @@ cout << "entering GEOSPoint::getMinimumDistance(const IShape& in) const " << end
     const GEOSShape &s = dynamic_cast<const GEOSShape&>(in);
     return this->g->distance(s.g);
   } catch (std::bad_cast &e) {
+    double rv = 0.0;
     Point *p = toPoint();
     try {
       const Region& pr = dynamic_cast<const Region&>(in);
-      return pr.getMinimumDistance(*p);
+      rv = pr.getMinimumDistance(*p);
     } catch (std::bad_cast &e) {
       try {
         const Point& ppt = dynamic_cast<const Point&>(in);
-        return p->getMinimumDistance(ppt);
+        rv = p->getMinimumDistance(ppt);
       } catch (std::bad_cast &e) {
         cerr << "unsupported type in GEOSPoint::getMinimumDistance, " << e.what() << endl;
       }
     }
+    delete p;
+    return rv;
   }
-  cerr << "minimum distance between points and IShape not implemented yet" << endl;
-  return false;
 }
 double 
 GEOSPoint::getCoordinate(size_t index) const {
@@ -473,6 +496,7 @@ GEOSPolygon::~GEOSPolygon() {
 #ifdef DEBUG
 cout << "entering GEOSPolygon::~GEOSPolygon() " << endl;
 #endif
+ global_factory->destroyGeometry(g);
 }
 GEOSPolygon* 
 GEOSPolygon::clone() {
@@ -481,6 +505,7 @@ cout << "entering GEOSPolygon::clone() " << endl;
 #endif
   Polygon *poly = dynamic_cast<Polygon*>(this->g->clone());
   GEOSPolygon *p = new GEOSPolygon(*poly);
+  delete poly;
   return p;
 }
 size_t 
@@ -527,6 +552,7 @@ cout << "entering GEOSPolygon::storeToByteArray(byte** data, size_t& length) " <
   *data = new byte[length];
   memcpy(*data,&length,sizeof(size_t));
   s.read((char*)&((*data)[sizeof(size_t)]),length-sizeof(size_t));
+  delete wkbWriter;
 }
 geos::geom::Geometry*
 regionToBox(const Region& r) {
@@ -552,7 +578,7 @@ regionToBox(const Region& r) {
       geos::geom::LinearRing *lr = global_factory->createLinearRing(cl);
       box = global_factory->createPolygon(lr, NULL);
       box->normalize();
-    }
+    } 
   } else if (r.m_dimension == 1) {
     geos::geom::CoordinateSequence *cl = new geos::geom::CoordinateArraySequence();
     cl->add(Coordinate(r.m_pLow[0]));
@@ -612,7 +638,7 @@ GEOSPolygon::intersectsRegion(const Region& r) const {
 #ifdef DEBUG
   cout << "outcome of intersection " << rv << endl;
 #endif
-  delete box;
+  global_factory->destroyGeometry(box);
   return rv;
 }
 bool 
@@ -650,8 +676,10 @@ GEOSPolygon::containsPoint(const Point& in) const {
 #ifdef DEBUG
 cout << "entering GEOSPolygon::containsPoint(const Point& in) const " << endl;
 #endif
-  const GEOSPoint *p = new GEOSPoint(in.m_pCoords,in.m_dimension);
-  return this->g->contains(p->g);
+ const GEOSPoint *p = new GEOSPoint(in.m_pCoords,in.m_dimension);
+ bool rv = this->g->contains(p->g);
+ delete p;
+ return rv;
 }
 bool
 GEOSPolygon::containsRegion(const Region& r) const {
@@ -671,7 +699,7 @@ GEOSPolygon::containsRegion(const Region& r) const {
 #ifdef DEBUG
   cout << "outcome of containment " << rv << endl;
 #endif
-  delete box;
+  global_factory->destroyGeometry(box);
   return rv;
 }
 bool 
@@ -710,7 +738,9 @@ GEOSPolygon::touchesPoint(const Point& in) const {
 cout << "entering GEOSPolygon::touchesPoint(const Point& in) const " << endl;
 #endif
   const GEOSPoint *p = new GEOSPoint(in.m_pCoords,in.m_dimension);
-  return this->g->touches(p->g);
+  bool rv = this->g->touches(p->g);
+  delete p;
+  return rv;
 }
 bool
 GEOSPolygon::touchesRegion(const Region& r) const {
@@ -730,7 +760,7 @@ GEOSPolygon::touchesRegion(const Region& r) const {
 #ifdef DEBUG
   cout << "outcome of touch " << rv << endl;
 #endif
-  delete box;
+  global_factory->destroyGeometry(box);
   return rv;
 }
 void
@@ -815,6 +845,7 @@ cout << "entering GEOSPolygon::getMinimumDistance(const IShape& in) const " << e
     return this->g->distance(s.g);
   } catch (std::bad_cast &e) {
     try {
+      float dist = 0.0;
       const Region& pr = dynamic_cast<const Region&>(in);
       geos::geom::Polygon *box;
       if (pr.m_dimension == 2) {
@@ -841,9 +872,12 @@ cout << "entering GEOSPolygon::getMinimumDistance(const IShape& in) const " << e
         cerr << pr.m_dimension << " dimensional regions not supported" << endl;
         return NULL;
       }
-      return this->g->distance(box);
+      dist = this->g->distance(box);
+      global_factory->destroyGeometry(box);
+      return dist;
     } catch (std::bad_cast &e) {
       try {
+        float dist = 0.0;
         const Point& ppt = dynamic_cast<const Point&>(in);
         geos::geom::Point *p;
         if (ppt.m_dimension == 2) {
@@ -856,7 +890,8 @@ cout << "entering GEOSPolygon::getMinimumDistance(const IShape& in) const " << e
           cerr << ppt.m_dimension << " dimensional points not supported" << endl;
           exit(1);
         }
-        return this->g->distance(p);
+        dist = this->g->distance(p);
+        return dist;
       } catch (std::bad_cast &e) {
         cerr << "unsupported type in GEOSPolygon::getMinimumDistance, " << e.what() << endl;
       }

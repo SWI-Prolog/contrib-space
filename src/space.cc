@@ -49,10 +49,15 @@ map<string,Index*> index_map;
 static void index_clear(const char* indexname) {
   Index *idx = NULL;
   map<string,Index*>::iterator iter = index_map.find(string(indexname));
+    cout <<  "(" << indexname << ") number of indices before clear " << index_map.size() << endl;
   if (iter != index_map.end()) {
     idx = iter->second;
     index_map.erase(iter);
     delete idx;
+  }
+  cout << "(" << indexname << ") number of indices after clear " << index_map.size() << endl;
+  if (index_map.size() == 0) {
+    cleanup_geos();
   }
 }
 
@@ -63,8 +68,11 @@ static RTreeIndex* assert_rtree_index(const char* indexname, double util, int no
   cout << "did not find " << indexname << " creating new empty index" << endl;
   #endif
   RTreeIndex *idx = new RTreeIndex(indexname,util,nodesz);  
+  if (index_map.size() == 0) {
+    init_geos();
+  }
   index_map[indexname] = idx;
-  return idx;  
+  return idx;
 }
 
 static RTreeIndex* assert_rtree_index(const char* indexname) {
@@ -74,6 +82,9 @@ static RTreeIndex* assert_rtree_index(const char* indexname) {
   cout << "did not find " << indexname << " creating new empty index" << endl;
   #endif
   RTreeIndex *idx = new RTreeIndex(indexname);  
+  if (index_map.size() == 0) {
+    init_geos();
+  }
   index_map[indexname] = idx;
   return idx;
 }
@@ -192,22 +203,21 @@ PREDICATE(rtree_load_file,4)
 
 PREDICATE_NONDET(rtree_incremental_intersection_query,3)
 {
-  RTreeIndex *idx = dynamic_cast<RTreeIndex*>(assert_rtree_index((char*)(A3)));
-  if (idx->tree == NULL) PL_fail;
-
   try
     {
-      IShape *g = idx->interpret_shape((term_t)A1);
-
       IncrementalRangeStrategy* qs;
-      
+      RTreeIndex *idx = NULL;
       switch( PL_foreign_control((control_t)handle) ) 
         {
         case PL_FIRST_CALL: 
-          qs = new IncrementalRangeStrategy(IntersectionQuery,g,NULL,idx);
+          idx = dynamic_cast<RTreeIndex*>(assert_rtree_index((char*)(A3)));
+          if (idx->tree == NULL) PL_fail;
+          qs = new IncrementalRangeStrategy(IntersectionQuery,idx->interpret_shape((term_t)A1),NULL,idx);
           goto iterate;
           
         case PL_REDO: 
+          idx = dynamic_cast<RTreeIndex*>(assert_rtree_index((char*)(A3)));
+          if (idx->tree == NULL) PL_fail;
           qs = (IncrementalRangeStrategy*)PL_foreign_context_address((control_t)handle); 
         iterate:
           idx->tree->queryStrategy(*qs);
@@ -215,12 +225,12 @@ PREDICATE_NONDET(rtree_incremental_intersection_query,3)
           PL_unify_atom_nchars(A2,qs->result_length,qs->result);
           PL_retry_address(qs); 
           
-      case PL_CUTTED: 
-        qs = (IncrementalRangeStrategy*)PL_foreign_context_address((control_t)handle); 
-      cutted:
-        delete qs;
-        PL_fail; 
-      } 
+        case PL_CUTTED: 
+          qs = (IncrementalRangeStrategy*)PL_foreign_context_address((control_t)handle); 
+        cutted:
+          delete qs;
+          PL_fail; 
+        } 
 
       
     }
@@ -245,22 +255,23 @@ PREDICATE_NONDET(rtree_incremental_intersection_query,3)
 
 PREDICATE_NONDET(rtree_incremental_containment_query,3)
 {
-  RTreeIndex *idx = dynamic_cast<RTreeIndex*>(assert_rtree_index((char*)(A3)));
-  if (idx->tree == NULL) PL_fail;
 
   try
     {
-      IShape *g = idx->interpret_shape((term_t)A1);
 
       IncrementalRangeStrategy* qs;
-      
+      RTreeIndex *idx = NULL;
       switch( PL_foreign_control((control_t)handle) ) 
         {
         case PL_FIRST_CALL: 
-          qs = new IncrementalRangeStrategy(ContainmentQuery,g,NULL,idx);
+          idx = dynamic_cast<RTreeIndex*>(assert_rtree_index((char*)(A3)));
+          if (idx->tree == NULL) PL_fail;
+          qs = new IncrementalRangeStrategy(ContainmentQuery,idx->interpret_shape((term_t)A1),NULL,idx);
           goto iterate;
           
         case PL_REDO: 
+          idx = dynamic_cast<RTreeIndex*>(assert_rtree_index((char*)(A3)));
+          if (idx->tree == NULL) PL_fail;
           qs = (IncrementalRangeStrategy*)PL_foreign_context_address((control_t)handle); 
         iterate:
           idx->tree->queryStrategy(*qs);
@@ -297,22 +308,24 @@ PREDICATE_NONDET(rtree_incremental_containment_query,3)
 
 PREDICATE_NONDET(rtree_incremental_nearest_neighbor_query,3)
 {
-  RTreeIndex *idx = dynamic_cast<RTreeIndex*>(assert_rtree_index((char*)(A3)));
-  if (idx->tree == NULL) PL_fail;
 
   try
     {
-      IShape *g = idx->interpret_shape((term_t)A1);
-
       IncrementalNearestNeighborStrategy* qs;
-      
+      RTreeIndex *idx = NULL;
+
       switch( PL_foreign_control((control_t)handle) ) 
         {
         case PL_FIRST_CALL: 
-          qs = new IncrementalNearestNeighborStrategy(g,NULL,idx);
+          idx = dynamic_cast<RTreeIndex*>(assert_rtree_index((char*)(A3)));
+          if (idx->tree == NULL) PL_fail;
+          qs = new IncrementalNearestNeighborStrategy(idx->interpret_shape((term_t)A1),NULL,idx);
           goto iterate;
           
         case PL_REDO: 
+          idx = dynamic_cast<RTreeIndex*>(assert_rtree_index((char*)(A3)));
+          if (idx->tree == NULL) PL_fail;
+
           qs = (IncrementalNearestNeighborStrategy*)PL_foreign_context_address((control_t)handle); 
         iterate:
           idx->tree->queryStrategy(*qs);
@@ -405,6 +418,12 @@ PREDICATE(geos_test,0) {
   coords[1] = 2.0;
   SpatialIndex::Point *pt = new SpatialIndex::Point(coords,2);
   cout << "created Point" << endl;
+
+  cout << "size of a GEOSPoint " << sizeof(*p) << endl;
+  cout << "size of a geom::geos::Point " << sizeof(*(p->g)) << endl;
+  cout << "size of a SpatialIndex::Point " << sizeof(*pt) << endl;
+
+
   if (p->intersectsShape((GEOSPoint&)*q))
     cout << "intersects GEOSPoint!" << endl;
   if (p->intersectsShape(*pt))
@@ -476,6 +495,7 @@ PREDICATE(geos_test,0) {
 
   cout << "after load, testing copy" << endl;
   cout << "distance " << p4 << " to " << gpoly2 << " = " << p4->getMinimumDistance(*gpoly2) << endl;
+
 
   PL_succeed;
 }

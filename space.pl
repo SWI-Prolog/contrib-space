@@ -246,12 +246,17 @@ space_nearest(Shape, Near, IndexName) :-
 space_nearest_bounded(Shape, Near, WithinRange) :-
 	rtree_default_index(I),
 	space_nearest_bounded(Shape,Near,WithinRange,I).
-space_nearest_bounded(Shape, Near, WithinRange, IndexName) :-
+space_nearest_bounded(Shape, Near, WithinRange, _IndexName) :-
 	shape(Shape),
+        ground(Near),
+        uri_shape(Near,NearShape),
+        space_distance(Shape,NearShape,Distance),
+        Distance < WithinRange, !.
+space_nearest_bounded(Shape, Near, WithinRange, IndexName) :-
         space_index(IndexName),
-	rtree_incremental_nearest_neighbor_query(Shape, Near, IndexName),
-	uri_shape(Near,NearShape),
-	space_distance(Shape,NearShape,Distance),
+        rtree_incremental_nearest_neighbor_query(Shape, Near, IndexName),
+        uri_shape(Near,NearShape),
+        space_distance(Shape,NearShape,Distance),
 	(   Distance > WithinRange
 	->  !, fail
 	;   true
@@ -279,7 +284,7 @@ uri_shape(URI,Shape) :-
 	georss_candidate(URI,Shape) ;
 	wgs84_candidate(URI,Shape).
 
-% allows you to use namespaces in the URI argument.
+% allows you to use namespaces in the URI argument when using it to find pairs.
 :- rdf_meta(uri_shape(r,?)).
 
 %%	space_index_all(+IndexName) is det.
@@ -307,9 +312,9 @@ box_polygon(box(point(Lx,Ly),point(Hx,Hy)),
 %
 %       Checks whether Shape is a valid supported shape.
 
-shape(Shape) :- once(dimensionality(Shape,_)).
+shape(Shape) :- dimensionality(Shape,_).
 
-dimensionality(Shape,Dim) :- functor(Shape,point,Dim).
+dimensionality(Shape,Dim) :- ground(Shape) -> functor(Shape,point,Dim); !, fail.
 dimensionality(box(Point,_),Dim) :- dimensionality(Point,Dim).
 dimensionality(polygon([[Point|_]|_]),Dim) :- dimensionality(Point,Dim).
 dimensionality(circle(Point,_,_),Dim) :- dimensionality(Point,Dim).
