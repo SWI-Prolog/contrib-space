@@ -99,8 +99,9 @@ space_assert(URI,Shape) :-
 	rtree_default_index(I),
 	space_assert(URI,Shape,I).
 space_assert(URI,Shape,IndexName) :-
-	shape(Shape),
-        (   space_queue(IndexName,retract,_,_)
+	dimensionality(Shape,Dimensionality),
+	must_be(between(1,3), Dimensionality),
+	(   space_queue(IndexName,retract,_,_)
         ->  space_index(IndexName)
         ; true
         ),

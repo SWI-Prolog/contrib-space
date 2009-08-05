@@ -294,22 +294,12 @@ id_type  RTreeIndex::get_new_id(const char* uri) {
   id_type id = -1;
   if (bulkload_tmp_id_cnt != -1) { // we're bulkloading
     id = bulkload_tmp_id_cnt++;
-    /*
-    string *q = new string(uri);
-    uri_id_map[*q] = id;
-    delete q;
-    */
     uri_id_map[uri] = id;
   } else {
     if (tree == NULL) return -1;
     IStatistics* stats;
     tree->getStatistics(&stats);
     id = stats->getNumberOfData();
-    /*
-    string *q = new string(uri);
-    uri_id_map[*q] = id;
-    delete q;
-    */
     uri_id_map[uri] = id;
 
     delete stats;
@@ -318,12 +308,26 @@ id_type  RTreeIndex::get_new_id(const char* uri) {
 }
 
 id_type   RTreeIndex::get_uri_id(const char* uri) {
-  //  map<string,id_type>::iterator iter = uri_id_map.find(string(uri));
   map<const char*,id_type>::iterator iter = uri_id_map.find(uri);
   if (iter == uri_id_map.end()) return -1;
   return iter->second;
 }
   
+
+void RTreeIndex::create_tree(size_t dimensionality) {
+  RTreeIndex::create_tree(dimensionality,utilization,nodesize);
+}
+void RTreeIndex::create_tree(size_t dimensionality, double util, int nodesz) {
+  utilization = util;
+  nodesize = nodesz;
+  diskfile = StorageManager::createNewDiskStorageManager(*baseName, 32);
+  file = StorageManager::createNewRandomEvictionsBuffer(*diskfile, 4096, false);
+  tree = RTree::createNewRTree(*file, utilization,
+                               nodesize, nodesize, dimensionality, 
+                               SpatialIndex::RTree::RV_RSTAR, indexIdentifier);
+}
+
+
 bool
 RTreeIndex::bulk_load(const char* module,const char* goal,size_t dimensionality) {
   if (dimensionality > 3 || dimensionality < 1) {
@@ -336,7 +340,7 @@ RTreeIndex::bulk_load(const char* module,const char* goal,size_t dimensionality)
   // and to set the parameters of the disk store and buffer
   diskfile = StorageManager::createNewDiskStorageManager(*baseName, 32);
   //diskfile = StorageManager::createNewMemoryStorageManager();
-  file = StorageManager::createNewRandomEvictionsBuffer(*diskfile, 4096, true);
+  file = StorageManager::createNewRandomEvictionsBuffer(*diskfile, 4096, false);
   id_type indexIdentifier;
   tree = RTree::createAndBulkLoadNewRTree(RTree::BLM_STR, 
                                           stream, *file, utilization,
@@ -487,16 +491,6 @@ IShape* RTreeIndex::interpret_shape(term_t shape) {
   return NULL;
 }
 
-void RTreeIndex::create_tree(size_t dimensionality) {
-  RTreeIndex::create_tree(dimensionality,utilization,nodesize);
-}
-void RTreeIndex::create_tree(size_t dimensionality, double util, int nodesz) {
-  utilization = util;
-  nodesize = nodesz;
-  diskfile = StorageManager::createNewDiskStorageManager(*baseName, 4096);
-  file = StorageManager::createNewRandomEvictionsBuffer(*diskfile, 10, false);
-  tree = RTree::createNewRTree(*file, utilization, nodesize, nodesize, dimensionality, SpatialIndex::RTree::RV_RSTAR, indexIdentifier);
-}
 
 bool RTreeIndex::insert_single_object(const char* uri,term_t shape_term) {
   IShape *shape;
@@ -545,6 +539,7 @@ bool RTreeIndex::delete_single_object(const char* uri,term_t shape_term) {
   return rv;
 }
 
+// OBSOLETE
 bool RTreeIndex::load_from_file(const char* filename) {
   clear_tree();
   bool ret = true;
