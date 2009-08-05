@@ -252,12 +252,10 @@ RTreeIndex::RTreeIndex(const char* indexname, double util, int nodesz) : diskfil
 
 RTreeIndex::~RTreeIndex() {
   this->clear_tree();
-  cout << "deleting tree " << baseName << endl;
   delete baseName;
 }
 
 void RTreeIndex::clear_tree() {
-  cout << "cleaning tree " << endl;
   if (tree != NULL) {
     delete tree;
     tree = NULL;

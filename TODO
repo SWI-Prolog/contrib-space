@@ -1,8 +1,5 @@
 index name -> atom
 uri -> atom
-(alles -> atom)
-PL_register_atom (delete -> PL_unregister_atom)
-valid_shape -> shape
-shape -> uri_shape
+(use atoms for everything)
 kml.pl use html_write
-
+store index and resume

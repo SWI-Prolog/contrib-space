@@ -49,13 +49,11 @@ map<string,Index*> index_map;
 static void index_clear(const char* indexname) {
   Index *idx = NULL;
   map<string,Index*>::iterator iter = index_map.find(string(indexname));
-    cout <<  "(" << indexname << ") number of indices before clear " << index_map.size() << endl;
   if (iter != index_map.end()) {
     idx = iter->second;
     index_map.erase(iter);
     delete idx;
   }
-  cout << "(" << indexname << ") number of indices after clear " << index_map.size() << endl;
   if (index_map.size() == 0) {
     cleanup_geos();
   }

@@ -24,8 +24,6 @@ test(space_nearest) :-
 	space_nearest(point(0.0,0.0),_N,test_index), !.
 
 test(uri_shape) :-
-	rdf(X,Y,Z),
-	format('~w ~w ~w~n',[X,Y,Z]),
 	rdf_global_id(poseidon:'ScheepvaartrouteMaas_1', Maas1URI),
 	rdf_global_id(poseidon:'ScheepvaartrouteMaas_4', Maas4URI),
 	uri_shape(Maas1URI,
