@@ -229,7 +229,8 @@ void IncrementalRangeStrategy::getNextEntry(const IEntry& entry, id_type& nextEn
             v->visitData(*e);
             delete e;
           }
-          result = PL_copy_term_ref((term_t)data);
+          PlAtom data_atom((atom_t)data);
+          result = PlTerm(data_atom);
           result_found = true;
           hasNext = false; // We stop looking for other results (incremental behavior).
           continuation = true; // If we want to find more results we should not start from the root node,
@@ -339,7 +340,10 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
           byte* data;
           size_t length;
           (dynamic_cast<const IData&>(*(queue.top()->m_pEntry))).getData(length,&data);
-          term_t uri = PL_copy_term_ref((term_t)data);
+          cout << "atom nr " << (atom_t)data << endl;
+          PlAtom data_atom((atom_t)data);
+          result = PlTerm(data_atom);
+          cout << "result str" << (char*)result << endl;
           result_found = true;
           hasNext = false; // We stop looking for other results (incremental behavior).
           continuation = true; // If we want to find more results we should not start from the root node

@@ -91,7 +91,7 @@ class TraverseDepthFirst : public SpatialIndex::IQueryStrategy
 class IncrementalRangeStrategy : public SpatialIndex::IQueryStrategy
 {
  public:
-  term_t result;
+  PlTerm result;
   bool result_found;
   bool continuation;
   size_t child_idx;
@@ -147,7 +147,7 @@ private:
   }; // NNComparator
 
  public:
-  term_t result;
+  PlTerm result;
   bool result_found;
   bool continuation;
   size_t child_idx;

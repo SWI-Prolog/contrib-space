@@ -63,16 +63,15 @@ public:
     IShape *s = index->interpret_shape((term_t)(cache0+2));
     Region r;
     s->getMBR(r);
-    term_t uri = PL_copy_term_ref((term_t)cache0+1);
-    id_type id = index->get_uri_id(uri);
-    if (id == -1) id = index->get_new_id(uri);
+    PlTerm uri_term((term_t)cache0+1);
+    PlAtom uri_atom(uri_term);
+    id_type id = index->get_uri_id(uri_term);
+    if (id == -1) id = index->get_new_id(uri_term);
     index->storeShape(id,s);
 #ifdef DEBUG
-    char *uristr = NULL;
-    PL_get_atom_chars(uri,&uristr);
-    cout << "uri " << uristr << " shape " << r << " id " << id << endl;
+    cout << "uri " << (char*)uri_term << " atom " << uri_atom.handle << " shape " << r << " id " << id << endl;
 #endif
-    RTree::Data* next = new RTree::Data(sizeof(uri), (byte*)uri, r, id);
+    RTree::Data* next = new RTree::Data(sizeof(uri_atom.handle), (byte*)uri_atom.handle, r, id);
     return next;
   }
   virtual bool hasNext() throw (NotSupportedException)
@@ -105,13 +104,11 @@ public:
  * -- RTreeIndex -------------------------------------
  */
 
-RTreeIndex::RTreeIndex(term_t indexname) : utilization(0.7), nodesize(4),  diskfile(NULL), file(NULL), tree(NULL) { 
-  baseName = PL_copy_term_ref(indexname);
+RTreeIndex::RTreeIndex(PlTerm indexname) : baseName(indexname), utilization(0.7), nodesize(4),  diskfile(NULL), file(NULL), tree(NULL) { 
   bulkload_tmp_id_cnt = -1;
 }
 
-RTreeIndex::RTreeIndex(term_t indexname, double util, int nodesz) : diskfile(NULL), file(NULL), tree(NULL) {
-  baseName = PL_copy_term_ref(indexname);
+RTreeIndex::RTreeIndex(PlTerm indexname, double util, int nodesz) : baseName(indexname), diskfile(NULL), file(NULL), tree(NULL) {
   utilization = util;
   nodesize = nodesz;
   bulkload_tmp_id_cnt = -1;
@@ -157,24 +154,26 @@ IShape* RTreeIndex::getShape(id_type id) {
   return iter->second;
 }
 
-id_type  RTreeIndex::get_new_id(term_t uri) {
+id_type  RTreeIndex::get_new_id(PlTerm uri) {
   id_type id = -1;
+  PlAtom uri_atom(uri);
   if (bulkload_tmp_id_cnt != -1) { // we're bulkloading
     id = bulkload_tmp_id_cnt++;
-    uri_id_map[uri] = id;
+    uri_id_map[uri_atom.handle] = id;
   } else {
     if (tree == NULL) return -1;
     IStatistics* stats;
     tree->getStatistics(&stats);
     id = stats->getNumberOfData();
-    uri_id_map[uri] = id;
+    uri_id_map[uri_atom.handle] = id;
     delete stats;
   }
   return id;
 }
 
-id_type   RTreeIndex::get_uri_id(term_t uri) {
-  map<term_t,id_type>::iterator iter = uri_id_map.find(uri);
+id_type   RTreeIndex::get_uri_id(PlTerm uri) {
+  PlAtom uri_atom(uri);
+  map<atom_t,id_type>::iterator iter = uri_id_map.find(uri_atom.handle);
   if (iter == uri_id_map.end()) return -1;
   return iter->second;
 }
@@ -186,9 +185,8 @@ void RTreeIndex::create_tree(size_t dimensionality) {
 void RTreeIndex::create_tree(size_t dimensionality, double util, int nodesz) {
   utilization = util;
   nodesize = nodesz;
-  char *baseNamestr = NULL;
-  PL_get_atom_chars(baseName,&baseNamestr);
-  string *bns = new string(baseNamestr);
+  PlTerm bnt(baseName);
+  string *bns = new string((char*)bnt);
   diskfile = StorageManager::createNewDiskStorageManager(*bns, 32);
   delete bns;
   file = StorageManager::createNewRandomEvictionsBuffer(*diskfile, 4096, false);
@@ -199,18 +197,17 @@ void RTreeIndex::create_tree(size_t dimensionality, double util, int nodesz) {
 
 
 bool
-RTreeIndex::bulk_load(term_t goal,size_t dimensionality) {
+RTreeIndex::bulk_load(PlTerm goal,size_t dimensionality) {
   if (dimensionality > 3 || dimensionality < 1) {
     cerr << "only dimensionality from 1 to 3 supported, not " << dimensionality << endl;
     return false;
   }
-  RTreePrologStream stream(goal,this); // assuming of the shape 'somepred(URI,Shape)'
+  RTreePrologStream stream(goal,this); // assuming goal of the form 'somepred(URI,Shape)'
 
   // FIXME: add a nice customization interface that allows you to choose between disk and memory storage
   // and to set the parameters of the disk store and buffer
-  char *baseNamestr = NULL;
-  PL_get_atom_chars(baseName,&baseNamestr);
-  string *bns = new string(baseNamestr);
+  PlTerm bnt(baseName);
+  string *bns = new string((char*)bnt);
   diskfile = StorageManager::createNewDiskStorageManager(*bns, 32);
   delete bns;
   //diskfile = StorageManager::createNewMemoryStorageManager();
@@ -224,10 +221,8 @@ RTreeIndex::bulk_load(term_t goal,size_t dimensionality) {
 }
 
 
-IShape* RTreeIndex::interpret_shape(term_t shape) {
+IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
   // only supports points and boxes now
-  PlTerm shape_term(shape);
-
   if (shape_term.name() == ATOM_point) {
 
     double point[shape_term.arity()];
@@ -366,7 +361,7 @@ IShape* RTreeIndex::interpret_shape(term_t shape) {
 }
 
 
-bool RTreeIndex::insert_single_object(term_t uri,term_t shape_term) {
+bool RTreeIndex::insert_single_object(PlTerm uri,PlTerm shape_term) {
   IShape *shape;
   id_type id;
   if ((shape = RTreeIndex::interpret_shape(shape_term)) == NULL) {
@@ -383,7 +378,8 @@ bool RTreeIndex::insert_single_object(term_t uri,term_t shape_term) {
     return FALSE;
   }
   try { 
-    tree->insertData(sizeof(uri), (byte*)uri, *shape, id);    
+    PlAtom uri_atom(uri);
+    tree->insertData(sizeof(uri_atom.handle), (byte*)uri_atom.handle, *shape, id);    
   } catch (...) {
     return FALSE;
   }
@@ -391,7 +387,7 @@ bool RTreeIndex::insert_single_object(term_t uri,term_t shape_term) {
   return TRUE;
 }
 
-bool RTreeIndex::delete_single_object(term_t uri,term_t shape_term) {
+bool RTreeIndex::delete_single_object(PlTerm uri,PlTerm shape_term) {
   IShape *shape;
   id_type id;
   if ((shape = RTreeIndex::interpret_shape(shape_term)) == NULL) {
@@ -404,11 +400,8 @@ bool RTreeIndex::delete_single_object(term_t uri,term_t shape_term) {
     RTreeIndex::create_tree(dimensionality,utilization,nodesize);
   }
   if ((id = get_uri_id(uri)) == -1) {
-    char *uristr = NULL;
-    char *baseNamestr = NULL;
-    PL_get_atom_chars(uri,&uristr);
-    PL_get_atom_chars(baseName,&baseNamestr);
-    cerr << "could not find ID for " << uristr << " in " << baseNamestr << endl;
+    PlTerm bnt(baseName);
+    cerr << "could not find ID for " << (char*)uri << " in " << (char*)bnt << endl;
     delete shape;
     return FALSE;
   }
