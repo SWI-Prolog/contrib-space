@@ -229,8 +229,10 @@ void IncrementalRangeStrategy::getNextEntry(const IEntry& entry, id_type& nextEn
             v->visitData(*e);
             delete e;
           }
-          PlAtom data_atom((atom_t)data);
-          result = PlTerm(data_atom);
+          result = *(atom_t*)data;
+#ifdef DEBUG
+          cout << "result str" << (char*)result << endl;
+#endif
           result_found = true;
           hasNext = false; // We stop looking for other results (incremental behavior).
           continuation = true; // If we want to find more results we should not start from the root node,
@@ -288,6 +290,7 @@ IncrementalNearestNeighborStrategy::IncrementalNearestNeighborStrategy(IShape* q
 }
 
 void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_type& nextEntry, bool& hasNext) {
+  result_found = false;
 #ifdef DEBUG
   cout << "visiting node " << entry.getIdentifier() << endl;
 #endif
@@ -340,10 +343,10 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
           byte* data;
           size_t length;
           (dynamic_cast<const IData&>(*(queue.top()->m_pEntry))).getData(length,&data);
-          cout << "atom nr " << (atom_t)data << endl;
-          PlAtom data_atom((atom_t)data);
-          result = PlTerm(data_atom);
+          result = *(atom_t*)data;
+#ifdef DEBUG          
           cout << "result str" << (char*)result << endl;
+#endif
           result_found = true;
           hasNext = false; // We stop looking for other results (incremental behavior).
           continuation = true; // If we want to find more results we should not start from the root node
@@ -416,7 +419,7 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
     }
 
   }
-
+  
   // This takes care that the nextEntry is never data,
   // to circumvent the readNode call in the queryStrategy method.
   if (queue.top()->m_pEntry != NULL) {

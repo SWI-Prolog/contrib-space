@@ -27,9 +27,6 @@
     the GNU General Public License.
 */
 
-% allow loading the shared object file from the current working directory
-:- assert(file_search_path(foreign,'.')).
-
 % load the Prolog module that uses the space shared object file
 :- use_module(library(space/space)).
 
@@ -44,16 +41,9 @@
 % load the demo RDF file containing Geonames features around the Rotterdam harbor
 :- rdf_load('demo_geonames.rdf').
 
-% declare which coordinates go with which URIs
-allCandidate(ID, point(Lat, Long)) :-
-	rdf(ID, wgs84:lat, literal(LatT)),
-	rdf(ID, wgs84:long, literal(LongT)),
-	atom_number(LatT, Lat),
-	atom_number(LongT, Long).
-
 % this adds all URIs with associated coordinates to the space indexing queue
 :- writef("Selecting features with coordinates to put in the spatial index.\n").
-:- space_bulkload('user',allCandidate,'demo_index').
+:- space_bulkload(uri_shape,'demo_index').
 :- writef("done loading demo\n\n----\n\n").
 
 % find Features in order of proximity to the point Lat Long

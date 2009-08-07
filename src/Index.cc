@@ -65,13 +65,13 @@ public:
     s->getMBR(r);
     PlTerm uri_term((term_t)cache0+1);
     PlAtom uri_atom(uri_term);
-    id_type id = index->get_uri_id(uri_term);
+    id_type id = index->get_uri_id(uri_term); // FIXME: PlAtom argument
     if (id == -1) id = index->get_new_id(uri_term);
     index->storeShape(id,s);
 #ifdef DEBUG
     cout << "uri " << (char*)uri_term << " atom " << uri_atom.handle << " shape " << r << " id " << id << endl;
 #endif
-    RTree::Data* next = new RTree::Data(sizeof(uri_atom.handle), (byte*)uri_atom.handle, r, id);
+    RTree::Data* next = new RTree::Data(sizeof(uri_atom.handle), (byte*)&uri_atom.handle, r, id);
     return next;
   }
   virtual bool hasNext() throw (NotSupportedException)
@@ -157,6 +157,7 @@ IShape* RTreeIndex::getShape(id_type id) {
 id_type  RTreeIndex::get_new_id(PlTerm uri) {
   id_type id = -1;
   PlAtom uri_atom(uri);
+  PL_register_atom(uri_atom.handle); // FIXME: unregister somewhere...
   if (bulkload_tmp_id_cnt != -1) { // we're bulkloading
     id = bulkload_tmp_id_cnt++;
     uri_id_map[uri_atom.handle] = id;
@@ -206,8 +207,7 @@ RTreeIndex::bulk_load(PlTerm goal,size_t dimensionality) {
 
   // FIXME: add a nice customization interface that allows you to choose between disk and memory storage
   // and to set the parameters of the disk store and buffer
-  PlTerm bnt(baseName);
-  string *bns = new string((char*)bnt);
+  string *bns = new string((const char*)baseName);
   diskfile = StorageManager::createNewDiskStorageManager(*bns, 32);
   delete bns;
   //diskfile = StorageManager::createNewMemoryStorageManager();
@@ -379,7 +379,7 @@ bool RTreeIndex::insert_single_object(PlTerm uri,PlTerm shape_term) {
   }
   try { 
     PlAtom uri_atom(uri);
-    tree->insertData(sizeof(uri_atom.handle), (byte*)uri_atom.handle, *shape, id);    
+    tree->insertData(sizeof(uri_atom.handle), (byte*)&uri_atom.handle, *shape, id);    
   } catch (...) {
     return FALSE;
   }

@@ -201,16 +201,20 @@ PREDICATE_NONDET(rtree_incremental_intersection_query,3)
           qs = (IncrementalRangeStrategy*)PL_foreign_context_address((control_t)handle); 
         iterate:
           idx->tree->queryStrategy(*qs);
-          if (!qs->result_found) goto cutted;
-          cout << "found intersecting URI " << (char*)qs->result << endl;
-          A2 = qs->result;
+          if (!qs->result_found) {
+            delete qs;
+            PL_fail; 
+          }
+          {
+            PlAtom result_atom(qs->result);
+            A2 = result_atom;
+          }
           PL_retry_address(qs); 
-          
+
         case PL_CUTTED: 
           qs = (IncrementalRangeStrategy*)PL_foreign_context_address((control_t)handle); 
-        cutted:
           delete qs;
-          PL_fail; 
+          PL_succeed; 
         } 
 
       
@@ -255,15 +259,19 @@ PREDICATE_NONDET(rtree_incremental_containment_query,3)
           qs = (IncrementalRangeStrategy*)PL_foreign_context_address((control_t)handle); 
         iterate:
           idx->tree->queryStrategy(*qs);
-          if (!qs->result_found) goto cutted;
-          cout << "found contained URI " << (char*)qs->result << endl;
-          A2 = qs->result;
+          if (!qs->result_found) {
+            delete qs;
+            PL_fail;
+          }
+          {
+            PlAtom result_atom(qs->result);
+            A2 = result_atom;
+          }
           PL_retry_address(qs);           
       case PL_CUTTED: 
         qs = (IncrementalRangeStrategy*)PL_foreign_context_address((control_t)handle); 
-      cutted:
         delete qs;
-        PL_fail; 
+        PL_succeed; 
       } 
 
       
@@ -309,16 +317,20 @@ PREDICATE_NONDET(rtree_incremental_nearest_neighbor_query,3)
           qs = (IncrementalNearestNeighborStrategy*)PL_foreign_context_address((control_t)handle); 
         iterate:
           idx->tree->queryStrategy(*qs);
-          if (!qs->result_found) goto cutted;
-          cout << "found near URI " << (char*)qs->result << endl;
-          A2 = qs->result;
+          if (!qs->result_found) {
+            delete qs;
+            PL_fail;
+          }
+          {
+            PlAtom result_atom(qs->result);
+            A2 = result_atom;
+          }
           PL_retry_address(qs); 
           
         case PL_CUTTED: 
           qs = (IncrementalNearestNeighborStrategy*)PL_foreign_context_address((control_t)handle); 
-        cutted:
           delete qs;
-          PL_fail; 
+          PL_succeed; 
         } 
       
       

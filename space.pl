@@ -177,7 +177,7 @@ space_clear(IndexName) :-
 
 space_bulkload(Functor) :-
 	rtree_default_index(I),
-        space_bulkload('user',Functor,I).
+        space_bulkload(Functor,I).
 space_bulkload(Functor,IndexName) :-
         once(call(Functor, _Uri, Shape)),
         dimensionality(Shape,Dimensionality),

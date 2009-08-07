@@ -8,9 +8,7 @@
 
 
 :- begin_tests(space, [ setup( rdf_load(clearways) ),
-			cleanup((   rdf_reset_db,
-				    space_clear(test_index)
-				)) ]).
+			cleanup( rdf_reset_db ) ]).
 
 test(space_clear, [ fail ]) :-
 	space_clear(test_index),
@@ -19,7 +17,7 @@ test(space_clear, [ fail ]) :-
 test(space_bulkload, [cleanup(space_clear(test_index))]) :-
 	space_bulkload(uri_shape, test_index).
 
-test(space_nearest) :-
+test(space_nearest, [cleanup(space_clear(test_index))]) :-
 	space_bulkload(uri_shape, test_index),
 	space_nearest(point(0.0,0.0),_N,test_index), !.
 
@@ -54,18 +52,22 @@ test(uri_shape) :-
 		 ),
 	!.
 
-test(space_intersects) :-
+test(space_intersects,[cleanup(space_clear(test_index))]) :-
+        space_bulkload(uri_shape, test_index),
 	rdf_global_id(poseidon:'ScheepvaartrouteMaas_1',Maas1URI),
 	rdf_global_id(poseidon:'ScheepvaartrouteMaas_4',Maas4URI),
 	uri_shape(Maas1URI,Maas1Shape),
 	uri_shape(Maas4URI,Maas4Shape),
 	rdf_global_id(poseidon:'ScheepvaartrouteZuid_richting_noord',NoordURI),
+        nl, display('-- Maas_1 intersects Zuid_richting_noord? should be no --'), nl,
 	findall(Inter,space_intersects(Maas1Shape,Inter,test_index),Inters),
 	\+member(NoordURI,Inters),
 	!,
+        nl, display('-- Maas_4 intersects Zuid_richting_noord? should be yes --'), nl,
 	space_intersects(Maas4Shape,NoordURI,test_index).
 
-test(space_index) :-
+test(space_index, [cleanup(space_clear(test_index))]) :-
+        space_bulkload(uri_shape, test_index),
 	rdf_global_id(poseidon:testPoint1,P1),
 	rdf_global_id(poseidon:testPoint2,P2),
 	rdf_global_id(poseidon:testPoint3,P3),
@@ -88,11 +90,15 @@ test(space_index) :-
 	!.
 
 
-test(space_contains) :-
+test(space_contains,[cleanup(space_clear(test_index))]) :-
+        space_bulkload(uri_shape, test_index),
 	rdf_global_id(poseidon:'ScheepvaartrouteMaas_4',Maas4URI),
 	rdf_global_id(poseidon:testPoint1,P1),
 	rdf_global_id(poseidon:testPoint2,P2),
 	rdf_global_id(poseidon:testPoint3,P3),
+	space_assert(P1,point(52.4389,3.07118),test_index),
+	space_assert(P2,point(52.3983,3.13086),test_index),
+	space_assert(P3,point(52.3254,3.06849),test_index),
 	uri_shape(Maas4URI,Maas4Shape),
 	findall(C,space_contains(Maas4Shape,C,test_index),Cs),
 	\+member(P3,Cs),
@@ -101,11 +107,14 @@ test(space_contains) :-
 	space_contains(Maas4Shape,P2,test_index).
 
 
-test(space_intersects) :-
+test(space_intersects,[cleanup(space_clear(test_index))]) :-
+        space_bulkload(uri_shape, test_index),
 	rdf_global_id(poseidon:'ScheepvaartrouteZuid_richting_noord',NoordURI),
 	rdf_global_id(poseidon:'ScheepvaartrouteMaas_4',Maas4URI),
 	rdf_global_id(poseidon:testPoint1,P1),
 	rdf_global_id(poseidon:testPoint3,P3),
+	space_assert(P1,point(52.4389,3.07118),test_index),
+	space_assert(P3,point(52.3254,3.06849),test_index),
 	uri_shape(Maas4URI,Maas4Shape),
 	findall(Int,space_intersects(Maas4Shape,Int,test_index),Ints),
 	\+member(P3,Ints),
@@ -114,22 +123,32 @@ test(space_intersects) :-
 	space_intersects(Maas4Shape,NoordURI,test_index).
 
 
-test(space_nearest, [ true(Pts = [P2,P1,P3]) ]) :-
+test(space_nearest, [ true(Pts = [P2,P1,P3]),
+                      cleanup(space_clear(test_index)) ]) :-
+        space_bulkload(uri_shape, test_index),
 	rdf_global_id(poseidon:'Deep-draught_anchorage_Aanloopgebied_IJmuiden',DeepURI),
 	rdf_global_id(poseidon:testPoint1,P1),
 	rdf_global_id(poseidon:testPoint2,P2),
 	rdf_global_id(poseidon:testPoint3,P3),
+	space_assert(P1,point(52.4389,3.07118),test_index),
+	space_assert(P2,point(52.3983,3.13086),test_index),
+	space_assert(P3,point(52.3254,3.06849),test_index),
 	uri_shape(DeepURI,DeepShape),
 	findall(Pt,(space_nearest(DeepShape,Pt,test_index),
 		    rdf_global_id(poseidon:Lt,Pt),
 		    atom_concat(testPoint,_,Lt)), Pts),
 	!.
 
-test(space_retract, [ true(Ps = [P2,P3]) ]) :-
+test(space_retract, [ true(Ps = [P2,P3]),
+                      cleanup(space_clear(test_index)) ]) :-
+        space_bulkload(uri_shape, test_index),
 	rdf_global_id(poseidon:'Deep-draught_anchorage_Aanloopgebied_IJmuiden',DeepURI),
 	rdf_global_id(poseidon:testPoint1,P1),
 	rdf_global_id(poseidon:testPoint2,P2),
 	rdf_global_id(poseidon:testPoint3,P3),
+	space_assert(P1,point(52.4389,3.07118),test_index),
+	space_assert(P2,point(52.3983,3.13086),test_index),
+	space_assert(P3,point(52.3254,3.06849),test_index),
 	uri_shape(DeepURI,DeepShape),
 	space_retract(P1,point(52.4389,3.07118),test_index),
 	findall(P,(space_nearest(DeepShape,P,test_index),
