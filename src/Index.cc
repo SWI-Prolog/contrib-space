@@ -187,9 +187,13 @@ void RTreeIndex::create_tree(size_t dimensionality, double util, int nodesz) {
   utilization = util;
   nodesize = nodesz;
   PlTerm bnt(baseName);
+#ifdef MEMORY_STORE
+  diskfile = StorageManager::createNewMemoryStorageManager();
+#else
   string *bns = new string((char*)bnt);
   diskfile = StorageManager::createNewDiskStorageManager(*bns, 32);
   delete bns;
+#endif
   file = StorageManager::createNewRandomEvictionsBuffer(*diskfile, 4096, false);
   tree = RTree::createNewRTree(*file, utilization,
                                nodesize, nodesize, dimensionality, 
@@ -207,10 +211,13 @@ RTreeIndex::bulk_load(PlTerm goal,size_t dimensionality) {
 
   // FIXME: add a nice customization interface that allows you to choose between disk and memory storage
   // and to set the parameters of the disk store and buffer
+#ifdef MEMORY_STORE
+  diskfile = StorageManager::createNewMemoryStorageManager();
+#else 
   string *bns = new string((const char*)baseName);
   diskfile = StorageManager::createNewDiskStorageManager(*bns, 32);
   delete bns;
-  //diskfile = StorageManager::createNewMemoryStorageManager();
+#endif
   file = StorageManager::createNewRandomEvictionsBuffer(*diskfile, 4096, false);
   id_type indexIdentifier;
   tree = RTree::createAndBulkLoadNewRTree(RTree::BLM_STR, 
