@@ -2,7 +2,7 @@
 
 Make sure you have the latest development version of SWI-Prolog 5.7.13. This is necessary for non-deterministic C++ predicates.
 
-Install spatialindex. (Use spatialindex release >= 1.3.3, the current source in the Trac repository at http://trac.gispython.org/spatialindex , or the version supplied with this package in the adaptations directory.)
+Install spatialindex. (Use spatialindex release >= 1.3.3 or the current source in the Trac repository at http://trac.gispython.org/spatialindex.)
 Install GEOS. The space package has been tested with version 3.1.1.
 
 If you install spatialindex or geos with a prefix (with ./configure --prefix=$PREFIX),
@@ -27,6 +27,7 @@ pl -s test_space.pl -g test_space,halt
 pl -s demo_space.pl
 
 -- Mac OS X
+
 On Mac OS X you might have to help ./configure a bit by telling it how to call the preprocessor. This should work:
 CXXCPP="g++ -E" ./configure
 Also, since 'pl' is a reserved command, Prolog should be called with 'swipl'.
