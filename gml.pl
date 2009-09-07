@@ -37,7 +37,6 @@
 :- use_module(library(xpath)).
 :- use_module(library(sgml)).
 :- use_module(library(lists)).
-:- use_module(gml).
 
 %%	gml_shape(?GML,?Shape) is semidet.
 %
@@ -107,7 +106,7 @@ transform_gml(Elts,linestring(LS)) :-
 	member(element('gml:linestring',_,LineStringElts),Elts),
 	get_linestring(LineStringElts,LS).
 
-transform_gml(Elts,polygon([Ext,Int])) :-
+transform_gml(Elts,polygon([Ext|Int])) :-
 	member(element('gml:polygon',_,PolygonElts),Elts),
 	get_polygon_exterior(PolygonElts,Ext),
 	get_polygon_interiors(PolygonElts,Int).
