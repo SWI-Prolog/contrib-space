@@ -350,7 +350,7 @@ space_distance_pythagorean(point(A, B), point(X, Y), D) :-
 %	or nm (nautical miles). By default, nautical miles are used.
 
 space_distance_greatcircle(point(A1,A2), point(B1,B2), D) :-
-	space_distance_greatcircle(point(A1,B2), point(B1,B2), D, nm).
+	space_distance_greatcircle(point(A1,A2), point(B1,B2), D, nm).
 
 space_distance_greatcircle(point(A1,A2), point(B1,B2), D, km) :-
 	R is 6371, % kilometers
