@@ -44,11 +44,11 @@ Index Library]{http://trac.gispython.org/spatialindex/}.
 
 \section{Shapes as Prolog Terms}
 The central objects of the Space package are pairs, $\langle u, s\rangle$ of a URI, $u$, and its associated shape, $s$.
-The URIs are linked to the shapes with the uri\_shape/2 predicate. We will support all OpenGIS Simple Features, points, linestrings, polygons (with $\geq0$ holes), multi-points, multi-polygons, and geometry collections; and some utility shapes like box and circle regions.\footnote{The current version of the Space package, \curversion, only supports points and polygons (with holes) and box regions. Development on the other shape types is underway.}
+The URIs are linked to the shapes with the uri_shape/2 predicate. We will support all OpenGIS Simple Features, points, linestrings, polygons (with $\geq0$ holes), multi-points, multi-polygons, and geometry collections; and some utility shapes like box and circle regions.\footnote{The current version of the Space package, \curversion, only supports points and polygons (with holes) and box regions. Development on the other shape types is underway.}
 
 Both the URIs and the shapes are represented as Prolog terms. This makes them first-class Prolog citizens, which allows the construction and transformation of shapes using regular Prolog clauses, or Definite Clause Grammars (DCGs).
 We support input from locations encoded in RDF with the \url[W3C WGS84 vocabulary]{http://www.w3.org/2003/01/geo/} and with the \url[GeoRSS]{http://georss.org} Simple properties and the GeoRSS \const{where} property leading to an XML literal consisting of a GML element.
-The uri\_shape/2 predicate searches for URI-Shape pairs in SWI-Prolog's RDF triple store. It matches URIs to Shapes by using WGS84 and GeoRSS properties. For example, a URI $u$ is associated with the shape $s=$\const{point(}$lat,long$\const{)} if the triple store contains the triples: $\langle u,$ \const{wgs84\_pos:lat} $, lat\rangle$ and $\langle u,$ \const{wgs84\_pos:long} $, long\rangle$; or when it contains one of the following triples:\\
+The uri_shape/2 predicate searches for URI-Shape pairs in SWI-Prolog's RDF triple store. It matches URIs to Shapes by using WGS84 and GeoRSS properties. For example, a URI $u$ is associated with the shape $s=$\const{point(}$lat,long$\const{)} if the triple store contains the triples: $\langle u,$ \const{wgs84_pos:lat} $, lat\rangle$ and $\langle u,$ \const{wgs84_pos:long} $, long\rangle$; or when it contains one of the following triples:\\
   $\langle u,$ \const{georss:point}$,$\const{"}$lat$ $long$\const{"}$\rangle$ or $\langle u,$ \const{georss:where}$,$\const{"<gml:Point>}\const{<gml:pos>} $lat$ $long$\\ \const{</gml:pos>}\const{</gml:Point>"}$\rangle$.
 The XML literal containing the GML description of the geometric shape is parsed with a DCG that can also be used to generate GML from Prolog shape terms.
 
@@ -66,7 +66,7 @@ Shape = point(52.3325,4.8673).
 \end{code}
 
 \section{Adding, Removing, and Bulkloading Shapes}
-The spatial index can be modified in two ways: By inserting or retracting single URI-shape pairs respectively using the space\_assert/3, or the space\_retract/3 predicate; or by loading many pairs at once using the space\_bulkload/3 predicate or its parameterless counterpart space\_index\_all/0 which simply loads all the shapes it can find with the uri\_shape/2 predicate into the default index.
+The spatial index can be modified in two ways: By inserting or retracting single URI-shape pairs respectively using the space_assert/3, or the space_retract/3 predicate; or by loading many pairs at once using the space_bulkload/3 predicate or its parameterless counterpart space_index_all/0 which simply loads all the shapes it can find with the uri_shape/2 predicate into the default index.
 The former method is best for small manipulations of indices, while the latter method is best for the loading of large numbers of URI-shape pairs into an index.
 The Space package can deal with multiple indices to make it possible to divide sets of features. Indices are identified with a name handle, which can be any Prolog atom.\footnote{Every predicate in the Space package that must be given an index handle also has an abbreviated version without the index handle argument which automatically uses the default index.}
 The actual indexing of the shapes is performed using lazy evaluation. Assertions
@@ -91,11 +91,11 @@ true.
 
 \section{Query types}
 We chose three basic spatial query types as our basic building blocks: \emph{containment}, \emph{intersection}, and \emph{nearest neighbor}.
-These three query types are implemented as pure Prolog predicates, respectively space\_contains/3, space\_intersects/3, and space\_nearest/3.
+These three query types are implemented as pure Prolog predicates, respectively space_contains/3, space_intersects/3, and space_nearest/3.
 These predicates work completely analogously, taking an index handle and a query shape to retrieve the URI of a shape matching the query, which is bound to the second argument. Any successive calls to the predicate try to re-instantiate the second argument with a different matching URI. The results of containment and intersection queries are instantiated in no particular order, while the nearest neighbor results are instantiated in order of increasing distance to the query shape.
-The space\_nearest\_bounded/4 predicate is a containment query based on
-space\_nearest/3, which returns objects within a certain range of the
-query shape in order of increasing distance. 
+The space_nearest_bounded/4 predicate is a containment query based on
+space_nearest/3, which returns objects within a certain range of the
+query shape in order of increasing distance.
 
 \begin{code}
 ?- space_nearest(point(52.3325,4.8673), N, 'demo_index').
@@ -105,7 +105,7 @@ N = 'http://sws.geonames.org/2754074/' .      % cut, satisfied
 \end{code}
 
 \section{Importing and Exporting Shapes}
-Besides supporting input from RDF we support input and output for other standards, like\url[GML]{http://www.opengeospatial.org/standards/gml}, \url[KML]{http://code.google.com/apis/kml/} and \url[WKT]{http://en.wikipedia.org/wiki/Well-known_text}. All shapes can be converted from and to these standards with the gml\_shape/2, kml\_shape/2, and wkt\_shape/2 predicates.
+Besides supporting input from RDF we support input and output for other standards, like\url[GML]{http://www.opengeospatial.org/standards/gml}, \url[KML]{http://code.google.com/apis/kml/} and \url[WKT]{http://en.wikipedia.org/wiki/Well-known_text}. All shapes can be converted from and to these standards with the gml_shape/2, kml_shape/2, and wkt_shape/2 predicates.
 
 \begin{code}
 % Convert a WKT shape into GML and KML}
@@ -123,12 +123,12 @@ The non-deterministic implementation of the queries makes them behave like a laz
 \begin{code}
 % Finds nearest railway stations in the province Utrecht (in GeoNames)
 ?- uri_shape(ex:myoffice, Office),
-   rdf(Utrecht, geo:name, literal('Provincie Utrecht')), 
+   rdf(Utrecht, geo:name, literal('Provincie Utrecht')),
    space_nearest(Office, Near),
    % 'S' stands for a spot, like a building, 'RSTN' for railway station
    rdf(Near, geo:featureCode, geo:'S.RSTN'),
    % 'Near' connected to 'Utrecht' by transitive 'parentFeature'
-   rdf_reachable(Near, geo:parentFeature, Utrecht), 
+   rdf_reachable(Near, geo:parentFeature, Utrecht),
    rdf(Near, geo:name, literal(Name)),  % fetch name of 'Near'
    uri_shape(Near, Station),  % fetch shape of station
    % compute actual distance in km}
@@ -136,7 +136,7 @@ The non-deterministic implementation of the queries makes them behave like a laz
 Utrecht = 'http://sws.geonames.org/2745909/',  % first instantiation
 Near = 'http://sws.geonames.org/6639765/',
 Name = 'Station Abcoude' ,
-Station = point(52.2761, 4.97904), 
+Station = point(52.2761, 4.97904),
 Distance = 9.85408 ;                           % etc.
 Utrecht = 'http://sws.geonames.org/2745909/',  % second instantiation
 Near = 'http://sws.geonames.org/6639764/',
@@ -160,24 +160,24 @@ Integration of multiple spatial queries can be done in the same way. Since the q
 \section{Architecture}
 \label{sec:architecture}
 The Space package consists of C++ and Prolog code.
-The main component is the Prolog module space.pl. All parsing and generation of input and output formats is done in Prolog. All index manipulation is done through the foreign language interface (FLI) from Prolog to C++. The space\_bulkload/3 predicate also communicates back across the FLI from C++ to Prolog, allowing the indexing functions to ask for candidates to index from the Prolog database, for example, by calling the uri\_shape/2 predicate.
+The main component is the Prolog module space.pl. All parsing and generation of input and output formats is done in Prolog. All index manipulation is done through the foreign language interface (FLI) from Prolog to C++. The space_bulkload/3 predicate also communicates back across the FLI from C++ to Prolog, allowing the indexing functions to ask for candidates to index from the Prolog database, for example, by calling the uri_shape/2 predicate.
 
 \subsection{Incremental Search and Non-determinism}
 The three search operations provided by the Space package all yield their results incrementally, \textit{i.e.} one at a time. Prolog predicates actually do not have return values, but instantiate parameters. Multiple return values are returned by subsequently instantiating the same variable, so the first call to a predicate can make different variable instantiations than the second call. This standard support of non-deterministic behavior makes it easy to write incremental algorithms in Prolog.
 
 Internally, the search operations are handled by C++ functions that work on an R*-tree index from the Spatial Index Library \cite{Hadjieleftheriou:2005rz}. The C++ functions are accessed with the SWI-Prolog foreign language interface. To implement non-deterministic behavior the query functions have to store their state between successive calls and Prolog has to be aware which state is relevant to every call.
 
-Every search query creates an instance of a SpatialIndex::IQueryStrategy class 
- (the IncrementalNearestNeighborStrategy class for INN queries, the IncrementalRangeQuery for containment and intersection queries). 
-This class contains the search algorithm, accesses the R*-tree index, and stores the current state of the algorithm. 
+Every search query creates an instance of a SpatialIndex::IQueryStrategy class
+ (the IncrementalNearestNeighborStrategy class for INN queries, the IncrementalRangeQuery for containment and intersection queries).
+This class contains the search algorithm, accesses the R*-tree index, and stores the current state of the algorithm.
 For containment and intersection queries the results can be returned in any particular order so implementing non-deterministic behavior simply involves storing a pointer to a node in the R*-tree and returning every subsequent matching object. For nearest neighbor queries keeping state is slightly more complicated, because it is necessary to keep a priority queue of candidate results at all times to guarantee that the results are returned in order of increasing proximity.
 
 The Spatial Index library does not include an incremental nearest neighbor, so we implemented an adaptation of the algorithm described in \cite{Hjaltason:1999zi}
-as an IQueryStrategy. 
+as an IQueryStrategy.
 The original algorithm emits results, for example, with a callback function, without breaking from the search loop that finds all matches. Our adaptation breaks the search loop at every matching object and stores a handle to the state (including the priority queue) so that it can restart the search loop where it left off. This makes it possible to tie the query strategy into the non-deterministic foreign language interface of SWI-Prolog with very little time overhead.
 A pointer to the IQueryStrategy instance is stored on the Prolog stack, so that every successive call to the procedure knows with which query to continue.
 
-An alternative implementation would be to take the exact IncNearest algorithm described in \cite{Hjaltason:1999zi} and to emit the results into a queue. The Prolog stack would then contain a pointer to the queue. Every successive call would dequeue a result from the queue. This strategy is less time efficient, because of two reasons. It does not halt after each match, so it is less efficient when looking for few results. It requires two separate processes to run. One to find results, the other to poll the queue. This means there is some process management and communication overhead. 
+An alternative implementation would be to take the exact IncNearest algorithm described in \cite{Hjaltason:1999zi} and to emit the results into a queue. The Prolog stack would then contain a pointer to the queue. Every successive call would dequeue a result from the queue. This strategy is less time efficient, because of two reasons. It does not halt after each match, so it is less efficient when looking for few results. It requires two separate processes to run. One to find results, the other to poll the queue. This means there is some process management and communication overhead.
 
 
 \section{Documentation}
