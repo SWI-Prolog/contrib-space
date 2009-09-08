@@ -37,6 +37,10 @@
 	  [
 	    kml_shape/2,
 	    kml_shape/4,
+	    kml_uri_shape/3,
+	    kml_file_shape/2,
+	    kml_file_shape/4,
+	    kml_file_uri_shape/3,
 	    kml_save_header/2,
 	    kml_save_shape/3,
 	    kml_save_footer/1
@@ -60,14 +64,37 @@
 
 kml_shape(KML, Geom) :- kml_shape(KML, Geom, _A, _C).
 kml_shape(KML, Geom, Attributes, Content) :-
-	(   var(Geom)
+	(   nonvar(KML)
 	->  atom_to_memory_file(KML, Memfile),
 	    open_memory_file(Memfile, read, Stream),
-	    call_cleanup(load_structure(Stream, XML, [dialect(xml)]),
+	    call_cleanup(load_structure(Stream, XML, [dialect(xml),xml_no_ns(quiet),call(urlns, kml_ns)]), % base ns?
 			 free_data(Stream, Memfile)),
 	    transform_kml(XML, Geom, Attributes, Content)
 	;   construct_kml(KML, Geom, Attributes, Content)
 	).
+
+kml_uri_shape(KML, URI, Shape) :-
+	kml_shape(KML, placemark(Shape,Attributes,Content)),
+	get_uri(placemark(Shape,Attributes,Content), URI).
+
+kml_file_shape(File, Geom) :- kml_file_shape(File, Geom, _A, _C).
+kml_file_shape(File, Geom, Attributes, Content) :-
+	open(File, read, Stream, []),
+	read_stream_to_codes(Stream, Codes),
+	atom_codes(KML, Codes), !,
+	kml_shape(KML, Geom, Attributes, Content).
+
+kml_file_uri_shape(File, URI, Shape) :-
+	kml_file_shape(File, placemark(Shape,Attributes,Content)),
+	get_uri(placemark(Shape,Attributes,Content), URI).
+
+get_uri(placemark(_Shape,Attributes,_Content),URI) :-
+	(   memberchk('ID'(URI), Attributes), !
+	;   memberchk('id'(URI), Attributes)
+	).
+
+
+kml_ns(kml, 'http://www.opengis.net/kml/2.2/', _).
 
 free_data(Stream, Memfile) :-
 	close(Stream),
@@ -156,34 +183,67 @@ placemark_term(placemark(Geom), Attributes, Content, T) :-
 
 placemark_term(placemark(Geom, GeomAttr, GeomCont), Attributes, Content, T) :-
 	construct_term(Geom, GeomAttr, GeomCont, GT),
-	T = 'Placemark'(Attributes, [ GT | Content ]).
+	T = 'Placemark'(Attributes, [ GT | Content ]), !.
+
+% -----
 
 transform_kml(Elts, P, Attributes, Content) :-
-	member(element('Point',_,PointElts), Elts),
+	(   member(element(_:'Point',_,PointElts), Elts)
+	;   member(element('Point',_,PointElts), Elts)
+	),
 	get_point(PointElts, P),
 	get_extras(Elts, Attributes, Content).
 
 transform_kml(Elts, linestring(P), Attributes, Content) :-
-	(   member(element('LineString',_,LSE), Elts)
+	(   member(element(_:'LineString',_,LSE), Elts)
+	;   member(element('LineString',_,LSE), Elts)
+	;   member(element(_:'LinearRing',_,LSE), Elts)
 	;   member(element('LinearRing',_,LSE), Elts)
 	),
         get_linestring(LSE, P),
 	get_extras(Elts, Attributes, Content).
 
 transform_kml(Elts, polygon([Ext|Int]), Attributes, Content) :-
-	member(element('Polygon',_,PolygonElts), Elts),
+	(   member(element(_:'Polygon',_,PolygonElts), Elts)
+	;   member(element('Polygon',_,PolygonElts), Elts)
+	),
 	get_polygon_exterior(PolygonElts, Ext),
 	get_polygon_interiors(PolygonElts, Int),
 	get_extras(Elts, Attributes, Content).
 
 transform_kml(Elts, geometrycollection(Geoms), Attributes, Content) :-
-	member(element('MultiGeometry',_,GeomElts), Elts),
+	(   member(element(_:'MultiGeometry',_,GeomElts), Elts)
+	;   member(element('MultiGeometry',_,GeomElts), Elts)
+	),
 	get_geometry(GeomElts, Geoms),
 	get_extras(Elts, Attributes, Content).
 
 transform_kml(Elts, placemark(Geom, GeomAttr, GeomCont), Attributes, Content) :-
-	member(element('Placemark',_,GeomElts), Elts),
+	(   member(element(_:'Placemark',_,GeomElts), Elts)
+	;   member(element('Placemark',_,GeomElts), Elts)
+	),
 	transform_kml(GeomElts, Geom, GeomAttr, GeomCont),
+	get_extras(Elts, Attributes, Content).
+
+transform_kml(Elts, Geom, Attributes, Content) :-
+	(   member(element(_:'Placemark',_,GeomElts), Elts)
+	;   member(element('Placemark',_,GeomElts), Elts)
+	),
+	transform_kml(GeomElts, Geom, _, _),
+	get_extras(Elts, Attributes, Content).
+
+transform_kml(Elts, PMs, Attributes, Content) :-
+	(   member(element(_:'Document',_,PMElts), Elts)
+	;   member(element('Document',_,PMElts), Elts)
+	),
+	transform_kml(PMElts, PMs, _, _),
+	get_extras(Elts, Attributes, Content).
+
+transform_kml(Elts, Doc, Attributes, Content) :-
+	(   member(element(_:'kml',_,PMElts), Elts)
+	;   member(element('kml',_,PMElts), Elts)
+	),
+	transform_kml(PMElts, Doc, _, _),
 	get_extras(Elts, Attributes, Content).
 
 get_geometry([],[]).
@@ -195,23 +255,31 @@ get_geometry([_|Elts], Geoms) :-
 	get_geometry(Elts, Geoms).
 
 get_point(Elts, P) :-
-	xpath(Elts, //'coordinates', element(_,_,[A])),
+	(   xpath(Elts, //(_:'coordinates'), element(_,_,[A]))
+	;   xpath(Elts, //('coordinates'), element(_,_,[A]))
+	),
 	atom_codes(A, C),
 	phrase(pos(P), C).
 
 get_linestring(Elts, P) :-
-	xpath(Elts, //'coordinates', element(_,_,[A])),
+	(   xpath(Elts, //(_:'coordinates'), element(_,_,[A]))
+	;   xpath(Elts, //('coordinates'), element(_,_,[A]))
+	),
 	atom_codes(A, C),
 	phrase(poslist(P), C).
 
 get_polygon_exterior(Elts, Ext) :-
-	xpath(Elts, //'outerBoundaryIs'//'coordinates', element(_,_,[A])),
+	(   xpath(Elts, //(_:'outerBoundaryIs')//(_:'coordinates'), element(_,_,[A]))
+	;   xpath(Elts, //('outerBoundaryIs')//('coordinates'), element(_,_,[A]))
+	),
 	atom_codes(A, C),
 	phrase(poslist(Ext), C).
 
 get_polygon_interiors(Elts, Int) :-
 	findall(I,
-		(   xpath(Elts, //'innerBoundaryIs'//'coordinates', element(_,_,[A])),
+		(   (   xpath(Elts, //(_:'innerBoundaryIs')//(_:'coordinates'), element(_,_,[A]))
+		    ;	xpath(Elts, //('innerBoundaryIs')//('coordinates'), element(_,_,[A]))
+		    ),
 		    atom_codes(A, C),
 		    phrase(poslist(I), C)
 		),
@@ -219,8 +287,10 @@ get_polygon_interiors(Elts, Int) :-
 
 get_extras(Elts, Attributes, Content) :-
 	(   member(element(_,_,Cont), Elts),
-	    member(element(Tag,_A,[C]), Cont),
-	    \+member(Tag,['Point','LineString','LinearRing','Polygon','innerBoundaryIs','outerBoundaryIs','MultiGeometry','coordinates']),
+	    (	member(element(_:Tag,_A1,[C]), Cont)
+	    ;	member(element(Tag,_A2,[C]), Cont)
+	    ),
+	    \+member(Tag,['Point','LineString','LinearRing','Polygon','innerBoundaryIs','outerBoundaryIs','MultiGeometry','coordinates','Placemark']),
 	    ContTag =.. [Tag,C]
 	->  Content = [ContTag]
 	;   Content = []
