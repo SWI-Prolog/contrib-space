@@ -353,6 +353,16 @@ PREDICATE_NONDET(rtree_incremental_nearest_neighbor_query,3)
   PL_succeed;
 }
 
+PREDICATE(rtree_distance,4) {
+  RTreeIndex *idx = dynamic_cast<RTreeIndex*> (assert_rtree_index(A1));
+  IShape *a = idx->interpret_shape(A2);
+  IShape *b = idx->interpret_shape(A3);
+  double d = a->getMinimumDistance(*b);
+  delete a;
+  delete b;
+  return (A4 = d);
+}
+
 PREDICATE(rtree_display,1) {
   PrintVisitor pv;
   TraverseDepthFirst* qsd = new TraverseDepthFirst(&pv);
@@ -492,3 +502,5 @@ PREDICATE(geos_test,0) {
 
   PL_succeed;
 }
+
+

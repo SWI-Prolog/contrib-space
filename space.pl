@@ -331,8 +331,12 @@ dimensionality(geometrycollection([Geom|_]),Dim) :- dimensionality(Geom,Dim).
 %
 %	@see space_distance_greatcircle/4 for great circle distance.
 
-space_distance(X, Y, D) :-
-	space_distance_pythagorean(X, Y, D).
+space_distance(point(A1,A2), point(B1,B2), D) :-
+	space_distance_pythagorean(point(A1,A2), point(B1,B2), D), !.
+
+space_distance(A, B, D) :-
+      	rtree_default_index(IndexName),
+        rtree_distance(IndexName, A, B, D).
 
 space_distance_pythagorean(point(A, B), point(X, Y), D) :-
 	D2 is ((X - A) ** 2) + ((Y - B) ** 2),
@@ -345,16 +349,16 @@ space_distance_pythagorean(point(A, B), point(X, Y), D) :-
 %	in the specified Unit, which can take as a value km (kilometers)
 %	or nm (nautical miles). By default, nautical miles are used.
 
-space_distance_greatcircle(A, B, D) :-
-	space_distance_greatcircle(A, B, D, nm).
+space_distance_greatcircle(point(A1,A2), point(B1,B2), D) :-
+	space_distance_greatcircle(point(A1,B2), point(B1,B2), D, nm).
 
-space_distance_greatcircle(A, B, D, km) :-
+space_distance_greatcircle(point(A1,A2), point(B1,B2), D, km) :-
 	R is 6371, % kilometers
-	space_distance_greatcircle_aux(A, B, D, R).
+	space_distance_greatcircle_aux(point(A1,A2), point(B1,B2), D, R).
 
-space_distance_greatcircle(A, B, D, nm) :-
+space_distance_greatcircle(point(A1,A2), point(B1,B2), D, nm) :-
 	R is 3440.06, % nautical miles
-	space_distance_greatcircle_aux(A, B, D, R).
+	space_distance_greatcircle_aux(point(A1,A2), point(B1,B2), D, R).
 
 % Haversine formula
 space_distance_greatcircle_aux(point(Lat1deg, Long1deg), point(Lat2deg, Long2deg), D, R) :-
