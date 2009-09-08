@@ -42,9 +42,10 @@
            space_clear/1,             % +IndexName
            space_clear/0,             % uses default index
 
-           space_bulkload/3,          % +ModuleOfPred, +CandidatePred, +IndexName
+           space_bulkload/2,          % +CandidatePred, +IndexName
            space_bulkload/1,          % +CandidatePred (uses default index and 'user' module)
-
+           space_bulkload/0,          % also defaults to uri_shape
+           
            space_contains/3,          % +Shape, -URI, +IndexName
            space_contains/2,          % uses default index
 	   space_intersects/3,        % +Shape, -URI, +IndexName
@@ -99,8 +100,9 @@ space_assert(URI,Shape) :-
 	rtree_default_index(I),
 	space_assert(URI,Shape,I).
 space_assert(URI,Shape,IndexName) :-
-	shape(Shape),
-        (   space_queue(IndexName,retract,_,_)
+	dimensionality(Shape,Dimensionality),
+	must_be(between(1,3), Dimensionality),
+	(   space_queue(IndexName,retract,_,_)
         ->  space_index(IndexName)
         ; true
         ),
@@ -162,27 +164,31 @@ space_clear(IndexName) :-
         retractall(space_queue(IndexName,_,_,_)),
         rtree_clear(IndexName).
 
-%%	space_bulkload(+Module,+Functor,+IndexName) is det.
-%%	space_bulkload(+Functor) is det.
+%%	space_bulkload(:Closure,+IndexName) is det.
+%%	space_bulkload(:Closure) is det.
+%%      space_bulkload is det.
 %
 %	Fast loading of many Shapes into the index IndexName.
-%	Functor is the functor of a predicate with two arguments:
+%	Closure is called with two additional arguments:
 %	URI and Shape, that finds candidate URI-Shape
-%	pairs to index in the index IndexName. Module is the module name
-%	where Functor is defined.
+%	pairs to index in the index IndexName.
 %
-%	space_bulkload/1 uses the default index and 'user' module
+%       space_bulkload/0 defaults to uri_shape/2 for :Closure.
 %
 %	@see the uri_shape/2 predicate for an example of a suitable functor.
 
+:- meta_predicate space_bulkload(2), space_bulkload(2,+).
+
+space_bulkload :-
+        space_bulkload(uri_shape).
 space_bulkload(Functor) :-
 	rtree_default_index(I),
-        space_bulkload('user',Functor,I).
-space_bulkload(Module,Functor,IndexName) :-
-        once(call(Module:Functor, _Uri, Shape)),
+        space_bulkload(Functor,I).
+space_bulkload(Functor,IndexName) :-
+        once(call(Functor, _Uri, Shape)),
         dimensionality(Shape,Dimensionality),
 	must_be(between(1,3), Dimensionality),
-        rtree_bulkload(IndexName,Module,Functor,Dimensionality).
+        rtree_bulkload(IndexName,Functor,Dimensionality).
 
 %%	space_contains(+Shape,?Cont,+IndexName) is nondet.
 %%	space_contains(+Shape,?Cont) is nondet.
@@ -246,12 +252,17 @@ space_nearest(Shape, Near, IndexName) :-
 space_nearest_bounded(Shape, Near, WithinRange) :-
 	rtree_default_index(I),
 	space_nearest_bounded(Shape,Near,WithinRange,I).
-space_nearest_bounded(Shape, Near, WithinRange, IndexName) :-
+space_nearest_bounded(Shape, Near, WithinRange, _IndexName) :-
 	shape(Shape),
+        ground(Near),
+        uri_shape(Near,NearShape),
+        space_distance(Shape,NearShape,Distance),
+        Distance < WithinRange, !.
+space_nearest_bounded(Shape, Near, WithinRange, IndexName) :-
         space_index(IndexName),
-	rtree_incremental_nearest_neighbor_query(Shape, Near, IndexName),
-	uri_shape(Near,NearShape),
-	space_distance(Shape,NearShape,Distance),
+        rtree_incremental_nearest_neighbor_query(Shape, Near, IndexName),
+        uri_shape(Near,NearShape),
+        space_distance(Shape,NearShape,Distance),
 	(   Distance > WithinRange
 	->  !, fail
 	;   true
@@ -279,7 +290,7 @@ uri_shape(URI,Shape) :-
 	georss_candidate(URI,Shape) ;
 	wgs84_candidate(URI,Shape).
 
-% allows you to use namespaces in the URI argument.
+% allows you to use namespaces in the URI argument when using it to find pairs.
 :- rdf_meta(uri_shape(r,?)).
 
 %%	space_index_all(+IndexName) is det.
@@ -293,7 +304,7 @@ space_index_all :-
 	space_index_all(IndexName).
 
 space_index_all(IndexName) :-
-	space_bulkload('space',uri_shape,IndexName).
+	space_bulkload(uri_shape,IndexName).
 
 
 /*
@@ -307,9 +318,9 @@ box_polygon(box(point(Lx,Ly),point(Hx,Hy)),
 %
 %       Checks whether Shape is a valid supported shape.
 
-shape(Shape) :- once(dimensionality(Shape,_)).
+shape(Shape) :- dimensionality(Shape,_).
 
-dimensionality(Shape,Dim) :- functor(Shape,point,Dim).
+dimensionality(Shape,Dim) :- ground(Shape) -> functor(Shape,point,Dim); !, fail.
 dimensionality(box(Point,_),Dim) :- dimensionality(Point,Dim).
 dimensionality(polygon([[Point|_]|_]),Dim) :- dimensionality(Point,Dim).
 dimensionality(circle(Point,_,_),Dim) :- dimensionality(Point,Dim).
@@ -326,8 +337,12 @@ dimensionality(geometrycollection([Geom|_]),Dim) :- dimensionality(Geom,Dim).
 %
 %	@see space_distance_greatcircle/4 for great circle distance.
 
-space_distance(X, Y, D) :-
-	space_distance_pythagorean(X, Y, D).
+space_distance(point(A1,A2), point(B1,B2), D) :-
+	space_distance_pythagorean(point(A1,A2), point(B1,B2), D), !.
+
+space_distance(A, B, D) :-
+      	rtree_default_index(IndexName),
+        rtree_distance(IndexName, A, B, D).
 
 space_distance_pythagorean(point(A, B), point(X, Y), D) :-
 	D2 is ((X - A) ** 2) + ((Y - B) ** 2),
@@ -340,16 +355,16 @@ space_distance_pythagorean(point(A, B), point(X, Y), D) :-
 %	in the specified Unit, which can take as a value km (kilometers)
 %	or nm (nautical miles). By default, nautical miles are used.
 
-space_distance_greatcircle(A, B, D) :-
-	space_distance_greatcircle(A, B, D, nm).
+space_distance_greatcircle(point(A1,A2), point(B1,B2), D) :-
+	space_distance_greatcircle(point(A1,A2), point(B1,B2), D, nm).
 
-space_distance_greatcircle(A, B, D, km) :-
+space_distance_greatcircle(point(A1,A2), point(B1,B2), D, km) :-
 	R is 6371, % kilometers
-	space_distance_greatcircle_aux(A, B, D, R).
+	space_distance_greatcircle_aux(point(A1,A2), point(B1,B2), D, R).
 
-space_distance_greatcircle(A, B, D, nm) :-
+space_distance_greatcircle(point(A1,A2), point(B1,B2), D, nm) :-
 	R is 3440.06, % nautical miles
-	space_distance_greatcircle_aux(A, B, D, R).
+	space_distance_greatcircle_aux(point(A1,A2), point(B1,B2), D, R).
 
 % Haversine formula
 space_distance_greatcircle_aux(point(Lat1deg, Long1deg), point(Lat2deg, Long2deg), D, R) :-

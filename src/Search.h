@@ -91,8 +91,8 @@ class TraverseDepthFirst : public SpatialIndex::IQueryStrategy
 class IncrementalRangeStrategy : public SpatialIndex::IQueryStrategy
 {
  public:
-  char* result;
-  size_t result_length;
+  atom_t result;
+  bool result_found;
   bool continuation;
   size_t child_idx;
   const IShape* query;
@@ -101,7 +101,7 @@ class IncrementalRangeStrategy : public SpatialIndex::IQueryStrategy
   stack<id_type> ids;
   Index *index;
 
-  IncrementalRangeStrategy(RangeQueryType type,const IShape* queryp,IVisitor* vp,Index* index);
+  IncrementalRangeStrategy(RangeQueryType type, IShape* queryp,IVisitor* vp,Index* index);
   ~IncrementalRangeStrategy();
 
   void getNextEntry(const IEntry& entry, id_type& nextEntry, bool& hasNext);
@@ -120,7 +120,10 @@ private:
     double m_minDist;
 
     NNEntry(id_type id, IEntry* e, double f) : m_id(id), m_pEntry(e), m_minDist(f) {}
-    ~NNEntry() {}
+    ~NNEntry() { 
+      if (m_pEntry != NULL)
+        delete m_pEntry;
+    }
 
     struct ascending : public std::binary_function<NNEntry*, NNEntry*, bool>
     {
@@ -147,8 +150,8 @@ private:
   }; // NNComparator
 
  public:
-  char* result;
-  size_t result_length;
+  atom_t result;
+  bool result_found;
   bool continuation;
   size_t child_idx;
   bool first_call;
@@ -158,7 +161,7 @@ private:
   NNComparator nnc;
   Index *index;
 
-  IncrementalNearestNeighborStrategy(const IShape* queryp,IVisitor* vp, Index* index);
+  IncrementalNearestNeighborStrategy( IShape* queryp,IVisitor* vp, Index* index);
   void getNextEntry(const IEntry& entry, id_type& nextEntry, bool& hasNext);
   ~IncrementalNearestNeighborStrategy();
 };

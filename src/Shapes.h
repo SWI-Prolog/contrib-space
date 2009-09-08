@@ -54,6 +54,7 @@ using namespace std;
 using namespace SpatialIndex;
 
 void init_geos(); // must be called before starting to use the shapes
+void cleanup_geos(); // must be called after finishing to use the shapes
 
 namespace SpatialIndex
 {
