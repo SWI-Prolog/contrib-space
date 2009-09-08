@@ -44,7 +44,8 @@
 
            space_bulkload/2,          % +CandidatePred, +IndexName
            space_bulkload/1,          % +CandidatePred (uses default index and 'user' module)
-
+           space_bulkload/0,          % also defaults to uri_shape
+           
            space_contains/3,          % +Shape, -URI, +IndexName
            space_contains/2,          % uses default index
 	   space_intersects/3,        % +Shape, -URI, +IndexName
@@ -165,16 +166,21 @@ space_clear(IndexName) :-
 
 %%	space_bulkload(:Closure,+IndexName) is det.
 %%	space_bulkload(:Closure) is det.
+%%      space_bulkload is det.
 %
 %	Fast loading of many Shapes into the index IndexName.
 %	Closure is called with two additional arguments:
 %	URI and Shape, that finds candidate URI-Shape
 %	pairs to index in the index IndexName.
 %
+%       space_bulkload/0 defaults to uri_shape/2 for :Closure.
+%
 %	@see the uri_shape/2 predicate for an example of a suitable functor.
 
 :- meta_predicate space_bulkload(2), space_bulkload(2,+).
 
+space_bulkload :-
+        space_bulkload(uri_shape).
 space_bulkload(Functor) :-
 	rtree_default_index(I),
         space_bulkload(Functor,I).
