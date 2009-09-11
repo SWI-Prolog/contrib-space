@@ -47,7 +47,11 @@ gml_shape(GML, Geom) :-
         (   var(Geom)
 	->  atom_to_memory_file(GML, Memfile),
 	    open_memory_file(Memfile, read, Stream),
-	    call_cleanup(load_structure(Stream, XML, []),
+	    call_cleanup(load_structure(Stream, XML,
+					[ dialect(xmlns),
+					  xmlns('http://www.opengis.net/gml'),
+					  xmlns(gml, 'http://www.opengis.net/gml')
+					]),
 			 free_data(Stream, Memfile)),
 	    transform_gml(XML, Geom)
 	;   construct_gml(GML, Geom)
@@ -99,46 +103,46 @@ construct_gml(GML,box(point(X1,Y1),point(X2,Y2))) :-
 	atomic_list_concat(Atoms,GML).
 
 transform_gml(Elts,P) :-
-	member(element('gml:point',_,PointElts),Elts),
+	member(element(_:'Point',_,PointElts),Elts),
 	get_point(PointElts,P).
 
 transform_gml(Elts,linestring(LS)) :-
-	member(element('gml:linestring',_,LineStringElts),Elts),
+	member(element(_:'LineString',_,LineStringElts),Elts),
 	get_linestring(LineStringElts,LS).
 
 transform_gml(Elts,polygon([Ext|Int])) :-
-	member(element('gml:polygon',_,PolygonElts),Elts),
+	member(element(_:'Polygon',_,PolygonElts),Elts),
 	get_polygon_exterior(PolygonElts,Ext),
 	get_polygon_interiors(PolygonElts,Int).
 
 transform_gml(Elts,box(Lower,Upper)) :-
-	member(element('gml:envelope',_,BoxElts),Elts),
+	member(element(_:'Envelope',_,BoxElts),Elts),
 	get_box(BoxElts,Lower,Upper).
 
 get_point(Elts,P) :-
-	xpath(Elts, //'gml:pos', element(_,_,[A])),
+	xpath(Elts, //(_:'pos'), element(_,_,[A])),
 	atom_codes(A,C),
 	phrase(pos(P),C).
 
 get_linestring(Elts,LS) :-
-	xpath(Elts, //'gml:poslist', element(_,_,[A])),
+	xpath(Elts, //(_:'posList'), element(_,_,[A])),
 	atom_codes(A,C),
 	phrase(poslist(LS),C).
 
 get_polygon_exterior(Polygon,Ext) :-
-	xpath(Polygon, //'gml:exterior'/'gml:linearring'/'gml:poslist', element(_,_,[A])),
+	xpath(Polygon, //(_:'exterior')/(_:'LinearRing')/(_:'posList'), element(_,_,[A])),
 	atom_codes(A,C),
 	phrase(poslist(Ext),C).
 get_polygon_interiors(Polygon,Int) :-
 	findall(I,get_polygon_interior(Polygon,I),Int).
 get_polygon_interior(Polygon,Int) :-
-	xpath(Polygon, //'gml:interior'/'gml:linearring'/'gml:poslist', element(_,_,[A])),
+	xpath(Polygon, //(_:'interior')/(_:'LinearRing')/(_:'posList'), element(_,_,[A])),
 	atom_codes(A,C),
 	phrase(poslist(Int),C).
 
 get_box(Elts,LBC,UBC) :-
-	xpath(Elts, //'gml:lowercorner', element(_,_,[LA])),
-	xpath(Elts, //'gml:lowercorner', element(_,_,[UA])),
+	xpath(Elts, //(_:'lowerCorner'), element(_,_,[LA])),
+	xpath(Elts, //(_:'lowerCorner'), element(_,_,[UA])),
 	atom_codes(LA,LC),
 	atom_codes(UA,UC),
 	phrase(pos(LBC),LC),
@@ -159,4 +163,10 @@ blank_plus --> blank, blank_star, !.
 blank_plus --> " ", !.
 blank_star --> blanks, !.
 blank_star --> [], !.
+
+
+
+
+
+
 
