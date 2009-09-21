@@ -38,7 +38,7 @@ void PrintVisitor::visitNode(const INode& n) {
 
 void PrintVisitor::visitData(const IData& d) {
   byte* pData = 0;
-  size_t cLen = 0;
+  uint32_t cLen = 0;
   d.getData(cLen, &pData);
   printf("visiting data at %d ",(int)d.getIdentifier());
   printf("length %d ",(int)cLen);
@@ -81,14 +81,14 @@ void TraverseBreadthFirst::getNextEntry(const IEntry& entry, id_type& nextEntry,
   v->visitNode(*n);
 
   if (n != 0 && n->getLevel() > 0) {
-    for (size_t cChild = 0; cChild < n->getChildrenCount(); cChild++) {
+    for (uint32_t cChild = 0; cChild < n->getChildrenCount(); cChild++) {
       ids.push(n->getChildIdentifier(cChild));
     }
   } else if (n != 0 && n->getLevel() == 0) {
-    for (size_t cChild = 0; cChild < n->getChildrenCount(); cChild++) {
+    for (uint32_t cChild = 0; cChild < n->getChildrenCount(); cChild++) {
       IShape* childShape;
       n->getChildShape(cChild,&childShape);
-      size_t length;
+      uint32_t length;
       byte* data;
       n->getChildData(cChild,length,&data);
       Region childMBR;
@@ -120,14 +120,14 @@ void TraverseDepthFirst::getNextEntry(const IEntry& entry, id_type& nextEntry, b
   v->visitNode(*n);
 
   if (n != 0 && n->getLevel() > 0) {
-    for (size_t cChild = 0; cChild < n->getChildrenCount(); cChild++) {
+    for (uint32_t cChild = 0; cChild < n->getChildrenCount(); cChild++) {
       ids.push(n->getChildIdentifier(cChild));
     }
   } else if (n != 0 && n->getLevel() == 0) {
-    for (size_t cChild = 0; cChild < n->getChildrenCount(); cChild++) {
+    for (uint32_t cChild = 0; cChild < n->getChildrenCount(); cChild++) {
       IShape* childShape;
       n->getChildShape(cChild,&childShape);
-      size_t length;
+      uint32_t length;
       byte* data;
       n->getChildData(cChild,length,&data);
       Region childMBR;
@@ -183,7 +183,7 @@ void IncrementalRangeStrategy::getNextEntry(const IEntry& entry, id_type& nextEn
        * There might be more than one matching child of the leaf, so we might have
        * to continue with a successive child, memorized as "child_idx".
        */
-      for (size_t cChild = child_idx; cChild < n->getChildrenCount() ; cChild++) {
+      for (uint32_t cChild = child_idx; cChild < n->getChildrenCount() ; cChild++) {
         id_type childId = n->getChildIdentifier(cChild); // for fetching the ACTUAL shape, not MBR from the ID-Shape map
         IShape* childShape = index->getShape(childId);
         /* If the query intersects or contains the child shape we have a match and should return it,
@@ -217,7 +217,7 @@ void IncrementalRangeStrategy::getNextEntry(const IEntry& entry, id_type& nextEn
           }
         }
         if (b) {
-          size_t length;
+          uint32_t length;
           byte* data;
           n->getChildData(cChild,length,&data);
           // If we got an IVisitor, use it to report the result.
@@ -245,7 +245,7 @@ void IncrementalRangeStrategy::getNextEntry(const IEntry& entry, id_type& nextEn
       child_idx = 0; // Done checking the children, reset the continuation index.
     } else {
       // We're dealing with a Node here, that means we're just navigating, not looking for matches.
-      for (size_t cChild = 0; cChild < n->getChildrenCount() ; cChild++) {
+      for (uint32_t cChild = 0; cChild < n->getChildrenCount() ; cChild++) {
         IShape* childShape;
         n->getChildShape(cChild,&childShape); // using MBRs, not the actual Shape, for speed.
         // Continue searching in every intersecting (and thus possibly overlapping) child node.
@@ -341,7 +341,7 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
             v->visitData(dynamic_cast<const IData&>(*(queue.top()->m_pEntry)));
           }
           byte* data;
-          size_t length;
+          uint32_t length;
           (dynamic_cast<const IData&>(*(queue.top()->m_pEntry))).getData(length,&data);
           result = *(atom_t*)data;
 #ifdef DEBUG          
@@ -358,14 +358,14 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
 #ifdef DEBUG
           cout << "leaf node\n";
 #endif
-          for (size_t cChild = 0; cChild < n->getChildrenCount(); cChild++) {
+          for (uint32_t cChild = 0; cChild < n->getChildrenCount(); cChild++) {
             id_type childId = n->getChildIdentifier(cChild); // for fetching the ACTUAL shape, not MBR from the ID-Shape map
             IShape* childShape = index->getShape(childId);
             double dist = nnc.getMinimumDistance(*query,*childShape);
 
             Region childMBR;
             childShape->getMBR(childMBR);
-            size_t length;
+            uint32_t length;
             byte* data;
             n->getChildData(cChild,length,&data);
             id_type childIdentifier = n->getChildIdentifier(cChild);
@@ -398,7 +398,7 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
 #ifdef DEBUG
         cout << "index node\n";
 #endif
-        for (size_t cChild = 0; cChild < n->getChildrenCount() ; cChild++) {
+        for (uint32_t cChild = 0; cChild < n->getChildrenCount() ; cChild++) {
           IShape* childShape;
           n->getChildShape(cChild,&childShape);
           Region childMBR;
@@ -426,7 +426,7 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
 #ifdef DEBUG
     cout << "next is data, setting entry to NULL" << endl;
 #endif
-    nextEntry = NULL;
+    nextEntry = 0; // really? FIXME
   } else {
 #ifdef DEBUG
     cout << "next is " << queue.top()->m_id << endl;

@@ -51,8 +51,8 @@ class Index
 
   virtual IShape* interpret_shape(PlTerm shape_term) = 0;
   virtual void clear_tree() = 0;
-  virtual void create_tree(size_t dimensionality) = 0;
-  virtual void create_tree(size_t dimensionality, double util, int nodesz) = 0;
+  virtual void create_tree(uint32_t dimensionality) = 0;
+  virtual void create_tree(uint32_t dimensionality, double util, int nodesz) = 0;
   virtual bool insert_single_object(PlTerm uri,PlTerm shape_term) = 0;
   virtual bool delete_single_object(PlTerm uri,PlTerm shape_term) = 0;
 
@@ -82,10 +82,10 @@ class RTreeIndex : public Index
   virtual IShape* getShape(id_type id);
 
   virtual IShape* interpret_shape(PlTerm shape_term);
-  virtual bool bulk_load(PlTerm goal,size_t dimensionality);
+  virtual bool bulk_load(PlTerm goal,uint32_t dimensionality);
   virtual void clear_tree();
-  virtual void create_tree(size_t dimensionality);
-  virtual void create_tree(size_t dimensionality, double util, int nodesz);
+  virtual void create_tree(uint32_t dimensionality);
+  virtual void create_tree(uint32_t dimensionality, double util, int nodesz);
   virtual bool insert_single_object(PlTerm uri,PlTerm shape_term);
   virtual bool delete_single_object(PlTerm uri,PlTerm shape_term);
   

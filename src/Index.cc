@@ -85,7 +85,7 @@ public:
     return false;
   }
   
-  virtual size_t size() throw (NotSupportedException)
+  virtual uint32_t size() throw (NotSupportedException)
   {
     throw NotSupportedException("Operation not supported.");
     return 0;
@@ -180,10 +180,10 @@ id_type   RTreeIndex::get_uri_id(PlTerm uri) {
 }
   
 
-void RTreeIndex::create_tree(size_t dimensionality) {
+void RTreeIndex::create_tree(uint32_t dimensionality) {
   RTreeIndex::create_tree(dimensionality,utilization,nodesize);
 }
-void RTreeIndex::create_tree(size_t dimensionality, double util, int nodesz) {
+void RTreeIndex::create_tree(uint32_t dimensionality, double util, int nodesz) {
   utilization = util;
   nodesize = nodesz;
   PlTerm bnt(baseName);
@@ -202,7 +202,7 @@ void RTreeIndex::create_tree(size_t dimensionality, double util, int nodesz) {
 
 
 bool
-RTreeIndex::bulk_load(PlTerm goal,size_t dimensionality) {
+RTreeIndex::bulk_load(PlTerm goal,uint32_t dimensionality) {
   if (dimensionality > 3 || dimensionality < 1) {
     cerr << "only dimensionality from 1 to 3 supported, not " << dimensionality << endl;
     return false;
@@ -263,7 +263,7 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
         cerr << "polygon shell contains non-point" << endl;
         return NULL;
       }
-      size_t dim = pt.arity();
+      uint32_t dim = pt.arity();
       if (dim == 2) {
         cl->add(geos::geom::Coordinate((double)pt[1],(double)pt[2]));
       } else if (dim == 1) {
@@ -287,7 +287,7 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
           cerr << "polygon hole contains non-point" << endl;
           return NULL;
         }
-        size_t dim = hpt.arity();
+        uint32_t dim = hpt.arity();
         if (dim == 2) {
           hcl->add(geos::geom::Coordinate((double)hpt[1],(double)hpt[2]));
         } else if (dim == 1) {
@@ -376,7 +376,7 @@ bool RTreeIndex::insert_single_object(PlTerm uri,PlTerm shape_term) {
     return FALSE;
   }
   if (tree == NULL) {
-    size_t dimensionality = shape->getDimension();
+    uint32_t dimensionality = shape->getDimension();
     clear_tree();
     RTreeIndex::create_tree(dimensionality,utilization,nodesize);
   }
@@ -402,7 +402,7 @@ bool RTreeIndex::delete_single_object(PlTerm uri,PlTerm shape_term) {
     return FALSE;
   }
   if (tree == NULL) {
-    size_t dimensionality = shape->getDimension();
+    uint32_t dimensionality = shape->getDimension();
     clear_tree();
     RTreeIndex::create_tree(dimensionality,utilization,nodesize);
   }
