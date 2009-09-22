@@ -94,7 +94,7 @@ class IncrementalRangeStrategy : public SpatialIndex::IQueryStrategy
   atom_t result;
   bool result_found;
   bool continuation;
-  size_t child_idx;
+  uint32_t child_idx;
   const IShape* query;
   IVisitor* v;
   RangeQueryType t;
@@ -153,7 +153,7 @@ private:
   atom_t result;
   bool result_found;
   bool continuation;
-  size_t child_idx;
+  uint32_t child_idx;
   bool first_call;
   const IShape* query;
   IVisitor* v;

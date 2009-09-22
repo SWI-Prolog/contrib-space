@@ -477,7 +477,7 @@ PREDICATE(geos_test,0) {
   cout << "before store" << endl;
 
   byte* buffer;
-  size_t length;
+  uint32_t length;
   p2->storeToByteArray(&buffer,length);
 
   cout << "after store, before load" << endl;

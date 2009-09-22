@@ -76,9 +76,9 @@ GEOSPoint::GEOSPoint() {
 #endif 
   this->g = global_factory->createPoint();
 }
-GEOSPoint::GEOSPoint(const double* pCoords, size_t dimension) {
+GEOSPoint::GEOSPoint(const double* pCoords, uint32_t dimension) {
 #ifdef DEBUG
-cout << "entering GEOSPoint::GEOSPoint(const double* pCoords, size_t dimension) " << endl;
+cout << "entering GEOSPoint::GEOSPoint(const double* pCoords, uint32_t dimension) " << endl;
 #endif
   if (dimension == 2) {
     geos::geom::Coordinate *c = new geos::geom::Coordinate(pCoords[0],pCoords[1]);
@@ -108,7 +108,7 @@ cout << "entering GEOSPoint::GEOSPoint(const GEOSPoint& p) " << endl;
 #endif
   const Coordinate *c = p.g->getCoordinate();
   this->g = global_factory->createPoint(*c);
-  size_t dim;
+  uint32_t dim;
   if (ISNAN(c->y)) dim = 1;
   else if (ISNAN(c->z)) dim = 2;
   else dim = 3;
@@ -125,7 +125,7 @@ GEOSPoint::GEOSPoint(const Coordinate& c) {
 #ifdef DEBUG
   cout << "testing this->g " << this->g->getCoordinate()->x << endl;
 #endif
-  size_t dim;
+  uint32_t dim;
   if (ISNAN(c.y)) dim = 1;
   else if (ISNAN(c.z)) dim = 2;
   else dim = 3;
@@ -148,13 +148,13 @@ cout << "entering GEOSPoint::clone() " << endl;
 #endif
   return NULL;
 }
-size_t 
+uint32_t 
 GEOSPoint::getByteArraySize() {
 #ifdef DEBUG
 cout << "entering GEOSPoint::getByteArraySize() " << endl;
 #endif
   byte** data;
-  size_t length;
+  uint32_t length;
   this->storeToByteArray(data, length);
   delete data;
   return length;
@@ -165,24 +165,24 @@ GEOSPoint::loadFromByteArray(const byte* data) {
 cout << "entering GEOSPoint::loadFromByteArray(const byte* data) " << endl;
 #endif
   stringstream sl(ios_base::binary|ios_base::in|ios_base::out);
-  size_t length = 0;
-  memcpy(&length,data,sizeof(size_t));
+  uint32_t length = 0;
+  memcpy(&length,data,sizeof(uint32_t));
   stringstream s(ios_base::binary|ios_base::in|ios_base::out);
-  s.write((const char*)(&data[sizeof(size_t)]),length-sizeof(size_t));
+  s.write((const char*)(&data[sizeof(uint32_t)]),length-sizeof(uint32_t));
   s.seekg(0);
   geos::io::WKBReader wkbReader(*global_factory);
   this->g = wkbReader.read(s);
   const geos::geom::Coordinate *c = this->g->getCoordinate();
-  size_t dim;
+  uint32_t dim;
   if (ISNAN(c->y)) dim = 1;
   else if (ISNAN(c->z)) dim = 2;
   else dim = 3;
   this->m_dimension = dim;
 }
 void
-GEOSPoint::storeToByteArray(byte** data, size_t& length) {
+GEOSPoint::storeToByteArray(byte** data, uint32_t& length) {
 #ifdef DEBUG
-cout << "entering GEOSPoint::storeToByteArray(byte** data, size_t& length) " << endl;
+cout << "entering GEOSPoint::storeToByteArray(byte** data, uint32_t& length) " << endl;
 #endif
   if ( this->m_dimension < 2 || this->m_dimension > 3 ) {
     cerr << "WKB output dimension must be 2 or 3" << endl;
@@ -191,11 +191,11 @@ cout << "entering GEOSPoint::storeToByteArray(byte** data, size_t& length) " << 
   stringstream s(ios_base::binary|ios_base::in|ios_base::out);
   geos::io::WKBWriter *wkbWriter = new geos::io::WKBWriter(this->m_dimension,BYTE_ORDER==LITTLE_ENDIAN,true);
   wkbWriter->write(*(this->g), s);
-  length = ((size_t)(s.tellp()))+sizeof(size_t);
+  length = ((uint32_t)(s.tellp()))+sizeof(uint32_t);
   s.seekp(0, ios::beg); // rewind writer pointer
   *data = new byte[length];
-  memcpy(*data,&length,sizeof(size_t));
-  s.read((char*)&((*data)[sizeof(size_t)]),length-sizeof(size_t));
+  memcpy(*data,&length,sizeof(uint32_t));
+  s.read((char*)&((*data)[sizeof(uint32_t)]),length-sizeof(uint32_t));
   delete wkbWriter;
 }
 
@@ -344,7 +344,7 @@ cout << "entering GEOSPoint::getCenter(Point& out) const " << endl;
 #endif
   out = *(toPoint());
 }
-size_t 
+uint32_t 
 GEOSPoint::getDimension() const {
 #ifdef DEBUG
 cout << "entering GEOSPoint::getDimension() const " << endl;
@@ -407,9 +407,9 @@ cout << "entering GEOSPoint::getMinimumDistance(const IShape& in) const " << end
   }
 }
 double 
-GEOSPoint::getCoordinate(size_t index) const {
+GEOSPoint::getCoordinate(uint32_t index) const {
 #ifdef DEBUG
-cout << "entering GEOSPoint::getCoordinate(size_t index) const " << endl;
+cout << "entering GEOSPoint::getCoordinate(uint32_t index) const " << endl;
 #endif
   const Coordinate *c = this->g->getCoordinate();
   switch(index)  {
@@ -421,16 +421,16 @@ cout << "entering GEOSPoint::getCoordinate(size_t index) const " << endl;
   return 0.0;
 }
 void
-GEOSPoint::makeInfinite(size_t dimension) {
+GEOSPoint::makeInfinite(uint32_t dimension) {
 #ifdef DEBUG
-cout << "entering GEOSPoint::makeInfinite(size_t dimension) " << endl;
+cout << "entering GEOSPoint::makeInfinite(uint32_t dimension) " << endl;
 #endif
   cerr << "make infinite not implemented yet" << endl;
 }
 void
-GEOSPoint::makeDimension(size_t dimension) {
+GEOSPoint::makeDimension(uint32_t dimension) {
 #ifdef DEBUG
-cout << "entering GEOSPoint::makeDimension(size_t dimension) " << endl;
+cout << "entering GEOSPoint::makeDimension(uint32_t dimension) " << endl;
 #endif
   cerr << "make dimension not implemented yet" << endl;
 }
@@ -467,15 +467,15 @@ cout << "entering GEOSPolygon::GEOSPolygon() " << endl;
 #endif
   //  cerr << "GEOSPolygon() constructor not implemented yet" << endl;
 }
-GEOSPolygon::GEOSPolygon(const double** verts, size_t nverts, size_t dimension) {
+GEOSPolygon::GEOSPolygon(const double** verts, uint32_t nverts, uint32_t dimension) {
 #ifdef DEBUG
-cout << "entering GEOSPolygon::GEOSPolygon(const double** verts, size_t nverts, size_t dimension) " << endl;
+cout << "entering GEOSPolygon::GEOSPolygon(const double** verts, uint32_t nverts, uint32_t dimension) " << endl;
 #endif
   cerr << "GEOSPolygon(verts,nverts,dimension) constructor not implemented yet" << endl;
 }
-GEOSPolygon::GEOSPolygon(const GEOSPoint*& points, size_t nverts) {
+GEOSPolygon::GEOSPolygon(const GEOSPoint*& points, uint32_t nverts) {
 #ifdef DEBUG
-cout << "entering GEOSPolygon::GEOSPolygon(const GEOSPoint*& points, size_t nverts) " << endl;
+cout << "entering GEOSPolygon::GEOSPolygon(const GEOSPoint*& points, uint32_t nverts) " << endl;
 #endif
   cerr << "GEOSPolygon(points,nverts) constructor not implemented yet" << endl;
 }
@@ -508,14 +508,14 @@ cout << "entering GEOSPolygon::clone() " << endl;
   delete poly;
   return p;
 }
-size_t 
+uint32_t 
 GEOSPolygon::getByteArraySize() {
 #ifdef DEBUG
 cout << "entering GEOSPolygon::getByteArraySize() " << endl;
 #endif
   cerr << "getByteArraySize function not efficient (polygon)" << endl;
   byte** data;
-  size_t length;
+  uint32_t length;
   this->storeToByteArray(data, length);
   delete data;
   return length;
@@ -526,20 +526,20 @@ GEOSPolygon::loadFromByteArray(const byte* data) {
 cout << "entering GEOSPolygon::loadFromByteArray(const byte* data) " << endl;
 #endif
   stringstream sl(ios_base::binary|ios_base::in|ios_base::out);
-  size_t length = 0;
-  memcpy(&length,data,sizeof(size_t));
+  uint32_t length = 0;
+  memcpy(&length,data,sizeof(uint32_t));
   stringstream s(ios_base::binary|ios_base::in|ios_base::out);
-  s.write((const char*)(&data[sizeof(size_t)]),length-sizeof(size_t));
+  s.write((const char*)(&data[sizeof(uint32_t)]),length-sizeof(uint32_t));
   s.seekg(0);
   geos::io::WKBReader wkbReader(*global_factory);
   this->g = wkbReader.read(s);
 }
 void
-GEOSPolygon::storeToByteArray(byte** data, size_t& length) {
+GEOSPolygon::storeToByteArray(byte** data, uint32_t& length) {
 #ifdef DEBUG
-cout << "entering GEOSPolygon::storeToByteArray(byte** data, size_t& length) " << endl;
+cout << "entering GEOSPolygon::storeToByteArray(byte** data, uint32_t& length) " << endl;
 #endif
-  size_t dim = this->getDimension();
+  uint32_t dim = this->getDimension();
   if ( dim < 2 || dim > 3 ) {
     cerr << "WKB output dimension must be 2 or 3" << endl;
     return;
@@ -547,11 +547,11 @@ cout << "entering GEOSPolygon::storeToByteArray(byte** data, size_t& length) " <
   stringstream s(ios_base::binary|ios_base::in|ios_base::out);
   geos::io::WKBWriter *wkbWriter = new geos::io::WKBWriter(dim,BYTE_ORDER==LITTLE_ENDIAN,true);
   wkbWriter->write(*(this->g), s);
-  length = ((size_t)(s.tellp()))+sizeof(size_t);
+  length = ((uint32_t)(s.tellp()))+sizeof(uint32_t);
   s.seekp(0, ios::beg); // rewind writer pointer
   *data = new byte[length];
-  memcpy(*data,&length,sizeof(size_t));
-  s.read((char*)&((*data)[sizeof(size_t)]),length-sizeof(size_t));
+  memcpy(*data,&length,sizeof(uint32_t));
+  s.read((char*)&((*data)[sizeof(uint32_t)]),length-sizeof(uint32_t));
   delete wkbWriter;
 }
 geos::geom::Geometry*
@@ -774,7 +774,7 @@ cout << "entering GEOSPolygon::getCenter(Point& out) const " << endl;
   delete p;
   delete gp;
 }
-size_t 
+uint32_t 
 GEOSPolygon::getDimension() const {
 #ifdef DEBUG
 cout << "entering GEOSPolygon::getDimension() const " << endl;
@@ -867,10 +867,10 @@ cout << "entering GEOSPolygon::getMinimumDistance(const IShape& in) const " << e
         box->normalize();
       } else if (pr.m_dimension == 3) {
         cerr << "3d box regions not implemented yet" << endl;
-        return NULL;
+        return 0.0;
       } else {
         cerr << pr.m_dimension << " dimensional regions not supported" << endl;
-        return NULL;
+        return 0.0;
       }
       dist = this->g->distance(box);
       global_factory->destroyGeometry(box);
@@ -939,35 +939,35 @@ cout << "entering GEOSPolygon::getCombinedGEOSPolygon(GEOSPolygon& out, const GE
 #endif
 }
 GEOSPoint* 
-GEOSPolygon::getVertex(size_t vert) const {
+GEOSPolygon::getVertex(uint32_t vert) const {
 #ifdef DEBUG
-cout << "entering GEOSPolygon::getVertex(size_t vert) const " << endl;
+cout << "entering GEOSPolygon::getVertex(uint32_t vert) const " << endl;
 #endif
   return NULL;
 }
 double 
-GEOSPolygon::getCoordinate(size_t vert, size_t index) const {
+GEOSPolygon::getCoordinate(uint32_t vert, uint32_t index) const {
 #ifdef DEBUG
-cout << "entering GEOSPolygon::getCoordinate(size_t vert, size_t index) const " << endl;
+cout << "entering GEOSPolygon::getCoordinate(uint32_t vert, uint32_t index) const " << endl;
 #endif
   return 0.0;
 }
 void
-GEOSPolygon::makeInfinite(size_t dimension) {
+GEOSPolygon::makeInfinite(uint32_t dimension) {
 #ifdef DEBUG
-cout << "entering GEOSPolygon::makeInfinite(size_t dimension) " << endl;
+cout << "entering GEOSPolygon::makeInfinite(uint32_t dimension) " << endl;
 #endif
 }
 void
-GEOSPolygon::makeDimension(size_t dimension) {
+GEOSPolygon::makeDimension(uint32_t dimension) {
 #ifdef DEBUG
-cout << "entering GEOSPolygon::makeDimension(size_t dimension) " << endl;
+cout << "entering GEOSPolygon::makeDimension(uint32_t dimension) " << endl;
 #endif
 }
 void
-GEOSPolygon::initialize(const double* verts, size_t nverts, size_t dimension) {
+GEOSPolygon::initialize(const double* verts, uint32_t nverts, uint32_t dimension) {
 #ifdef DEBUG
-cout << "entering GEOSPolygon::initialize(const double* verts, size_t nverts, size_t dimension) " << endl;
+cout << "entering GEOSPolygon::initialize(const double* verts, uint32_t nverts, uint32_t dimension) " << endl;
 #endif
 }
 
@@ -989,7 +989,7 @@ cout << "entering GEOSPolygon::operator==(const GEOSPolygon&) const " << endl;
 
 std::ostream& SpatialIndex::operator<<(std::ostream& os, const GEOSPolygon& r)
 {
-  size_t i;
+  uint32_t i;
   geos::geom::CoordinateSequence *c = r.g->getCoordinates();
   for (i = 0; i < c->getSize(); i++)
     {

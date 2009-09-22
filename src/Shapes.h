@@ -58,7 +58,7 @@ void cleanup_geos(); // must be called after finishing to use the shapes
 
 namespace SpatialIndex
 {
-  interface GEOSShape : public IShape {
+  class GEOSShape : public IShape {
   public:
     virtual ~GEOSShape() {};
     geos::geom::Geometry *g; // pointer to the corresponding geos::geom::Geometry
@@ -72,7 +72,7 @@ namespace SpatialIndex
   class GEOSPoint : public GEOSShape {
   public:
     GEOSPoint();
-    GEOSPoint(const double* pCoords, size_t dimension);
+    GEOSPoint(const double* pCoords, uint32_t dimension);
     GEOSPoint(const GEOSPoint& p);
     GEOSPoint(const geos::geom::Coordinate &coordinate);
     virtual ~GEOSPoint();
@@ -88,9 +88,9 @@ namespace SpatialIndex
     //
     // ISerializable interface
     //
-     size_t getByteArraySize();
+     uint32_t getByteArraySize();
      void loadFromByteArray(const byte* data);
-     void storeToByteArray(byte** data, size_t& length);
+     void storeToByteArray(byte** data, uint32_t& length);
 
     //
     // IShape interface
@@ -102,22 +102,22 @@ namespace SpatialIndex
      bool containsShape(const IShape& in) const;
      bool touchesShape(const IShape& in) const;
      void getCenter(Point& out) const;
-     size_t getDimension() const;
+     uint32_t getDimension() const;
      void getMBR(Region& out) const;
      double getArea() const;
      double getMinimumDistance(const GEOSShape& in) const;
      double getMinimumDistance(const IShape& in) const;
 
-     double getCoordinate(size_t index) const;
+     double getCoordinate(uint32_t index) const;
 
-     void makeInfinite(size_t dimension);
-     void makeDimension(size_t dimension);
+     void makeInfinite(uint32_t dimension);
+     void makeDimension(uint32_t dimension);
 
   private:
     Point* toPoint() const;
 
   public:
-    size_t m_dimension;
+    uint32_t m_dimension;
 
     friend class Region;
     friend class GEOSPolygon;
@@ -136,8 +136,8 @@ namespace SpatialIndex
   public:
 
     GEOSPolygon();
-    GEOSPolygon(const double** verts, size_t nverts, size_t dimension); // verts[nverts][dimension]
-    GEOSPolygon(const GEOSPoint*& points, size_t nverts); // [GEOSPoint][nverts]
+    GEOSPolygon(const double** verts, uint32_t nverts, uint32_t dimension); // verts[nverts][dimension]
+    GEOSPolygon(const GEOSPoint*& points, uint32_t nverts); // [GEOSPoint][nverts]
     GEOSPolygon(const GEOSPolygon& poly);
     GEOSPolygon(const geos::geom::Polygon& poly);
 
@@ -154,9 +154,9 @@ namespace SpatialIndex
     //
     // ISerializable interface
     //
-     size_t getByteArraySize();
+     uint32_t getByteArraySize();
      void loadFromByteArray(const byte* data);
-     void storeToByteArray(byte** data, size_t& length);
+     void storeToByteArray(byte** data, uint32_t& length);
 
     //
     // IShape interface
@@ -174,7 +174,7 @@ namespace SpatialIndex
      bool touchesPoint(const Point& r) const;
 
      void getCenter(Point& out) const;
-     size_t getDimension() const;
+     uint32_t getDimension() const;
      void getMBR(Region& out) const;
      double getArea() const;
      double getMinimumDistance(const GEOSShape& in) const;
@@ -188,14 +188,14 @@ namespace SpatialIndex
      void combineGEOSPoint(const GEOSPoint& in);
      void getCombinedGEOSPolygon(GEOSPolygon& out, const GEOSPolygon& in) const;
 
-     GEOSPoint* getVertex(size_t vert) const;
-     double getCoordinate(size_t vert, size_t index) const;
+     GEOSPoint* getVertex(uint32_t vert) const;
+     double getCoordinate(uint32_t vert, uint32_t index) const;
 
-     void makeInfinite(size_t dimension);
-     void makeDimension(size_t dimension);
+     void makeInfinite(uint32_t dimension);
+     void makeDimension(uint32_t dimension);
 
   private:
-    void initialize(const double* verts, size_t nverts, size_t dimension);
+    void initialize(const double* verts, uint32_t nverts, uint32_t dimension);
 
     friend class GEOSPoint;
     friend class Region;
