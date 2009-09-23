@@ -61,8 +61,8 @@ georss_candidate(URI, Shape) :-
 
 georss_simple_candidate(URI, Shape) :-
 	(   rdf(URI, georss:point, PointStringLit),
-	    parse_poslist_literal(PointStringLit,Line),
-	    Shape = point(Line)
+	    parse_poslist_literal(PointStringLit,[Line]),
+	    Shape = Line
 	)
 	;
 	(   rdf(URI, georss:line, LineStringLit),
