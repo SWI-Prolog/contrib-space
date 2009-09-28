@@ -27,12 +27,6 @@
     the GNU General Public License.
 */
 
-
-/*
-    TODO: make load_structure properly use kml namespaces.
-*/
-
-
 :- module(kml,
 	  [
 	    kml_shape/2,
@@ -77,9 +71,27 @@ kml_shape(KML, Geom, Attributes, Content) :-
 	;   construct_kml(KML, Geom, Attributes, Content)
 	).
 
+%%	kml_uri_shape(?KML,?URI,?Shape) is semidet.
+%
+%	Converts between the KML serialization of a URI-shape pair and its
+%	internal Prolog term representation.
+%	It is assumed the KML Geometry element has a ID attribute
+%       specifying the URI of the shape.
+%	e.g. <Point ID="http://example.org/point1"><coordinates>52.37,4.89</coordinates></Point>
+
 kml_uri_shape(KML, URI, Shape) :-
 	kml_shape(KML, placemark(Shape,Attributes,Content)),
 	get_uri(placemark(Shape,Attributes,Content), URI).
+
+%%	kml_file_shape(+File,?Shape) is semidet.
+%%	kml_file_shape(+File,?Shape,?Attributes,?Content) is semidet.
+%
+%	Reads shapes from a KML file using kml_shape/2.
+%	kml_file_shape/4 also reads extra attributes and elements of
+%	the KML Geometry.
+%	e.g. <Point targetId="NCName"><extrude>0</extrude>...</Point>
+%	will, besides parsing the Point, also instantiate Content with
+%       [extrude(0)] and Attributes with [targetId('NCName')].
 
 kml_file_shape(File, Geom) :- kml_file_shape(File, Geom, _A, _C).
 kml_file_shape(File, Geom, Attributes, Content) :-
@@ -87,6 +99,10 @@ kml_file_shape(File, Geom, Attributes, Content) :-
 	read_stream_to_codes(Stream, Codes),
 	atom_codes(KML, Codes), !,
 	kml_shape(KML, Geom, Attributes, Content).
+
+%%	kml_file_uri_shape(+File,?URI,?Shape) is semidet.
+%
+%	Reads URI-shape pairs from File using kml_uri_shape/2.
 
 kml_file_uri_shape(File, URI, Shape) :-
 	kml_file_shape(File, placemark(Shape,Attributes,Content)),
