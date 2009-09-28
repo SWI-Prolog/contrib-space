@@ -6,7 +6,7 @@
 \sloppy
 \makeindex
 
-\newcommand{\curversion}{0.1.1}
+\newcommand{\curversion}{0.1.2}
 
 \onefile
 \htmloutput{html}				% Output directory
@@ -38,13 +38,13 @@ Simple, GeoRSS GML, and W3C WGS84 vocabulary properties.
 \newpage
 
 \section{Introduction}
-The Space package provides spatial indexing for SWI-Prolog. It is based on
+The Space package~\cite{vanHage:2009} provides spatial indexing for SWI-Prolog. It is based on
 \url[Geometry Engine Open Source]{http://geos.refractions.net/} and the \url[Spatial
 Index Library]{http://trac.gispython.org/spatialindex/}.
 
 \section{Shapes as Prolog Terms}
 The central objects of the Space package are pairs, $\langle u, s\rangle$ of a URI, $u$, and its associated shape, $s$.
-The URIs are linked to the shapes with the uri_shape/2 predicate. We will support all OpenGIS Simple Features, points, linestrings, polygons (with $\geq0$ holes), multi-points, multi-polygons, and geometry collections; and some utility shapes like box and circle regions.\footnote{The current version of the Space package, \curversion, only supports points and polygons (with holes) and box regions. Development on the other shape types is underway.}
+The URIs are linked to the shapes with the uri_shape/2 predicate. We will support all OpenGIS Simple Features, points, linestrings, polygons (with $\geq0$ holes), multi-points, multi-polygons, and geometry collections; and some utility shapes like box and circle regions.\footnote{The current version of the Space package, \curversion, only supports points, linestrings, and polygons (with holes) and box regions. Development on the other (multi-)shape types is underway.}
 
 Both the URIs and the shapes are represented as Prolog terms. This makes them first-class Prolog citizens, which allows the construction and transformation of shapes using regular Prolog clauses, or Definite Clause Grammars (DCGs).
 We support input from locations encoded in RDF with the \url[W3C WGS84 vocabulary]{http://www.w3.org/2003/01/geo/} and with the \url[GeoRSS]{http://georss.org} Simple properties and the GeoRSS \const{where} property leading to an XML literal consisting of a GML element.
@@ -191,7 +191,12 @@ An alternative implementation would be to take the exact IncNearest algorithm de
 
 \printindex
 
-\begin{thebibliography}{2}
+\begin{thebibliography}{3}
+
+\bibitem{vanHage:2009}
+Willem Robert van Hage, Jan Wielemaker and Guus Schreiber.
+\newblock The Space package: Tight Integration Between Space and Semantics.
+\newblock {\em Proceedings of the 8th International Semantic Web Conference Workshop: TerraCognita 2009.}
 
 \bibitem{Hadjieleftheriou:2005rz}
 Marios Hadjieleftheriou, Erik Hoel, and Vassilis~J. Tsotras.
