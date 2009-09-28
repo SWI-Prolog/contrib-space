@@ -17,14 +17,39 @@ export CPLUS_INCLUDE_PATH=$PREFIX/include
 export LIBRARY_PATH=$PREFIX/lib
 export LD_LIBRARY_PATH=$PREFIX/lib
 
-run:
-autoconf
-autoheader
-./configure
-make
-make install
-pl -s test_space.pl -g test_space,halt
-pl -s demo_space.pl
+An outline of the installation procedure (please let me know where it fails with your setup) is listed below:
+
+install GEOS
+$ svn checkout http://svn.osgeo.org/geos/trunk geos-svn
+$ autogen.sh
+$ ./configure --prefix=[...]
+$ make
+$ make install
+
+install spatialindex
+$ svn checkout http://svn.gispython.org/svn/spatialindex/spatialindex trunk
+$ autogen.sh
+$ ./configure --prefix=[...]
+$ make
+$ make install
+
+download the development version of SWI-Prolog
+$ git clone git://www.swi-prolog.org/home/pl/git/pl-57x.git
+$ cd pl-57x/packages
+
+download the space package
+$ git clone git://www.swi-prolog.org/home/pl/git/space.git
+$ cd ..
+
+install SWI-Prolog and the space package
+$ cp build.templ build
+[add space to extra packages variable, next to db and ltx2htm]
+$ ./prepare
+$ ./build
+
+run the tests and the demo
+$ pl -s test_space.pl -g test_space,halt
+$ pl -s demo_space.pl
 
 -- Mac OS X
 
