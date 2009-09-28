@@ -61,6 +61,16 @@ namespace SpatialIndex
   class GEOSShape : public IShape {
   public:
     virtual ~GEOSShape() {};
+
+    //
+    // ISerializable interface
+    //
+    uint32_t getByteArraySize();
+    void loadFromByteArray(const byte* data);
+    void storeToByteArray(byte** data, uint32_t& length);
+    
+    uint32_t m_dimension;
+
     geos::geom::Geometry *g; // pointer to the corresponding geos::geom::Geometry
   };
 
@@ -77,46 +87,36 @@ namespace SpatialIndex
     GEOSPoint(const geos::geom::Coordinate &coordinate);
     virtual ~GEOSPoint();
 
-     GEOSPoint& operator=(const GEOSPoint& p);
-     bool operator==(const GEOSPoint& p) const;
+    GEOSPoint& operator=(const GEOSPoint& p);
+    bool operator==(const GEOSPoint& p) const;
 
     //
     // IObject interface
     //
-     GEOSPoint* clone();
-
-    //
-    // ISerializable interface
-    //
-     uint32_t getByteArraySize();
-     void loadFromByteArray(const byte* data);
-     void storeToByteArray(byte** data, uint32_t& length);
+    GEOSPoint* clone();
 
     //
     // IShape interface
     //
-     bool intersectsShape(const GEOSShape& in) const;
-     bool containsShape(const GEOSShape& in) const;
-     bool touchesShape(const GEOSShape& in) const;
-     bool intersectsShape(const IShape& in) const;
-     bool containsShape(const IShape& in) const;
-     bool touchesShape(const IShape& in) const;
-     void getCenter(Point& out) const;
-     uint32_t getDimension() const;
-     void getMBR(Region& out) const;
-     double getArea() const;
-     double getMinimumDistance(const GEOSShape& in) const;
-     double getMinimumDistance(const IShape& in) const;
+    bool intersectsShape(const GEOSShape& in) const;
+    bool containsShape(const GEOSShape& in) const;
+    bool touchesShape(const GEOSShape& in) const;
+    bool intersectsShape(const IShape& in) const;
+    bool containsShape(const IShape& in) const;
+    bool touchesShape(const IShape& in) const;
+    void getCenter(Point& out) const;
+    uint32_t getDimension() const;
+    void getMBR(Region& out) const;
+    double getArea() const;
+    double getMinimumDistance(const GEOSShape& in) const;
+    double getMinimumDistance(const IShape& in) const;
 
-     double getCoordinate(uint32_t index) const;
+    double getCoordinate(uint32_t index) const;
 
-     void makeInfinite(uint32_t dimension);
-     void makeDimension(uint32_t dimension);
+    void makeInfinite(uint32_t dimension);
+    void makeDimension(uint32_t dimension);
 
-  private:
     Point* toPoint() const;
-
-  public:
     uint32_t m_dimension;
 
     friend class Region;
@@ -124,6 +124,78 @@ namespace SpatialIndex
     friend std::ostream& operator<<(std::ostream& os, const GEOSPoint& pt);
 
   };
+
+
+
+  /*
+   * GEOSLineString
+   */
+
+
+  class GEOSLineString : public GEOSShape {
+  public:
+
+    GEOSLineString();
+    GEOSLineString(const double** verts, uint32_t nverts, uint32_t dimension); // verts[nverts][dimension]
+    GEOSLineString(const GEOSPoint*& points, uint32_t nverts); // [GEOSPoint][nverts]
+    GEOSLineString(const GEOSLineString& poly);
+    GEOSLineString(const geos::geom::LineString& poly);
+
+    virtual ~GEOSLineString();
+
+    GEOSLineString& operator=(const GEOSLineString& p);
+    bool operator==(const GEOSLineString&) const;
+
+    //
+    // IObject interface
+    //
+    GEOSLineString* clone();
+
+    //
+    // IShape interface
+    //
+    bool intersectsShape(const GEOSShape& in) const;
+    bool intersectsShape(const IShape& in) const;
+    bool intersectsRegion(const Region& r) const;
+    bool containsShape(const GEOSShape& in) const;
+    bool containsShape(const IShape& in) const;
+    bool containsRegion(const Region& r) const;
+    bool containsPoint(const Point& r) const;
+    bool touchesShape(const GEOSShape& in) const;
+    bool touchesShape(const IShape& in) const;
+    bool touchesRegion(const Region& r) const;
+    bool touchesPoint(const Point& r) const;
+
+    void getCenter(Point& out) const;
+    uint32_t getDimension() const;
+    void getMBR(Region& out) const;
+    double getArea() const;
+    double getMinimumDistance(const GEOSShape& in) const;
+    double getMinimumDistance(const IShape& in) const;
+
+    GEOSLineString* getIntersectingGEOSLineString(const GEOSLineString& r) const;
+    double getIntersectingArea(const GEOSLineString& in) const;
+    double getMargin() const;
+
+    void combineRegion(const Region& in);
+    void combineGEOSPoint(const GEOSPoint& in);
+    void getCombinedGEOSLineString(GEOSLineString& out, const GEOSLineString& in) const;
+
+    GEOSPoint* getVertex(uint32_t vert) const;
+    double getCoordinate(uint32_t vert, uint32_t index) const;
+
+    void makeInfinite(uint32_t dimension);
+    void makeDimension(uint32_t dimension);
+
+    uint32_t m_dimension;
+    
+  private:
+    void initialize(const double* verts, uint32_t nverts, uint32_t dimension);
+
+    friend class GEOSPoint;
+    friend class Region;
+    friend std::ostream& operator<<(std::ostream& os, const GEOSLineString& r);
+  }; // GEOSLineString
 
 
 
@@ -143,57 +215,52 @@ namespace SpatialIndex
 
     virtual ~GEOSPolygon();
 
-     GEOSPolygon& operator=(const GEOSPolygon& p);
-     bool operator==(const GEOSPolygon&) const;
+    GEOSPolygon& operator=(const GEOSPolygon& p);
+    bool operator==(const GEOSPolygon&) const;
 
     //
     // IObject interface
     //
-     GEOSPolygon* clone();
-
-    //
-    // ISerializable interface
-    //
-     uint32_t getByteArraySize();
-     void loadFromByteArray(const byte* data);
-     void storeToByteArray(byte** data, uint32_t& length);
+    GEOSPolygon* clone();
 
     //
     // IShape interface
     //
-     bool intersectsShape(const GEOSShape& in) const;
-     bool intersectsShape(const IShape& in) const;
-     bool intersectsRegion(const Region& r) const;
-     bool containsShape(const GEOSShape& in) const;
-     bool containsShape(const IShape& in) const;
-     bool containsRegion(const Region& r) const;
-     bool containsPoint(const Point& r) const;
-     bool touchesShape(const GEOSShape& in) const;
-     bool touchesShape(const IShape& in) const;
-     bool touchesRegion(const Region& r) const;
-     bool touchesPoint(const Point& r) const;
+    bool intersectsShape(const GEOSShape& in) const;
+    bool intersectsShape(const IShape& in) const;
+    bool intersectsRegion(const Region& r) const;
+    bool containsShape(const GEOSShape& in) const;
+    bool containsShape(const IShape& in) const;
+    bool containsRegion(const Region& r) const;
+    bool containsPoint(const Point& r) const;
+    bool touchesShape(const GEOSShape& in) const;
+    bool touchesShape(const IShape& in) const;
+    bool touchesRegion(const Region& r) const;
+    bool touchesPoint(const Point& r) const;
 
-     void getCenter(Point& out) const;
-     uint32_t getDimension() const;
-     void getMBR(Region& out) const;
-     double getArea() const;
-     double getMinimumDistance(const GEOSShape& in) const;
-     double getMinimumDistance(const IShape& in) const;
+    void getCenter(Point& out) const;
+    uint32_t getDimension() const;
+    void getMBR(Region& out) const;
+    double getArea() const;
+    double getMinimumDistance(const GEOSShape& in) const;
+    double getMinimumDistance(const IShape& in) const;
 
-     GEOSPolygon* getIntersectingGEOSPolygon(const GEOSPolygon& r) const;
-     double getIntersectingArea(const GEOSPolygon& in) const;
-     double getMargin() const;
+    GEOSPolygon* getIntersectingGEOSPolygon(const GEOSPolygon& r) const;
+    double getIntersectingArea(const GEOSPolygon& in) const;
+    double getMargin() const;
 
-     void combineRegion(const Region& in);
-     void combineGEOSPoint(const GEOSPoint& in);
-     void getCombinedGEOSPolygon(GEOSPolygon& out, const GEOSPolygon& in) const;
+    void combineRegion(const Region& in);
+    void combineGEOSPoint(const GEOSPoint& in);
+    void getCombinedGEOSPolygon(GEOSPolygon& out, const GEOSPolygon& in) const;
 
-     GEOSPoint* getVertex(uint32_t vert) const;
-     double getCoordinate(uint32_t vert, uint32_t index) const;
+    GEOSPoint* getVertex(uint32_t vert) const;
+    double getCoordinate(uint32_t vert, uint32_t index) const;
 
-     void makeInfinite(uint32_t dimension);
-     void makeDimension(uint32_t dimension);
+    void makeInfinite(uint32_t dimension);
+    void makeDimension(uint32_t dimension);
 
+    uint32_t m_dimension;
+    
   private:
     void initialize(const double* verts, uint32_t nverts, uint32_t dimension);
 

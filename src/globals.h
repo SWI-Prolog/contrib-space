@@ -39,7 +39,8 @@
 
 static PlAtom ATOM_point("point");
 static PlAtom ATOM_box("box");
-static PlAtom ATOM_linear_ring("linear_ring");
+static PlAtom ATOM_linestring("linestring");
+static PlAtom ATOM_linearring("linearring");
 static PlAtom ATOM_polygon("polygon");
 
 extern geos::geom::GeometryFactory *global_factory;

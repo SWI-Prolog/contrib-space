@@ -243,6 +243,41 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
     #endif
     return p;
 
+
+  } else if (shape_term.name() == ATOM_linestring) {
+
+    if (shape_term.arity() != 1) {
+      cout << "arity not 1: linestring must have one argument, a list containing a list of points" << endl;
+      return NULL;
+    } else if (!PL_is_list(shape_term[1])) {
+      cout << "first argument not a list: linestring must have one argument, a list containing a list of points" << endl;
+      return NULL;    
+    }
+    geos::geom::CoordinateSequence *cl = new geos::geom::CoordinateArraySequence();
+    PlTail list(shape_term[1]);
+    PlTerm pt;
+    while (list.next(pt)) {
+      if (pt.name() != ATOM_point) {
+        cerr << "linestring contains non-point" << endl;
+        return NULL;
+      }
+      uint32_t dim = pt.arity();
+      if (dim == 2) {
+        cl->add(geos::geom::Coordinate((double)pt[1],(double)pt[2]));
+      } else if (dim == 1) {
+        cl->add(geos::geom::Coordinate((double)pt[1]));
+      } else if (dim == 3) {
+        cl->add(geos::geom::Coordinate((double)pt[1],(double)pt[2],(double)pt[3]));
+      } else {
+        cerr << dim << " dimensional points not supported" << endl;
+      }
+    }
+    geos::geom::LineString *ls = global_factory->createLineString(*cl);
+    GEOSLineString *linestring = new GEOSLineString(*ls);
+    delete ls;
+    delete cl;
+    return linestring;
+
   } else if (shape_term.name() == ATOM_polygon) {
 
     if (shape_term.arity() != 1) {

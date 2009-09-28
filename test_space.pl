@@ -59,11 +59,9 @@ test(space_intersects,[cleanup(space_clear(test_index))]) :-
 	uri_shape(Maas1URI,Maas1Shape),
 	uri_shape(Maas4URI,Maas4Shape),
 	rdf_global_id(poseidon:'ScheepvaartrouteZuid_richting_noord',NoordURI),
-        nl, display('-- Maas_1 intersects Zuid_richting_noord? should be no --'), nl,
 	findall(Inter,space_intersects(Maas1Shape,Inter,test_index),Inters),
 	\+member(NoordURI,Inters),
 	!,
-        nl, display('-- Maas_4 intersects Zuid_richting_noord? should be yes --'), nl,
 	space_intersects(Maas4Shape,NoordURI,test_index).
 
 test(space_index, [cleanup(space_clear(test_index))]) :-
@@ -121,7 +119,6 @@ test(space_intersects,[cleanup(space_clear(test_index))]) :-
 	!,
 	space_intersects(Maas4Shape,P1,test_index),
 	space_intersects(Maas4Shape,NoordURI,test_index).
-
 
 test(space_nearest, [ true(Pts = [P2,P1,P3]),
                       cleanup(space_clear(test_index)) ]) :-

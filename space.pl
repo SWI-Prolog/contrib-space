@@ -268,7 +268,6 @@ space_nearest_bounded(Shape, Near, WithinRange, IndexName) :-
 	;   true
 	).
 
-
 space_display(IndexName) :-
         rtree_display(IndexName).
 
