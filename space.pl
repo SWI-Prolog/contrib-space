@@ -346,24 +346,25 @@ space_distance(point(A1,A2), point(B1,B2), D) :-
 
 space_distance(A, B, D) :-
       	rtree_default_index(IndexName),
-        rtree_distance(IndexName, A, B, D).
+        rtree_distance(IndexName, A, B, D1),
+	pythagorean_lat_long_to_kms(D1,D).
 
 space_distance(A, B, D, IndexName) :-
-        rtree_distance(IndexName, A, B, D).
+        rtree_distance(IndexName, A, B, D1),
+	pythagorean_lat_long_to_kms(D1,D).
 
-space_distance_pythagorean(A,B,D) :- space_distance_pythagorean_less_fast(A,B,D).
-
-space_distance_pythagorean_less_fast(point(A, B), point(X, Y), D) :-
-	R is 6371,
-	Dlat is (X - A) * 3.14159265358979 / 180,
-	Dlong is (Y - B) * 3.14159265358979 / 180,
-	D2 is (Dlat ** 2) + (Dlong ** 2),
-	DS is sqrt(D2),
-	D is R * DS.
+space_distance_pythagorean(A,B,D) :-
+	space_distance_pythagorean_fastest(A,B,D1),
+	pythagorean_lat_long_to_kms(D1,D).
 
 space_distance_pythagorean_fastest(point(A, B), point(X, Y), D) :-
 	D2 is ((X - A) ** 2) + ((Y - B) ** 2),
 	D is sqrt(D2).
+
+pythagorean_lat_long_to_kms(D1,D) :-
+	D is D1 * 111.195083724. % to kms
+
+
 
 %%	space_distance_greatcircle(+Point1,+Point2,-Dist) is det.
 %%	space_distance_greatcircle(+Point1,+Point2,-Dist,+Unit) is det.
