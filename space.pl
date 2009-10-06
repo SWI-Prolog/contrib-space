@@ -45,7 +45,7 @@
            space_bulkload/2,          % +CandidatePred, +IndexName
            space_bulkload/1,          % +CandidatePred (uses default index and 'user' module)
            space_bulkload/0,          % also defaults to uri_shape
-           
+
            space_contains/3,          % +Shape, -URI, +IndexName
            space_contains/2,          % uses default index
 	   space_intersects/3,        % +Shape, -URI, +IndexName
@@ -60,6 +60,7 @@
 	   space_distance/3,           % +FromShape, +ToShape, -Distance
 
 	   space_distance/3,              % +Shape1, +Shape2, -Distance
+	   space_distance/4,              % +Shape1, +Shape2, -Distance, +IndexName
 	   space_distance_pythagorean/3,  % +Shape1, +Shape2, -Distance
 	   space_distance_greatcircle/4,  % +Shape1, +Shape2, -Distance, +Unit
 	   space_distance_greatcircle/3   % +Shape1, +Shape2, -Distance (km)
@@ -203,7 +204,9 @@ space_contains(Shape,Cont,IndexName) :-
 	shape(Shape),
         space_index(IndexName),
 	(   ground(Cont)
-	->  rtree_incremental_containment_query(Shape,Cont,IndexName), !
+	->  (   bagof(Con, rtree_incremental_containment_query(Shape,Con,IndexName), Cons),
+	        member(Cont, Cons), !
+	    )
 	;   rtree_incremental_containment_query(Shape,Cont,IndexName)
 	).
 
@@ -221,13 +224,15 @@ space_intersects(Shape,Inter,IndexName) :-
 	shape(Shape),
         space_index(IndexName),
 	(   ground(Inter)
-	->  rtree_incremental_intersection_query(Shape, Inter, IndexName), !
+	->  (   bagof(In, rtree_incremental_intersection_query(Shape, In, IndexName), Ins),
+		member(Inter, Ins), !
+	    )
 	;   rtree_incremental_intersection_query(Shape, Inter, IndexName)
 	).
 
 
-%%	space_nearest(+Shape,?Near,+IndexName) is nondet.
-%%	space_nearest(+Shape,?Near) is nondet.
+%%	space_nearest(+Shape,-Near,+IndexName) is nondet.
+%%	space_nearest(+Shape,-Near) is nondet.
 %
 %	Incremental Nearest-Neighbor query. Unifies Near with shapes
 %	in order of increasing distance to Shape according to index
@@ -343,7 +348,20 @@ space_distance(A, B, D) :-
       	rtree_default_index(IndexName),
         rtree_distance(IndexName, A, B, D).
 
-space_distance_pythagorean(point(A, B), point(X, Y), D) :-
+space_distance(A, B, D, IndexName) :-
+        rtree_distance(IndexName, A, B, D).
+
+space_distance_pythagorean(A,B,D) :- space_distance_pythagorean_less_fast(A,B,D).
+
+space_distance_pythagorean_less_fast(point(A, B), point(X, Y), D) :-
+	R is 6371,
+	Dlat is (X - A) * 3.14159265358979 / 180,
+	Dlong is (Y - B) * 3.14159265358979 / 180,
+	D2 is (Dlat ** 2) + (Dlong ** 2),
+	DS is sqrt(D2),
+	D is R * DS.
+
+space_distance_pythagorean_fastest(point(A, B), point(X, Y), D) :-
 	D2 is ((X - A) ** 2) + ((Y - B) ** 2),
 	D is sqrt(D2).
 
