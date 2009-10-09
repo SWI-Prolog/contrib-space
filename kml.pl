@@ -297,14 +297,16 @@ get_extras(Elts, Attributes, Content) :-
 
 
 
-poslist(T) --> blank_star, poslist_plus(T), blank_star, !.
+poslist(T) --> blank_star, poslist_aux(T), blank_star, !.
+poslist_aux(L) --> poslist_plus(L).
 poslist_plus([H|T]) --> pos(H), poslist_star(T).
-poslist_star(T) --> blank_plus, poslist(T).
+poslist_star(T) --> blank_plus, poslist_aux(T).
 poslist_star([]) --> [], !.
 
 pos(point(X,Y)) --> c(Y), ",", blank_star, c(X).
 pos(point(X,Y,Z)) --> c(Y), ",", blank_star, c(X), ",", blank_star, c(Z).
 pos(point(X,Y,Z,M)) --> c(Y), ",", blank_star, c(X), ",", blank_star, c(Z), ",", blank_star, c(M).
+pos(point(X,Y)) --> c(Y), ",", blank_star, c(X), ",", blank_star, "0".
 c(X) --> float(X).
 
 blank_plus --> blank, blank_star, !.
