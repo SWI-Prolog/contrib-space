@@ -89,6 +89,20 @@ Cont = 'http://www.example.org/myoffice' .    % first instantiation, etc.
 true.
 \end{code}
 
+\begin{code}
+% If the KML Geometry elements have an ID attribute,
+% you can load them from a file, e.g. 'office.kml', like this:
+?- space_bulkload(kml_file_uri_shape('office.kml'), 'demo_index').
+done loading 12 objects
+true.
+
+% You can insert the same objects one by one like this:
+?- foreach( kml_file_uri_shape('office.kml', Uri, Shape),
+            space_assert(Uri, Shape, 'demo_index') ).
+true.
+\end{code}
+
+
 \section{Query types}
 We chose three basic spatial query types as our basic building blocks: \emph{containment}, \emph{intersection}, and \emph{nearest neighbor}.
 These three query types are implemented as pure Prolog predicates, respectively space_contains/3, space_intersects/3, and space_nearest/3.
