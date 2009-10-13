@@ -35,6 +35,8 @@
 	  ]).
 
 :- use_module(library(space/space)).
+:- use_module(library(semweb/rdf_db)).
+:- use_module(library(semweb/rdf_turtle)).
 :- use_module(library(semweb/rdf_http_plugin)).
 
 %%	load_url(+URL) is det.
