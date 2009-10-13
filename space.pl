@@ -57,6 +57,7 @@
 
 	   shape/1,                   % +Shape
 	   uri_shape/2,		      % ?URI, ?Shape
+	   uri_shape/3,		      % ?URI, ?Shape, +Source
 	   space_distance/3,           % +FromShape, +ToShape, -Distance
 
 	   space_distance/3,              % +Shape1, +Shape2, -Distance
@@ -189,6 +190,7 @@ space_bulkload(Functor,IndexName) :-
         once(call(Functor, _Uri, Shape)),
         dimensionality(Shape,Dimensionality),
 	must_be(between(1,3), Dimensionality),
+	space_clear(IndexName),
         rtree_bulkload(IndexName,Functor,Dimensionality).
 
 %%	space_contains(+Shape,?Cont,+IndexName) is nondet.
@@ -293,6 +295,16 @@ space_display_mbrs(IndexName) :-
 uri_shape(URI,Shape) :-
 	georss_candidate(URI,Shape) ;
 	wgs84_candidate(URI,Shape).
+
+%%	uri_shape(?URI,?Shape,+Source) is nondet.
+%
+%	Finds pairs of URIs and their corresponding Shapes using
+%	uri_shape/2 from RDF that was loaded from a given Source.
+
+uri_shape(URI,Shape,Source) :-
+	georss_candidate(URI,Shape,Source) ;
+	wgs84_candidate(URI,Shape,Source).
+
 
 % allows you to use namespaces in the URI argument when using it to find pairs.
 :- rdf_meta(uri_shape(r,?)).

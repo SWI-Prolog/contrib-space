@@ -29,6 +29,7 @@
 
 :- module(georss,
 	  [ georss_candidate/2,
+	    georss_candidate/3,
 	    georss_simple_candidate/2,
 	    georss_gml_candidate/2
 	  ]).
@@ -50,6 +51,16 @@ georss_candidate(URI, Shape) :-
 	georss_simple_candidate(URI, Shape) ;
 	georss_gml_candidate(URI, Shape).
 
+%%	georss_candidate(?URI,?Shape,+Source) is nondet.
+%
+%	Finds URI-Shape pairs using georss_candidate/2 in RDF
+%	that was loaded from a certain Source.
+
+georss_candidate(URI, Shape, Source) :-
+	(   georss_simple_candidate(URI, Shape, Source)
+	;   georss_gml_candidate(URI, Shape, Source)
+	).
+
 %
 % GeoRSS Simple
 %
@@ -60,27 +71,30 @@ georss_candidate(URI, Shape) :-
 %	(e.g. georss:point, georss:line, georss:polygon) in the RDF database.
 
 georss_simple_candidate(URI, Shape) :-
-	(   rdf(URI, georss:point, PointStringLit),
-	    parse_poslist_literal(PointStringLit,[Line]),
-	    Shape = Line
+	georss_simple_candidate(URI, Shape, _).
+
+georss_simple_candidate(URI, Shape, Source) :-
+	(   rdf(URI, georss:point, PointStringLit, Source),
+	    parse_poslist_literal(PointStringLit,[Point]),
+	    Shape = Point
 	)
 	;
-	(   rdf(URI, georss:line, LineStringLit),
+	(   rdf(URI, georss:line, LineStringLit, Source),
 	    parse_poslist_literal(LineStringLit,Line),
 	    Shape = linestring(Line)
 	)
 	;
-	(   rdf(URI, georss:polygon, LineStringLit),
+	(   rdf(URI, georss:polygon, LineStringLit, Source),
 	    parse_poslist_literal(LineStringLit,Line),
 	    Shape = polygon([Line])
 	)
 	;
-	(   rdf(URI, georss:box, LineStringLit),
+	(   rdf(URI, georss:box, LineStringLit, Source),
 	    parse_poslist_literal(LineStringLit,Line),
 	    Shape = box(Line)
 	)
 	;
-	(   rdf(URI, georss:circle, CenterRadiusLit),
+	(   rdf(URI, georss:circle, CenterRadiusLit, Source),
 	    parse_circle_literal(CenterRadiusLit,Circle),
 	    Shape = Circle
 	).
@@ -108,9 +122,12 @@ circle(circle(Center,Radius)) -->
 %	Uses gml_shape/2 to parse the XMLLiteral representing the GML shape.
 
 georss_gml_candidate(URI, Shape) :-
-	(   rdf(URI, georss:where, literal(type(_,GML)))
-	;   rdf(URI, georss:where, literal(GML))
-	;   rdf(URI, georss:where, GML)
+	georss_gml_candidate(URI, Shape, _).
+
+georss_gml_candidate(URI, Shape, Source) :-
+	(   rdf(URI, georss:where, literal(type(_,GML)), Source)
+	;   rdf(URI, georss:where, literal(GML), Source)
+	;   rdf(URI, georss:where, GML, Source)
 	),
 	gml_shape(GML, Shape).
 

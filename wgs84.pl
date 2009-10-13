@@ -4,7 +4,7 @@
     E-mail:        wrvhage@few.vu.nl
     WWW:           http://www.few.vu.nl/~wrvhage
     Copyright (C): 2009, Vrije Universiteit Amsterdam
-    
+
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
     as published by the Free Software Foundation; either version 2
@@ -29,6 +29,7 @@
 
 :- module(wgs84,
 	  [  wgs84_candidate/2,
+	     wgs84_candidate/3,
 	     coordinates/3,
 	     coordinates/4,
 	     lat/2,
@@ -46,22 +47,45 @@
 %	Point = point(?Lat,?Long) ; Point = point(?Lat,?Long,?Alt).
 
 wgs84_candidate(URI,point(Lat,Long)) :-
-	\+alt(URI,_),
-	lat(URI,Lat),
-	long(URI,Long).
+	wgs84_candidate(URI,point(Lat,Long),_).
 
 wgs84_candidate(URI,point(Lat,Long,Alt)) :-
-	lat(URI,Lat),
-	long(URI,Long),
-	alt(URI,Alt).
-	
+	wgs84_candidate(URI,point(Lat,Long,Alt),_).
+
+%%	wgs84_candidate(?URI,?Point,+Source) is nondet.
+%
+%	Finds URI-Shape pairs of RDF resources that are place-tagged
+%	with W3C WGS84 properties (i.e. lat, long, alt).
+%	From RDF that was loaded from a certain Source.
+
+wgs84_candidate(URI,point(Lat,Long),Source) :-
+	\+alt(URI,_,_),
+	lat(URI,Lat,Source:_),
+	long(URI,Long,Source:_).
+wgs84_candidate(URI,point(Lat,Long),Source) :-
+	\+alt(URI,_,_),
+	lat(URI,Lat,Source),
+	long(URI,Long,Source).
+
+wgs84_candidate(URI,point(Lat,Long,Alt),Source) :-
+	lat(URI,Lat,Source:_),
+	long(URI,Long,Source:_),
+	alt(URI,Alt,Source:_).
+wgs84_candidate(URI,point(Lat,Long,Alt),Source) :-
+	lat(URI,Lat,Source),
+	long(URI,Long,Source),
+	alt(URI,Alt,Source).
+
+
 %%	lat(?URI,?Lat) is nondet.
 %
 %	Finds the WGS84 latitude of resource URI (and vice versa)
 %	using the rdf_db index. Lat is a number.
 
 lat(URI,Lat) :-
-	rdf(URI,wgs84:lat,literal(LatAtom)),
+	lat(URI,Lat,_).
+lat(URI,Lat,Source) :-
+	rdf(URI,wgs84:lat,literal(LatAtom),Source),
 	(   LatAtom = type(_,LatVal)
 	->  atom_number(LatVal,Lat)
 	;   atom_number(LatAtom,Lat)
@@ -73,7 +97,9 @@ lat(URI,Lat) :-
 %	using the rdf_db index. Long is a number.
 
 long(URI,Long) :-
-	rdf(URI,wgs84:long,literal(LongAtom)),
+	long(URI,Long,_).
+long(URI,Long,Source) :-
+	rdf(URI,wgs84:long,literal(LongAtom),Source),
 	(   LongAtom = type(_,LongVal)
 	->  atom_number(LongVal,Long)
 	;   atom_number(LongAtom,Long)
@@ -85,7 +111,9 @@ long(URI,Long) :-
 %	using the rdf_db index. Alt is a number.
 
 alt(URI,Alt) :-
-	rdf(URI,wgs84:alt,literal(AltAtom)),
+	alt(URI,Alt,_).
+alt(URI,Alt,Source) :-
+	rdf(URI,wgs84:alt,literal(AltAtom),Source),
 	(   AltAtom = type(_,AltVal)
 	->  atom_number(AltVal,Alt)
 	;   atom_number(AltAtom,Alt)
@@ -103,6 +131,8 @@ coordinates(URI,Lat,Long) :-
 
 coordinates(URI,Lat,Long,Alt) :-
 	wgs84_candidate(URI,point(Lat,Long,Alt)).
+
+
 
 
 
