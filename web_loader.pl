@@ -56,7 +56,8 @@ load_url(URL) :-
 	       )),
 	arg(1, Counter, C),
 	space:rtree_default_index(IndexName),
-	format('% Added ~w URI-Shape pairs to ~w\n',[C, IndexName]).
+	plural(C,P),
+	format('% Added ~w URI-Shape ~w to ~w\n',[C, P, IndexName]).
 
 %%	load_url(+URL,+IndexName) is det.
 %
@@ -73,7 +74,8 @@ load_url(URL, IndexName) :-
 		   nb_setarg(1, Counter, N)
 	       )),
 	arg(1, Counter, C),
-	format('% Added ~w URI-Shape pairs to ~w\n',[C, IndexName]).
+	plural(C,P),
+	format('% Added ~w URI-Shape ~w to ~w\n',[C, P, IndexName]).
 
 %%	unload_url(+URL) is det.
 %
@@ -90,7 +92,8 @@ unload_url(URL) :-
 	       )),
 	arg(1, Counter, C),
 	space:rtree_default_index(IndexName),
-	format('% Removed ~w URI-Shape pairs from ~w\n',[C, IndexName]),
+	plural(C,P),
+	format('% Removed ~w URI-Shape ~w from ~w\n',[C, P, IndexName]),
 	rdf_unload(URL).
 
 %%	unload_url(+URL,+IndexName) is det.
@@ -108,10 +111,13 @@ unload_url(URL, IndexName) :-
 		   nb_setarg(1, Counter, N)
 	       )),
 	arg(1, Counter, C),
-	format('% Removed ~w URI-Shape pairs from ~w\n',[C, IndexName]),
+	plural(C,P),
+	format('% Removed ~w URI-Shape ~w from ~w\n',[C, P, IndexName]),
 	rdf_unload(URL).
 
 
+plural(1,pair) :- !.
+plural(_,pairs).
 
 
 
