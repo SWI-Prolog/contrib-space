@@ -46,7 +46,7 @@ INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
-LIBPL=		space.pl wkt.pl kml.pl gml.pl georss.pl wgs84.pl web_loader.pl
+LIBPL=		space.pl wkt.pl kml.pl gml.pl georss.pl wgs84.pl space_web_loader.pl
 TARGETS=	space.@SO@
 
 OBJ=		src/space.o src/globals.o src/Index.o src/Search.o src/Shapes.o

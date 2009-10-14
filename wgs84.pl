@@ -78,7 +78,7 @@ wgs84_candidate(URI,point(Lat,Long,Alt),Source) :-
 
 wgs84_candidate(URI,point(Lat,Long,Alt),Source) :-
 	(   \+lat(URI,Lat,Source:_)
-	->  (   lat(URI,Lat,Source)
+	->  (   lat(URI,Lat,Source),
 	        long(URI,Long,Source),
 		alt(URI,Alt,Source)
 	    )

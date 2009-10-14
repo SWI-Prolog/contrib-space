@@ -27,11 +27,11 @@
     the GNU General Public License.
 */
 
-:- module(web_loader,
-          [ load_url/1,
-	    load_url/2,
-            unload_url/1,
-            unload_url/2
+:- module(space_web_loader,
+          [ space_load_url/1,
+	    space_load_url/2,
+            space_unload_url/1,
+            space_unload_url/2
 	  ]).
 
 :- use_module(library(space/space)).
@@ -39,13 +39,13 @@
 :- use_module(library(semweb/rdf_turtle)).
 :- use_module(library(semweb/rdf_http_plugin)).
 
-%%	load_url(+URL) is det.
+%%	space_load_url(+URL) is det.
 %
 %	Retrieve RDF over HTTP from a URL, load it in the rdf_db and
 %	index all URI-Shape pairs that can be found in it into the
 %	default index.
 
-load_url(URL) :-
+space_load_url(URL) :-
 	rdf_load(URL),
 	Counter = counter(0),
 	forall(uri_shape(URI, Shape, URL),
@@ -56,15 +56,14 @@ load_url(URL) :-
 	       )),
 	arg(1, Counter, C),
 	space:rtree_default_index(IndexName),
-	plural(C,P),
-	format('% Added ~w URI-Shape ~w to ~w\n',[C, P, IndexName]).
+	print_message(informational,space_load_url(C,IndexName)).
 
-%%	load_url(+URL,+IndexName) is det.
+%%	space_load_url(+URL,+IndexName) is det.
 %
-%	Load using load_url/1, but index the URI-Shape pairs into
+%	Load using space_load_url/1, but index the URI-Shape pairs into
 %	index named IndexName.
 
-load_url(URL, IndexName) :-
+space_load_url(URL, IndexName) :-
 	rdf_load(URL),
 	Counter = counter(0),
 	forall(uri_shape(URI, Shape, URL),
@@ -74,15 +73,14 @@ load_url(URL, IndexName) :-
 		   nb_setarg(1, Counter, N)
 	       )),
 	arg(1, Counter, C),
-	plural(C,P),
-	format('% Added ~w URI-Shape ~w to ~w\n',[C, P, IndexName]).
+	print_message(informational,space_load_url(C,IndexName)).
 
-%%	unload_url(+URL) is det.
+%%	space_unload_url(+URL) is det.
 %
 %	Unload the RDF that was fetched from URL and remove all
 %	URI-Shape pairs that are contained in it from the default index.
 
-unload_url(URL) :-
+space_unload_url(URL) :-
 	Counter = counter(0),
 	forall(uri_shape(URI, Shape, URL),
 	       (   space_retract(URI, Shape),
@@ -92,17 +90,16 @@ unload_url(URL) :-
 	       )),
 	arg(1, Counter, C),
 	space:rtree_default_index(IndexName),
-	plural(C,P),
-	format('% Removed ~w URI-Shape ~w from ~w\n',[C, P, IndexName]),
+	print_message(informational,space_unload_url(C,IndexName)),
 	rdf_unload(URL).
 
-%%	unload_url(+URL,+IndexName) is det.
+%%	space_unload_url(+URL,+IndexName) is det.
 %
 %	Unload the RDF that was fetched from URL and remove all
 %	URI-Shape pairs that are contained in it from the index named
 %	IndexName.
 
-unload_url(URL, IndexName) :-
+space_unload_url(URL, IndexName) :-
 	Counter = counter(0),
 	forall(uri_shape(URI, Shape, URL),
 	       (   space_retract(URI, Shape, IndexName),
@@ -111,10 +108,20 @@ unload_url(URL, IndexName) :-
 		   nb_setarg(1, Counter, N)
 	       )),
 	arg(1, Counter, C),
-	plural(C,P),
-	format('% Removed ~w URI-Shape ~w from ~w\n',[C, P, IndexName]),
+	print_message(informational,space_unload_url(C,IndexName)),
 	rdf_unload(URL).
 
+
+
+:- multifile prolog:message//1.
+
+prolog:message(space_load_url(C,IndexName)) -->
+	[ 'Added ~w URI-Shape ~w to ~w'-[C, P, IndexName] ],
+	{ plural(C,P) }.
+
+prolog:message(space_unload_url(C,IndexName)) -->
+	[ 'Removed ~w URI-Shape ~w from ~w'-[C, P, IndexName] ],
+	{ plural(C,P) }.
 
 plural(1,pair) :- !.
 plural(_,pairs).
