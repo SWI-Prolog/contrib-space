@@ -62,20 +62,27 @@ wgs84_candidate(URI,point(Lat,Long),Source) :-
 	\+alt(URI,_,_),
 	lat(URI,Lat,Source:_),
 	long(URI,Long,Source:_).
+
 wgs84_candidate(URI,point(Lat,Long),Source) :-
-	\+alt(URI,_,_),
-	lat(URI,Lat,Source),
-	long(URI,Long,Source).
+	(   \+lat(URI,Lat,Source:_)
+	->  (   \+alt(URI,_,_),
+	        lat(URI,Lat,Source),
+		long(URI,Long,Source)
+	    )
+	).
 
 wgs84_candidate(URI,point(Lat,Long,Alt),Source) :-
 	lat(URI,Lat,Source:_),
 	long(URI,Long,Source:_),
 	alt(URI,Alt,Source:_).
-wgs84_candidate(URI,point(Lat,Long,Alt),Source) :-
-	lat(URI,Lat,Source),
-	long(URI,Long,Source),
-	alt(URI,Alt,Source).
 
+wgs84_candidate(URI,point(Lat,Long,Alt),Source) :-
+	(   \+lat(URI,Lat,Source:_)
+	->  (   lat(URI,Lat,Source)
+	        long(URI,Long,Source),
+		alt(URI,Alt,Source)
+	    )
+	).
 
 %%	lat(?URI,?Lat) is nondet.
 %
