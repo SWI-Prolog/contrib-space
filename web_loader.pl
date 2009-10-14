@@ -27,7 +27,7 @@
     the GNU General Public License.
 */
 
-:- module(rdf_http_loader,
+:- module(web_loader,
           [ load_url/1,
 	    load_url/2,
             unload_url/1,
