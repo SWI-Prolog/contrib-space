@@ -65,6 +65,7 @@ load_url(URL) :-
 
 load_url(URL, IndexName) :-
 	rdf_load(URL),
+	Counter = counter(0),
 	forall(uri_shape(URI, Shape, URL),
 	       (   space_assert(URI, Shape, IndexName),
 		   arg(1, Counter, N0),
