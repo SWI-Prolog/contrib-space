@@ -47,8 +47,16 @@
 
 load_url(URL) :-
 	rdf_load(URL),
-	foreach(uri_shape(URI, Shape, URL),
-		space_assert(URI, Shape)).
+	Counter = counter(0),
+	forall(uri_shape(URI, Shape, URL),
+	       (   space_assert(URI, Shape),
+		   arg(1, Counter, N0),
+		   N is N0 + 1,
+		   nb_setarg(1, Counter, N)
+	       )),
+	arg(1, Counter, C),
+	space:rtree_default_index(IndexName),
+	format('% Added ~w URI-Shape pairs to ~w\n',[C, IndexName]).
 
 %%	load_url(+URL,+IndexName) is det.
 %
@@ -57,8 +65,14 @@ load_url(URL) :-
 
 load_url(URL, IndexName) :-
 	rdf_load(URL),
-	foreach(uri_shape(URI, Shape, URL),
-	        space_assert(URI, Shape, IndexName)).
+	forall(uri_shape(URI, Shape, URL),
+	       (   space_assert(URI, Shape, IndexName),
+		   arg(1, Counter, N0),
+		   N is N0 + 1,
+		   nb_setarg(1, Counter, N)
+	       )),
+	arg(1, Counter, C),
+	format('% Added ~w URI-Shape pairs to ~w\n',[C, IndexName]).
 
 %%	unload_url(+URL) is det.
 %
@@ -66,8 +80,16 @@ load_url(URL, IndexName) :-
 %	URI-Shape pairs that are contained in it from the default index.
 
 unload_url(URL) :-
-	foreach(uri_shape(URI, Shape, URL),
-		space_retract(URI, Shape)),
+	Counter = counter(0),
+	forall(uri_shape(URI, Shape, URL),
+	       (   space_retract(URI, Shape),
+		   arg(1, Counter, N0),
+		   N is N0 + 1,
+		   nb_setarg(1, Counter, N)
+	       )),
+	arg(1, Counter, C),
+	space:rtree_default_index(IndexName),
+	format('% Removed ~w URI-Shape pairs from ~w\n',[C, IndexName]),
 	rdf_unload(URL).
 
 %%	unload_url(+URL,+IndexName) is det.
@@ -77,9 +99,20 @@ unload_url(URL) :-
 %	IndexName.
 
 unload_url(URL, IndexName) :-
-	foreach(uri_shape(URI, Shape, URL),
-		space_retract(URI, Shape, IndexName)),
+	Counter = counter(0),
+	forall(uri_shape(URI, Shape, URL),
+	       (   space_retract(URI, Shape, IndexName),
+		   arg(1, Counter, N0),
+		   N is N0 + 1,
+		   nb_setarg(1, Counter, N)
+	       )),
+	arg(1, Counter, C),
+	format('% Removed ~w URI-Shape pairs from ~w\n',[C, IndexName]),
 	rdf_unload(URL).
+
+
+
+
 
 
 

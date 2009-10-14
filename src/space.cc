@@ -123,7 +123,7 @@ PREDICATE(rtree_bulkload,3)
   #endif
   RTreeIndex *idx = dynamic_cast<RTreeIndex*> (assert_rtree_index(A1));
   if(!idx->bulk_load(A2,(int)A3)) PL_fail;
-  cout << "done loading " << idx->bulkload_tmp_id_cnt << " objects" << endl;
+  cout << "% Added " << idx->bulkload_tmp_id_cnt << " URI-Shape pairs to " << (char*)A1 << endl;
   PL_succeed;
 }
 

@@ -93,12 +93,12 @@ true.
 % If the KML Geometry elements have an ID attribute,
 % you can load them from a file, e.g. 'office.kml', like this:
 ?- space_bulkload(kml_file_uri_shape('office.kml'), 'demo_index').
-done loading 12 objects
+% Added 12 URI-Shape pairs to demo_index 
 true.
 
 % You can insert the same objects one by one like this:
-?- foreach( kml_file_uri_shape('office.kml', Uri, Shape),
-            space_assert(Uri, Shape, 'demo_index') ).
+?- forall( kml_file_uri_shape('office.kml', Uri, Shape),
+           space_assert(Uri, Shape, 'demo_index') ).
 true.
 \end{code}
 
