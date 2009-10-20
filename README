@@ -52,21 +52,13 @@ fails with your setup) is listed below:
 
   ==
   $ git clone git://www.swi-prolog.org/home/pl/git/pl-devel.git
-  $ cd pl-57x/packages
-  ==
-
----++ download the space package
-
-  ==
-  $ git clone git://www.swi-prolog.org/home/pl/git/space.git
-  $ cd ..
   ==
 
 ---++ Install SWI-Prolog and the space package
 
   ==
   $ cp build.templ build
-  [add space to extra packages variable, next to db and ltx2htm]
+  [add space to variable EXTRA_PKGS]
   $ ./prepare
   $ ./build
   ==
@@ -74,7 +66,8 @@ fails with your setup) is listed below:
 ---++ run the tests and the demo
 
   ==
-  $ pl -s test_space.pl -g test_space,halt
+  $ cd packages/space
+  $ make check
   $ pl -s demo_space.pl
   ==
 
