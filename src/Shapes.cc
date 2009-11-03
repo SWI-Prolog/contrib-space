@@ -27,6 +27,11 @@
     the GNU General Public License.
 */
 
+/*
+ * TODO: haversine distance for GEOS geometries
+ * TODO: switch between pythagorean and haversine based on index configuration
+ */ 
+
 #include "Shapes.h"
 
 template< typename T >inline 

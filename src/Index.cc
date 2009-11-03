@@ -27,6 +27,10 @@
     the GNU General Public License.
 */
 
+/*
+ * TODO: improve index initialization to support configuration for storage and distance
+ * TODO: improve error message handling
+ */
 
 #include "Index.h"
 
