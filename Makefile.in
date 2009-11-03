@@ -24,7 +24,7 @@ DESTDIR=
 COFLAGS=@COFLAGS@
 CWFLAGS=@CWFLAGS@
 CMFLAGS=@CMFLAGS@
-CIFLAGS=@CIFLAGS@ -I../cpp
+CIFLAGS=@CIFLAGS@ -I../cpp -I.
 CFLAGS=-g $(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) @DEFS@
 LIBS=@LIBS@
 CC=@CC@ $(CFLAGS)
@@ -49,7 +49,7 @@ INSTALL_DATA=@INSTALL_DATA@
 LIBPL=		space.pl wkt.pl kml.pl gml.pl georss.pl wgs84.pl space_web_loader.pl
 TARGETS=	space.@SO@
 
-OBJ=		src/space.o src/globals.o src/Index.o src/Search.o src/Shapes.o
+OBJ=		src/space.o src/globals.o src/Index.o src/Search.o src/Shapes.o src/lock.o src/debug.o
 
 all:		$(TARGETS)
 

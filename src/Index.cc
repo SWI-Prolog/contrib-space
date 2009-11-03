@@ -31,6 +31,21 @@
 #include "Index.h"
 
 
+		 /*******************************
+		 *	       LOCKING		*
+		 *******************************/
+
+#define RDLOCK(lock)			rdlock(lock)
+#define WRLOCK(lock, allowreaders)	wrlock(lock, allowreaders)
+#define LOCKOUT_READERS(lock)		lockout_readers(lock)
+#define REALLOW_READERS(lock)		reallow_readers(lock)
+#define WRUNLOCK(lock)			unlock(lock, FALSE)
+#define RDUNLOCK(lock)			unlock(lock, TRUE)
+#define LOCK_MISC(lock)			lock_misc(lock)
+#define UNLOCK_MISC(lock)		unlock_misc(lock)
+#define INIT_LOCK(lock)			init_lock(lock)
+
+
 /*
  * -- DataStream --------------------------------------------
  */
@@ -58,6 +73,10 @@ public:
     //    index->bulkload_tmp_id_cnt = -1;
   }
   virtual IData* getNext() {
+    if ( !WRLOCK(&index->lock, FALSE) ) {
+      cerr << __FUNCTION__ << " could not acquire write lock" << endl;
+      return NULL;
+    }
     if (!cached && !PL_next_solution(q)) return NULL;
     cached = false;
     IShape *s = index->interpret_shape((term_t)(cache0+2));
@@ -72,6 +91,7 @@ public:
     cout << "uri " << (char*)uri_term << " atom " << uri_atom.handle << " shape " << r << " id " << id << endl;
 #endif
     RTree::Data* next = new RTree::Data(sizeof(uri_atom.handle), (byte*)&uri_atom.handle, r, id);
+    WRUNLOCK(&index->lock);
     return next;
   }
   virtual bool hasNext() throw (NotSupportedException)
@@ -104,33 +124,44 @@ public:
  * -- RTreeIndex -------------------------------------
  */
 
-RTreeIndex::RTreeIndex(PlTerm indexname) : baseName(indexname), utilization(0.7), nodesize(4),  diskfile(NULL), file(NULL), tree(NULL) { 
+
+RTreeIndex::RTreeIndex(PlTerm indexname) :  storage(MEMORY), distance_function(PYTHAGOREAN), baseName(indexname), utilization(0.7), nodesize(4),  storage_manager(NULL), buffer(NULL), tree(NULL) { 
   bulkload_tmp_id_cnt = -1;
+  INIT_LOCK(&lock);
 }
 
-RTreeIndex::RTreeIndex(PlTerm indexname, double util, int nodesz) : baseName(indexname), diskfile(NULL), file(NULL), tree(NULL) {
+RTreeIndex::RTreeIndex(PlTerm indexname, double util, int nodesz) : storage(MEMORY), distance_function(PYTHAGOREAN), baseName(indexname), storage_manager(NULL), buffer(NULL), tree(NULL) {
   utilization = util;
   nodesize = nodesz;
   bulkload_tmp_id_cnt = -1;
+  INIT_LOCK(&lock);
 }
 
-
 RTreeIndex::~RTreeIndex() {
+  if ( !WRLOCK(&lock,FALSE) ) {
+    cerr << __FUNCTION__ << " could not acquire write lock" << endl;
+    return;
+  }
   this->clear_tree();
+  WRUNLOCK(&lock);
 }
 
 void RTreeIndex::clear_tree() {
+  if ( !WRLOCK(&lock,FALSE) ) {
+    cerr << __FUNCTION__ << " could not acquire write lock" << endl;
+    return;
+  }
   if (tree != NULL) {
     delete tree;
     tree = NULL;
   }
-  if (file != NULL) { 
-    delete file;
-    file = NULL;
+  if (buffer != NULL) { 
+    delete buffer;
+    buffer = NULL;
   }
-  if(diskfile != NULL) {
-    delete diskfile;
-    diskfile = NULL;
+  if(storage_manager != NULL) {
+    delete storage_manager;
+    storage_manager = NULL;
   }
   uri_id_map.clear();
   map<id_type,IShape*>::iterator id_shape_iter;
@@ -143,18 +174,33 @@ void RTreeIndex::clear_tree() {
     delete id_shape_iter->second;
   }
   id_shape_map.clear();
+  WRUNLOCK(&lock);
 }
 
 void RTreeIndex::storeShape(id_type id,IShape *s) {
+  if ( !WRLOCK(&lock,FALSE) ) {
+    cerr << __FUNCTION__ << " could not acquire write lock" << endl;
+    return;
+  }
   id_shape_map[id] = s;
+  WRUNLOCK(&lock);
 }
 IShape* RTreeIndex::getShape(id_type id) {
+  if ( !RDLOCK(&lock) ) {
+    cerr << __FUNCTION__ << " could not acquire read lock" << endl;
+    return NULL;
+  }
   map<id_type,IShape*>::iterator iter = id_shape_map.find(id);
   if (iter == id_shape_map.end()) return NULL;
+  RDUNLOCK(&lock);
   return iter->second;
 }
 
 id_type  RTreeIndex::get_new_id(PlTerm uri) {
+  if ( !WRLOCK(&lock, FALSE) ) {
+    cerr << __FUNCTION__ << " could not acquire write lock" << endl;
+    return NULL;
+  }
   id_type id = -1;
   PlAtom uri_atom(uri);
   PL_register_atom(uri_atom.handle); // FIXME: unregister somewhere...
@@ -169,35 +215,51 @@ id_type  RTreeIndex::get_new_id(PlTerm uri) {
     uri_id_map[uri_atom.handle] = id;
     delete stats;
   }
+  WRUNLOCK(&lock);
   return id;
 }
 
 id_type   RTreeIndex::get_uri_id(PlTerm uri) {
+  if ( !RDLOCK(&lock) ) {
+    cerr << __FUNCTION__ << " could not acquire read lock" << endl;
+    return -1;
+  }
   PlAtom uri_atom(uri);
   map<atom_t,id_type>::iterator iter = uri_id_map.find(uri_atom.handle);
   if (iter == uri_id_map.end()) return -1;
+  RDUNLOCK(&lock);
   return iter->second;
 }
   
 
 void RTreeIndex::create_tree(uint32_t dimensionality) {
+  if ( !WRLOCK(&lock,FALSE) ) {
+    cerr << __FUNCTION__ << " could not acquire write lock" << endl;
+    return;
+  }
   RTreeIndex::create_tree(dimensionality,utilization,nodesize);
+  WRUNLOCK(&lock);
 }
 void RTreeIndex::create_tree(uint32_t dimensionality, double util, int nodesz) {
+  if ( !WRLOCK(&lock,FALSE) ) {
+    cerr << __FUNCTION__ << " could not acquire write lock" << endl;
+    return;
+  }
   utilization = util;
   nodesize = nodesz;
   PlTerm bnt(baseName);
-#ifdef MEMORY_STORE
-  diskfile = StorageManager::createNewMemoryStorageManager();
-#else
-  string *bns = new string((char*)bnt);
-  diskfile = StorageManager::createNewDiskStorageManager(*bns, 32);
-  delete bns;
-#endif
-  file = StorageManager::createNewRandomEvictionsBuffer(*diskfile, 4096, false);
-  tree = RTree::createNewRTree(*file, utilization,
+  if (storage == MEMORY) {
+    storage_manager = StorageManager::createNewMemoryStorageManager();
+  } else if (storage == DISK) {
+    string *bns = new string((char*)bnt);
+    storage_manager = StorageManager::createNewDiskStorageManager(*bns, 32);
+    delete bns;
+  }
+  buffer = StorageManager::createNewRandomEvictionsBuffer(*storage_manager, 4096, false);
+  tree = RTree::createNewRTree(*buffer, utilization,
                                nodesize, nodesize, dimensionality, 
                                SpatialIndex::RTree::RV_RSTAR, indexIdentifier);
+  WRUNLOCK(&lock);
 }
 
 
@@ -211,20 +273,30 @@ RTreeIndex::bulk_load(PlTerm goal,uint32_t dimensionality) {
 
   // FIXME: add a nice customization interface that allows you to choose between disk and memory storage
   // and to set the parameters of the disk store and buffer
-#ifdef MEMORY_STORE
-  diskfile = StorageManager::createNewMemoryStorageManager();
-#else 
-  string *bns = new string((const char*)baseName);
-  diskfile = StorageManager::createNewDiskStorageManager(*bns, 32);
-  delete bns;
-#endif
-  file = StorageManager::createNewRandomEvictionsBuffer(*diskfile, 4096, false);
+  if ( !WRLOCK(&lock,FALSE) ) {
+    cerr << __FUNCTION__ << " could not acquire write lock" << endl;
+    return false;
+  }
+  if (storage == MEMORY) {
+    storage_manager = StorageManager::createNewMemoryStorageManager();
+  } else if (storage == DISK) {
+    string *bns = new string((const char*)baseName);
+    storage_manager = StorageManager::createNewDiskStorageManager(*bns, 32);
+    delete bns;
+  }
+  buffer = StorageManager::createNewRandomEvictionsBuffer(*storage_manager, 4096, false);
   id_type indexIdentifier;
   tree = RTree::createAndBulkLoadNewRTree(RTree::BLM_STR, 
-                                          stream, *file, utilization,
+                                          stream, *buffer, utilization,
                                           nodesize, nodesize, dimensionality, 
                                           SpatialIndex::RTree::RV_RSTAR, indexIdentifier);
-  return tree->isIndexValid();
+  WRUNLOCK(&lock);
+  if ( !RDLOCK(&lock) ) {
+    return FALSE;
+  }
+  bool rv = tree->isIndexValid();
+  RDUNLOCK(&lock);
+  return rv;
 }
 
 
@@ -406,8 +478,13 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
 bool RTreeIndex::insert_single_object(PlTerm uri,PlTerm shape_term) {
   IShape *shape;
   id_type id;
+  if ( !WRLOCK(&lock,FALSE) ) {
+    cerr << __FUNCTION__ << " could not acquire write lock" << endl;
+    return FALSE;
+  }
   if ((shape = RTreeIndex::interpret_shape(shape_term)) == NULL) {
     cerr << "could not interpret shape" << endl;
+    WRUNLOCK(&lock);
     return FALSE;
   }
   if (tree == NULL) {
@@ -417,23 +494,31 @@ bool RTreeIndex::insert_single_object(PlTerm uri,PlTerm shape_term) {
   }
   if ((id = get_new_id(uri)) == -1) {
     cerr << "could not generate new ID" << endl;
+    WRUNLOCK(&lock);
     return FALSE;
   }
   try { 
     PlAtom uri_atom(uri);
     tree->insertData(sizeof(uri_atom.handle), (byte*)&uri_atom.handle, *shape, id);    
   } catch (...) {
+    WRUNLOCK(&lock);
     return FALSE;
   }
   storeShape(id,shape);
+  WRUNLOCK(&lock);
   return TRUE;
 }
 
 bool RTreeIndex::delete_single_object(PlTerm uri,PlTerm shape_term) {
   IShape *shape;
   id_type id;
+  if ( !WRLOCK(&lock,FALSE) ) {
+    cerr << __FUNCTION__ << " could not acquire write lock" << endl;
+    return FALSE;
+  }
   if ((shape = RTreeIndex::interpret_shape(shape_term)) == NULL) {
     cerr << "could not interpret shape" << endl;
+    WRUNLOCK(&lock);
     return FALSE;
   }
   if (tree == NULL) {
@@ -445,9 +530,11 @@ bool RTreeIndex::delete_single_object(PlTerm uri,PlTerm shape_term) {
     PlTerm bnt(baseName);
     cerr << "could not find ID for " << (char*)uri << " in " << (char*)bnt << endl;
     delete shape;
+    WRUNLOCK(&lock);
     return FALSE;
   }
   bool rv = tree->deleteData(*shape, id);
   delete shape;
+  WRUNLOCK(&lock);
   return rv;
 }

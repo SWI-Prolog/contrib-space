@@ -31,7 +31,7 @@
 
 /* TODO:
  * neat choice between memory-based and file-based indices
- * locking so that two threads can't change the tree at the same time (check if existing RTree locking is sufficient)
+ * check if locking works...
  */
 
 #include "globals.h"
@@ -42,15 +42,36 @@
 #include <iostream>
 #include <string.h>
 
+
+		 /*******************************
+		 *	       LOCKING		*
+		 *******************************/
+
+#define RDLOCK(lock)			rdlock(lock)
+#define WRLOCK(lock, allowreaders)	wrlock(lock, allowreaders)
+#define LOCKOUT_READERS(lock)		lockout_readers(lock)
+#define REALLOW_READERS(lock)		reallow_readers(lock)
+#define WRUNLOCK(lock)			unlock(lock, FALSE)
+#define RDUNLOCK(lock)			unlock(lock, TRUE)
+#define LOCK_MISC(lock)			lock_misc(lock)
+#define UNLOCK_MISC(lock)		unlock_misc(lock)
+#define INIT_LOCK(lock)			init_lock(lock)
+
+
 extern geos::geom::GeometryFactory* global_factory;
 map<atom_t,Index*> index_map;
-
+rwlock index_map_lock;
 
 static void index_clear(PlTerm indexname) {
   #ifdef DEBUG
   cout << "clearing " << (char*)indexname << endl;
   #endif
+  if ( index_map_lock.writer != -1 ) INIT_LOCK(&index_map_lock);
   PlAtom idx_atom(indexname);
+  if ( !WRLOCK(&index_map_lock, FALSE) ) {
+    cerr << __FUNCTION__ << " could not acquire write lock" << endl;
+    return;
+  }
   map<atom_t,Index*>::iterator iter = index_map.find(idx_atom.handle);
   if (iter != index_map.end()) {
     Index *idx = iter->second;
@@ -60,10 +81,16 @@ static void index_clear(PlTerm indexname) {
   if (index_map.size() == 0) {
     cleanup_geos();
   }
+  WRUNLOCK(&index_map_lock);
 }
 
 static RTreeIndex* assert_rtree_index(PlTerm indexname, double util, int nodesz) {
+  if ( index_map_lock.writer != -1 ) INIT_LOCK(&index_map_lock);
   PlAtom idx_atom(indexname);
+  if ( !WRLOCK(&index_map_lock, FALSE) ) {
+    cerr << __FUNCTION__ << " could not acquire write lock" << endl;
+    return NULL;
+  }
   map<atom_t,Index*>::iterator iter = index_map.find(idx_atom.handle);
   if (iter != index_map.end()) return dynamic_cast<RTreeIndex*>(iter->second);
   #ifdef DEBUG
@@ -74,11 +101,17 @@ static RTreeIndex* assert_rtree_index(PlTerm indexname, double util, int nodesz)
     init_geos();
   }
   index_map[idx_atom.handle] = idx;
+  WRUNLOCK(&index_map_lock);
   return idx;
 }
 
 static RTreeIndex* assert_rtree_index(PlTerm indexname) {
+  if ( index_map_lock.writer != -1 ) INIT_LOCK(&index_map_lock);
   PlAtom idx_atom(indexname);
+  if ( !WRLOCK(&index_map_lock, FALSE) ) {
+    cerr << __FUNCTION__ << " could not acquire write lock" << endl;
+    return NULL;
+  }
   map<atom_t,Index*>::iterator iter = index_map.find(idx_atom.handle);
   if (iter != index_map.end()) return dynamic_cast<RTreeIndex*>(iter->second);
   #ifdef DEBUG
@@ -89,9 +122,9 @@ static RTreeIndex* assert_rtree_index(PlTerm indexname) {
     init_geos();
   }
   index_map[idx_atom.handle] = idx;
+  WRUNLOCK(&index_map_lock);
   return idx;
 }
-
 
 
 PREDICATE(rtree_clear,1)
