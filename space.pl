@@ -86,9 +86,28 @@
 */
 
 
-rtree_utilization(0.7).
-rtree_nodesize(4).
-rtree_default_index('space_index').
+%% configuration
+:- dynamic space_setting_aux/1.
+space_setting_aux(rtree_utilization(0.7)).
+space_setting_aux(rtree_nodesize(4)).
+space_setting_aux(rtree_default_index('space_index')).
+
+%:- set_space(myspace, rtree_utilization(0.8)).
+%:- space_bulkload(myindex, uri_shape).
+
+% foreign language predicate:
+%set_space(IndexName,Option) :-
+
+set_space(Option) :-
+        functor(Option,Name,1),
+        functor(Term,Name,1),
+        with_mutex(space_mutex,
+                   (   retractall(space_setting_aux(Term)),
+                       assert(space_setting_aux(Option))
+                   )).
+
+space_setting(Option) :-
+        with_mutex(space_mutex,space_setting_aux(Option)).
 
 %%	space_assert(+URI,+Shape,+IndexName) is det.
 %%	space_assert(+URI,+Shape) is det.
@@ -99,7 +118,7 @@ rtree_default_index('space_index').
 %       manually by calling space_index/1.
 
 space_assert(URI,Shape) :-
-	rtree_default_index(I),
+	space_setting(rtree_default_index(I)),
 	space_assert(URI,Shape,I).
 space_assert(URI,Shape,IndexName) :-
 	dimensionality(Shape,Dimensionality),
@@ -119,7 +138,7 @@ space_assert(URI,Shape,IndexName) :-
 %       manually by calling space_index/1.
 
 space_retract(URI,Shape) :-
-	rtree_default_index(I),
+	space_setting(rtree_default_index(I)),
 	space_retract(URI,Shape,I).
 space_retract(URI,Shape,IndexName) :-
 	shape(Shape),
@@ -136,7 +155,7 @@ space_retract(URI,Shape,IndexName) :-
 %	IndexName or the default index if no index is specified.
 
 space_index :-
-	rtree_default_index(I),
+	space_setting(rtree_default_index(I)),
 	space_index(I).
 space_index(IndexName) :-
 	(   space_queue(IndexName,assert,_,_)
@@ -160,7 +179,7 @@ space_index(IndexName) :-
 %	specified, removing all of its contents.
 
 space_clear :-
-	rtree_default_index(I),
+	space_setting(rtree_default_index(I)),
 	space_clear(I).
 space_clear(IndexName) :-
         retractall(space_queue(IndexName,_,_,_)),
@@ -184,7 +203,7 @@ space_clear(IndexName) :-
 space_bulkload :-
         space_bulkload(uri_shape).
 space_bulkload(Functor) :-
-	rtree_default_index(I),
+	space_setting(rtree_default_index(I)),
         space_bulkload(Functor,I).
 space_bulkload(Functor,IndexName) :-
         once(call(Functor, _Uri, Shape)),
@@ -200,7 +219,7 @@ space_bulkload(Functor,IndexName) :-
 %	Shape according to index IndexName or the default index.
 
 space_contains(Shape,Cont) :-
-	rtree_default_index(I),
+	space_setting(rtree_default_index(I)),
 	space_contains(Shape,Cont,I).
 space_contains(Shape,Cont,IndexName) :-
 	shape(Shape),
@@ -220,7 +239,7 @@ space_contains(Shape,Cont,IndexName) :-
 %	(intersection subsumes containment)
 
 space_intersects(Shape,Inter) :-
-	rtree_default_index(I),
+	space_setting(rtree_default_index(I)),
 	space_intersects(Shape,Inter,I).
 space_intersects(Shape,Inter,IndexName) :-
 	shape(Shape),
@@ -241,7 +260,7 @@ space_intersects(Shape,Inter,IndexName) :-
 %	IndexName or the default index.
 
 space_nearest(Shape, Near) :-
-	rtree_default_index(I),
+	space_setting(rtree_default_index(I)),
 	space_nearest(Shape,Near,I).
 space_nearest(Shape, Near, IndexName) :-
 	shape(Shape),
@@ -257,7 +276,7 @@ space_nearest(Shape, Near, IndexName) :-
 %	Fails when no more objects are within the range WithinRange.
 
 space_nearest_bounded(Shape, Near, WithinRange) :-
-	rtree_default_index(I),
+	space_setting(rtree_default_index(I)),
 	space_nearest_bounded(Shape,Near,WithinRange,I).
 space_nearest_bounded(Shape, Near, WithinRange, _IndexName) :-
 	shape(Shape),
@@ -316,7 +335,7 @@ uri_shape(URI,Shape,Source) :-
 %	index IndexName or the default index name.
 
 space_index_all :-
-	rtree_default_index(IndexName),
+	space_setting(rtree_default_index(IndexName)),
 	space_index_all(IndexName).
 
 space_index_all(IndexName) :-
@@ -357,7 +376,7 @@ space_distance(point(A1,A2), point(B1,B2), D) :-
 	space_distance_pythagorean(point(A1,A2), point(B1,B2), D), !.
 
 space_distance(A, B, D) :-
-      	rtree_default_index(IndexName),
+      	space_setting(rtree_default_index(IndexName)),
         rtree_distance(IndexName, A, B, D1),
 	pythagorean_lat_long_to_kms(D1,D).
 

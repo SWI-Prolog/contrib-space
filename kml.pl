@@ -80,8 +80,16 @@ kml_shape(KML, Geom, Attributes, Content) :-
 %	e.g. <Point ID="http://example.org/point1"><coordinates>52.37,4.89</coordinates></Point>
 
 kml_uri_shape(KML, URI, Shape) :-
-	kml_shape(KML, placemark(Shape,Attributes,Content)),
-	get_uri(placemark(Shape,Attributes,Content), URI).
+	(   nonvar(KML)
+	->  (   (   kml_shape(KML, Shape, Attr, _),
+	            (	Shape = placemark(Shape, _, _)
+		    ->  get_uri_shape(Shape, URI, _)
+		    ;   memberchk(id=URI, Attr)
+		    )
+		)
+	    )
+	;   kml_shape(KML, Shape, [id=URI], [])
+	).
 
 %%	kml_file_shape(+File,?Shape) is semidet.
 %%	kml_file_shape(+File,?Shape,?Attributes,?Content) is semidet.
@@ -105,14 +113,21 @@ kml_file_shape(File, Geom, Attributes, Content) :-
 %	Reads URI-shape pairs from File using kml_uri_shape/2.
 
 kml_file_uri_shape(File, URI, Shape) :-
-	kml_file_shape(File, placemark(Shape,Attributes,Content)),
-	get_uri(placemark(Shape,Attributes,Content), URI).
+	kml_file_shape(File, Geom, _Attributes, _Content), !,
+	get_uri_shape(Geom, URI, Shape).
 
-get_uri(placemark(_Shape,Attributes,_Content),URI) :-
-	(   memberchk('ID'(URI), Attributes), !
-	;   memberchk('id'(URI), Attributes)
-	).
-
+get_uri_shape(document([H|T]), URI, Shape) :-
+	get_uri_shape(H, URI, Shape) ;
+	get_uri_shape(document(T), URI, Shape).
+get_uri_shape(folder([H|T]), URI, Shape) :-
+	get_uri_shape(H, URI, Shape) ;
+	get_uri_shape(folder(T), URI, Shape).
+get_uri_shape(folder([H|T],_,_), URI, Shape) :-
+	get_uri_shape(H, URI, Shape) ;
+	get_uri_shape(folder(T), URI, Shape).
+get_uri_shape(placemark(Shape,[geom_attributes(GA)],_), URI, Shape) :-
+	memberchk(id=URI, GA) ;
+	memberchk('ID'=URI, GA).
 
 kml_ns(kml, 'http://www.opengis.net/kml/2.2/', _).
 
@@ -154,7 +169,8 @@ construct_kml(KML, Geom, Attributes, Content) :-
 	atomic_list_concat(Atoms, KML).
 
 construct_term(Geom, Attributes, Content, T) :-
-	(   placemark_term(Geom, Attributes, Content, T)
+	(   folder_term(Geom, Attributes, Content, T)
+	;   placemark_term(Geom, Attributes, Content, T)
 	;   point_term(Geom, Attributes, Content, T)
 	;   linestring_term(Geom, Attributes, Content, T)
 	;   linearring_term(Geom, Attributes, Content, T)
@@ -198,47 +214,82 @@ multigeometry_term_aux([Geom|Geoms], [T|Ts]) :-
 	construct_term(Geom, [], [], T),
 	multigeometry_term_aux(Geoms, Ts).
 
-placemark_term(placemark(Geom), Attributes, Content, T) :-
-	placemark_term(placemark(Geom, [], []), Attributes, Content, T).
+placemark_term(placemark(Geom), A, C, T) :-
+	placemark_term(placemark(Geom, [], []), A, C, T).
 
-placemark_term(placemark(Geom, GeomAttr, GeomCont), Attributes, Content, T) :-
+placemark_term(placemark(Geom, Attributes, Content), _A, _C, T) :-
+	(   member(geom_attributes(_), Attributes)
+	->  select(geom_attributes(GeomAttr), Attributes, PMAttr)
+	;   GeomAttr = []
+	),
+	(   member(geom_content(_), Content)
+	->  select(geom_content(GeomCont), Content, PMCont)
+	;   GeomCont = []
+	),
 	construct_term(Geom, GeomAttr, GeomCont, GT),
-	T = 'Placemark'(Attributes, [ GT | Content ]), !.
+	T = 'Placemark'(PMAttr, [ GT | PMCont ]), !.
+
+folder_term(folder(PMs), A, C, T) :-
+	folder_term(folder(PMs,[],[]), A, C, T).
+
+folder_term(folder(PMs, Attributes, Content), _A, _C, T) :-
+	construct_term_list(PMs, PMTs),
+	append(PMTs,Content,PMTsContent),
+	T = 'Folder'(Attributes, PMTsContent).
+
+construct_term_list([],[]).
+construct_term_list([H|T],[HT|TT]) :-
+	construct_term(H,[],[],HT),
+	construct_term_list(T,TT).
 
 % -----
 
 transform_kml(Elts, P, Attributes, Content) :-
-	member(element(_:'Point',_,PointElts), Elts),
+	member(element(_:'Point',A,PointElts), Elts),
 	get_point(PointElts, P),
-	get_extras(Elts, Attributes, Content).
+	get_extras([element(_,A,PointElts)], Attributes, Content).
 
 transform_kml(Elts, linestring(P), Attributes, Content) :-
-	(   member(element(_:'LineString',_,LSE), Elts)
-	;   member(element(_:'LinearRing',_,LSE), Elts)
+	(   member(element(_:'LineString',A,LSE), Elts)
+	;   member(element(_:'LinearRing',A,LSE), Elts)
 	),
         get_linestring(LSE, P),
-	get_extras(Elts, Attributes, Content).
+	get_extras([element(_,A,LSE)], Attributes, Content).
 
 transform_kml(Elts, polygon([Ext|Int]), Attributes, Content) :-
-	member(element(_:'Polygon',_,PolygonElts), Elts),
+	member(element(_:'Polygon',A,PolygonElts), Elts),
 	get_polygon_exterior(PolygonElts, Ext),
 	get_polygon_interiors(PolygonElts, Int),
-	get_extras(Elts, Attributes, Content).
+	get_extras([element(_,A,PolygonElts)], Attributes, Content).
 
 transform_kml(Elts, geometrycollection(Geoms), Attributes, Content) :-
 	member(element(_:'MultiGeometry',_,GeomElts), Elts),
 	get_geometry(GeomElts, Geoms),
 	get_extras(Elts, Attributes, Content).
 
-transform_kml(Elts, placemark(Geom, GeomAttr, GeomCont), Attributes, Content) :-
+transform_kml(Elts, placemark(Geom, Attributes, Content), _A, _C) :-
 	member(element(_:'Placemark',_,GeomElts), Elts),
 	transform_kml(GeomElts, Geom, GeomAttr, GeomCont),
-	get_extras(Elts, Attributes, Content).
+	get_extras(Elts, PMAttributes, PMContent),
+	(   GeomAttr \= []
+	->  append(PMAttributes,[geom_attributes(GeomAttr)],Attributes)
+	;   Attributes = PMAttributes
+	),
+	(   GeomCont \= []
+	->  append(PMContent,[geom_content(GeomCont)],Content)
+	;   Content = PMContent
+	), !.
 
-transform_kml(Elts, Geom, Attributes, Content) :-
-	member(element(_:'Placemark',_,GeomElts), Elts),
-	transform_kml(GeomElts, Geom, _, _),
-	get_extras(Elts, Attributes, Content).
+transform_kml(Elts, folder(PMs, Attributes, Content), _, _) :-
+	member(element(_:'Folder', _, PMElts), Elts),
+	get_geometry(PMElts, PMs),
+	get_extras(Elts, Attributes, Content), !.
+
+transform_kml(Elts, PM, Attributes, Content) :-
+	member(element(_:'Folder', _, PMElts), Elts),
+	get_geometry(PMElts, PMs),
+	get_extras(Elts, Attributes, Content),
+	member(PM,PMs).
 
 transform_kml(Elts, PMs, Attributes, Content) :-
 	member(element(_:'Document',_,PMElts), Elts),
@@ -281,20 +332,47 @@ get_polygon_interiors(Elts, Int) :-
 		),
 		Int).
 
-get_extras(Elts, Attributes, Content) :-
-	(   member(element(_,_,Cont), Elts),
-	    member(element(_:Tag,_A1,[C]), Cont),
-	    \+member(Tag,['Point','LineString','LinearRing','Polygon','innerBoundaryIs','outerBoundaryIs','MultiGeometry','coordinates','Placemark']),
-	    ContTag =.. [Tag,C]
-	->  Content = [ContTag]
-	;   Content = []
-	),
-	(   member(element(_,Attr,_), Elts),
-	    memberchk('ID'=I, Attr)
-	->  Attributes = ['ID'(I)]
-	;   Attributes = []
-	).
+controlled_kml_term('Point').
+controlled_kml_term('LineString').
+controlled_kml_term('LinearRing').
+controlled_kml_term('Polygon').
+controlled_kml_term('innerBoundaryIs').
+controlled_kml_term('outerBoundaryIs').
+controlled_kml_term('MultiGeometry').
+controlled_kml_term('coordinates').
+controlled_kml_term('Placemark').
+controlled_kml_term('Folder').
 
+
+get_extras(Elts, Attributes, Cont) :-
+	get_extras(Elts, IDs, Rests, Cont),
+	append(IDs, Rests, Attributes).
+get_extras(Elts, IDAttr, RestAttr, Content) :-
+	member(element(_,_,C), Elts),
+	filter_controlled(C, Content),
+	member(element(_,A,_), Elts),
+	filter_id(A, IDAttr, RestAttr).
+
+filter_controlled([],[]).
+filter_controlled([element(_:H,_A,C)|T], List) :-
+	(   controlled_kml_term(H)
+	->  filter_controlled(T,List)
+	;   (   Tag =.. [H,C],
+	        List = [Tag|U],
+	        filter_controlled(T,U)
+	    )
+	), !.
+filter_controlled([_|T],U) :-
+	filter_controlled(T,U).
+
+filter_id([],[],[]).
+filter_id([ID=I|T],[ID=I|U],V) :-
+	(   ID = 'id'
+	;   ID = 'ID'
+	),
+	filter_id(T,U,V), !.
+filter_id([H|T],U,[H|V]) :-
+	filter_id(T,U,V).
 
 
 poslist(T) --> blank_star, poslist_aux(T), blank_star, !.

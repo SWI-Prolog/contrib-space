@@ -87,43 +87,51 @@ static void index_clear(PlTerm indexname) {
 static RTreeIndex* assert_rtree_index(PlTerm indexname, double util, int nodesz) {
   if ( index_map_lock.writer != -1 ) INIT_LOCK(&index_map_lock);
   PlAtom idx_atom(indexname);
+  RTreeIndex *rv = NULL;
   if ( !WRLOCK(&index_map_lock, FALSE) ) {
     cerr << __FUNCTION__ << " could not acquire write lock" << endl;
     return NULL;
   }
   map<atom_t,Index*>::iterator iter = index_map.find(idx_atom.handle);
-  if (iter != index_map.end()) return dynamic_cast<RTreeIndex*>(iter->second);
+  if (iter != index_map.end()) {
+    rv = dynamic_cast<RTreeIndex*>(iter->second);
+  } else {
   #ifdef DEBUG
-  cout << "did not find " << (char*)indexname << " creating new empty index" << endl;
+    cout << "did not find " << (char*)indexname << " creating new empty index" << endl;
   #endif
-  RTreeIndex *idx = new RTreeIndex(indexname,util,nodesz);  
-  if (index_map.size() == 0) {
-    init_geos();
+    rv = new RTreeIndex(indexname,util,nodesz);  
+    if (index_map.size() == 0) {
+      init_geos();
+    }
+  index_map[idx_atom.handle] = rv;
   }
-  index_map[idx_atom.handle] = idx;
   WRUNLOCK(&index_map_lock);
-  return idx;
+  return rv;
 }
 
 static RTreeIndex* assert_rtree_index(PlTerm indexname) {
   if ( index_map_lock.writer != -1 ) INIT_LOCK(&index_map_lock);
   PlAtom idx_atom(indexname);
+  RTreeIndex *rv = NULL;
   if ( !WRLOCK(&index_map_lock, FALSE) ) {
     cerr << __FUNCTION__ << " could not acquire write lock" << endl;
     return NULL;
   }
   map<atom_t,Index*>::iterator iter = index_map.find(idx_atom.handle);
-  if (iter != index_map.end()) return dynamic_cast<RTreeIndex*>(iter->second);
+  if (iter != index_map.end()) {
+    rv = dynamic_cast<RTreeIndex*>(iter->second);
+  } else {
   #ifdef DEBUG
-  cout << "did not find " << (char*)indexname << " creating new empty index" << endl;
+    cout << "did not find " << (char*)indexname << " creating new empty index" << endl;
   #endif
-  RTreeIndex *idx = new RTreeIndex(indexname);  
-  if (index_map.size() == 0) {
-    init_geos();
+    rv = new RTreeIndex(indexname);  
+    if (index_map.size() == 0) {
+      init_geos();
+    }
+    index_map[idx_atom.handle] = rv;
   }
-  index_map[idx_atom.handle] = idx;
   WRUNLOCK(&index_map_lock);
-  return idx;
+  return rv;
 }
 
 
@@ -167,9 +175,9 @@ PREDICATE(rtree_insert_list,2)
   #endif
   PlTerm list = PL_copy_term_ref((term_t)A2);
   PlTerm head = PL_new_term_ref();
+  PlTerm uri_term = PL_new_term_ref();
+  PlTerm shape_term = PL_new_term_ref();
   while( PL_get_list(list, head, list) ) { 
-    PlTerm uri_term = PL_new_term_ref();
-    PlTerm shape_term = PL_new_term_ref();
     atom_t name_atom;
     int arity;
     if (!PL_get_name_arity(head,&name_atom,&arity)) PL_fail;
@@ -199,9 +207,9 @@ PREDICATE(rtree_delete_list,2)
   #endif
   PlTerm list = PL_copy_term_ref((term_t)A2);
   PlTerm head = PL_new_term_ref();
+  PlTerm uri_term = PL_new_term_ref();
+  PlTerm shape_term = PL_new_term_ref();
   while( PL_get_list(list, head, list) ) { 
-    PlTerm uri_term = PL_new_term_ref();
-    PlTerm shape_term = PL_new_term_ref();
     atom_t name_atom;
     int arity;
     if (!PL_get_name_arity(head,&name_atom,&arity)) PL_fail;

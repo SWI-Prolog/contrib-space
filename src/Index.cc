@@ -77,26 +77,30 @@ public:
     //    index->bulkload_tmp_id_cnt = -1;
   }
   virtual IData* getNext() {
+    RTree::Data* rv = NULL;
     if ( !WRLOCK(&index->lock, FALSE) ) {
       cerr << __FUNCTION__ << " could not acquire write lock" << endl;
       return NULL;
     }
-    if (!cached && !PL_next_solution(q)) return NULL;
-    cached = false;
-    IShape *s = index->interpret_shape((term_t)(cache0+2));
-    Region r;
-    s->getMBR(r);
-    PlTerm uri_term((term_t)cache0+1);
-    PlAtom uri_atom(uri_term);
-    id_type id = index->get_uri_id(uri_term); // FIXME: PlAtom argument
-    if (id == -1) id = index->get_new_id(uri_term);
-    index->storeShape(id,s);
+    if (!cached && !PL_next_solution(q)) { 
+      rv = NULL;
+    } else {
+      cached = false;
+      IShape *s = index->interpret_shape((term_t)(cache0+2));
+      Region r;
+      s->getMBR(r);
+      PlTerm uri_term((term_t)cache0+1);
+      PlAtom uri_atom(uri_term);
+      id_type id = index->get_uri_id(uri_term); // FIXME: PlAtom argument
+      if (id == -1) id = index->get_new_id(uri_term);
+      index->storeShape(id,s);
 #ifdef DEBUG
-    cout << "uri " << (char*)uri_term << " atom " << uri_atom.handle << " shape " << r << " id " << id << endl;
+      cout << "uri " << (char*)uri_term << " atom " << uri_atom.handle << " shape " << r << " id " << id << endl;
 #endif
-    RTree::Data* next = new RTree::Data(sizeof(uri_atom.handle), (byte*)&uri_atom.handle, r, id);
+       rv = new RTree::Data(sizeof(uri_atom.handle), (byte*)&uri_atom.handle, r, id);
+    }
     WRUNLOCK(&index->lock);
-    return next;
+    return rv;
   }
   virtual bool hasNext() throw (NotSupportedException)
   {
@@ -190,49 +194,62 @@ void RTreeIndex::storeShape(id_type id,IShape *s) {
   WRUNLOCK(&lock);
 }
 IShape* RTreeIndex::getShape(id_type id) {
+  IShape *rv = NULL;
   if ( !RDLOCK(&lock) ) {
     cerr << __FUNCTION__ << " could not acquire read lock" << endl;
     return NULL;
   }
   map<id_type,IShape*>::iterator iter = id_shape_map.find(id);
-  if (iter == id_shape_map.end()) return NULL;
+  if (iter == id_shape_map.end()) {
+    rv = NULL;
+  } else {
+    rv = iter->second;
+  }
   RDUNLOCK(&lock);
-  return iter->second;
+  return rv;
 }
 
 id_type  RTreeIndex::get_new_id(PlTerm uri) {
+  id_type id = -1;
   if ( !WRLOCK(&lock, FALSE) ) {
     cerr << __FUNCTION__ << " could not acquire write lock" << endl;
     return NULL;
   }
-  id_type id = -1;
   PlAtom uri_atom(uri);
   PL_register_atom(uri_atom.handle); // FIXME: unregister somewhere...
   if (bulkload_tmp_id_cnt != -1) { // we're bulkloading
     id = bulkload_tmp_id_cnt++;
     uri_id_map[uri_atom.handle] = id;
   } else {
-    if (tree == NULL) return -1;
-    IStatistics* stats;
-    tree->getStatistics(&stats);
-    id = stats->getNumberOfData();
-    uri_id_map[uri_atom.handle] = id;
-    delete stats;
+    if (tree == NULL) {
+      id = -1;
+    } else {
+      IStatistics* stats;
+      tree->getStatistics(&stats);
+      id = stats->getNumberOfData();
+      uri_id_map[uri_atom.handle] = id;
+      delete stats;
+    }
   }
   WRUNLOCK(&lock);
   return id;
 }
 
 id_type   RTreeIndex::get_uri_id(PlTerm uri) {
+  id_type rv = -1;
   if ( !RDLOCK(&lock) ) {
     cerr << __FUNCTION__ << " could not acquire read lock" << endl;
     return -1;
   }
   PlAtom uri_atom(uri);
   map<atom_t,id_type>::iterator iter = uri_id_map.find(uri_atom.handle);
-  if (iter == uri_id_map.end()) return -1;
+  if (iter == uri_id_map.end()) {
+    rv = -1;
+  } else {
+    rv = iter->second;
+  }
   RDUNLOCK(&lock);
-  return iter->second;
+  return rv;
 }
   
 

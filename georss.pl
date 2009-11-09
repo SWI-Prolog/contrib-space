@@ -31,7 +31,8 @@
 	  [ georss_candidate/2,
 	    georss_candidate/3,
 	    georss_simple_candidate/2,
-	    georss_gml_candidate/2
+	    georss_gml_candidate/2,
+	    georss_uri_shape_triple/5
 	  ]).
 
 :- use_module(library(semweb/rdf_db)).
@@ -109,6 +110,48 @@ parse_circle_literal(literal(Lit), Shape) :-
 
 circle(circle(Center,Radius)) -->
 	blanks, pos(Center), blank, blanks, float(Radius), blanks.
+
+%%	georss_uri_shape_triple(+URI,+Shape,-Subject,-Predicate,-Object) is det.
+%%	georss_uri_shape_triple(-URI,-Shape,+Subject,+Predicate,+Object) is det.
+%
+%	Converts between a URI-Shape pair and its GeoRSS simple RDF triple form.
+
+georss_uri_shape_triple(URI, Shape, URI, P, O) :-
+	(   (   var(URI)
+	    ;	var(Shape)
+	    )
+	->  georss_simple_candidate(URI,Shape)
+	),
+	georss_simple_predicate(Shape, P),
+	georss_simple_literal(Shape, O).
+
+term_expansion(georss_simple_predicate(S,P),georss_simple_predicate(S,P2)) :- rdf_global_id(P,P2).
+
+georss_simple_predicate(point(_),georss:point).
+georss_simple_predicate(linestring(_),georss:line).
+georss_simple_predicate(linearring(_),georss:line).
+georss_simple_predicate(polygon(_),georss:polygon).
+
+number_atom(N,A) :- atom_number(A,N).
+
+georss_simple_literal_aux(T,L) :-
+	T =.. [point | Coords],
+	maplist(number_atom, Coords, Atoms),
+	atomic_list_concat(Atoms, ' ', L).
+
+georss_simple_literal(T,literal(L)) :-
+	georss_simple_literal_aux(T,L).
+
+georss_simple_literal(linestring(Coords),literal(L)) :-
+	maplist(number_atom, Coords, Atoms),
+	atomic_list_concat(Atoms, ' ', L).
+
+georss_simple_literal(linearring(Coords),literal(L)) :-
+	maplist(georss_simple_literal_aux, Coords, Atoms),
+	atomic_list_concat(Atoms, ' ', L).
+
+georss_simple_literal(polygon([Coords|_]),L) :-
+	georss_simple_literal(linearring(Coords),L).
 
 
 %
