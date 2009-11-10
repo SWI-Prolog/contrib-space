@@ -30,10 +30,21 @@
 #ifndef __INDEX_H
 #define __INDEX_H
 
-//#include <spatialindex/SpatialIndex.h>
 #include <SWI-cpp.h>
 #include "globals.h"
 #include "Shapes.h"
+#include "lock.h"
+
+
+typedef enum {
+  PYTHAGOREAN,
+  HAVERSINE
+} distance_function_t;
+
+typedef enum {
+  MEMORY,
+  DISK
+} storage_t;
 
 using namespace std;
 using namespace SpatialIndex;
@@ -42,6 +53,9 @@ using namespace SpatialIndex;
 class Index
 {
  public:
+  storage_t storage;
+  distance_function_t distance_function;
+
   virtual ~Index() {};
 
   virtual id_type get_new_id(PlTerm uri) = 0;
@@ -56,17 +70,23 @@ class Index
   virtual bool insert_single_object(PlTerm uri,PlTerm shape_term) = 0;
   virtual bool delete_single_object(PlTerm uri,PlTerm shape_term) = 0;
 
+ private:
+  rwlock lock;
+
 };
 
 
 class RTreeIndex : public Index
 {
  public:
+  storage_t storage;
+  distance_function_t distance_function;
+
   PlAtom baseName;
   double utilization;
   int nodesize;
-  IStorageManager* diskfile;
-  StorageManager::IBuffer* file;
+  IStorageManager* storage_manager;
+  StorageManager::IBuffer* buffer;
   ISpatialIndex* tree;
   id_type indexIdentifier;
   map<atom_t,id_type> uri_id_map;
@@ -91,6 +111,10 @@ class RTreeIndex : public Index
   
  public:
   id_type bulkload_tmp_id_cnt;
+
+ public:
+  rwlock lock;
+
 
 };
 

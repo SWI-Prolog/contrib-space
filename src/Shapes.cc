@@ -27,6 +27,11 @@
     the GNU General Public License.
 */
 
+/*
+ * TODO: haversine distance for GEOS geometries
+ * TODO: switch between pythagorean and haversine based on index configuration
+ */ 
+
 #include "Shapes.h"
 
 template< typename T >inline 
@@ -71,7 +76,7 @@ void cleanup_geos() {
 
 uint32_t 
 GEOSShape::getByteArraySize() {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPoint::getByteArraySize() " << endl;
 #endif
   cerr << __FUNCTION__ << " not efficiently implemented yet" << endl;
@@ -84,7 +89,7 @@ GEOSShape::getByteArraySize() {
 
 void
 GEOSShape::loadFromByteArray(const byte* data) {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPoint::loadFromByteArray(const byte* data) " << endl;
 #endif
   stringstream sl(ios_base::binary|ios_base::in|ios_base::out);
@@ -105,7 +110,7 @@ GEOSShape::loadFromByteArray(const byte* data) {
 
 void
 GEOSShape::storeToByteArray(byte** data, uint32_t& length) {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPoint::storeToByteArray(byte** data, uint32_t& length) " << endl;
 #endif
   if ( this->m_dimension < 2 || this->m_dimension > 3 ) {
@@ -171,14 +176,14 @@ regionToBox(const Region& r) {
  */
 
 GEOSPoint::GEOSPoint() {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPoint::GEOSPoint() " << endl;
 #endif 
   this->g = global_factory->createPoint();
 }
 
 GEOSPoint::GEOSPoint(const double* pCoords, uint32_t dimension) {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPoint::GEOSPoint(const double* pCoords, uint32_t dimension) " << endl;
 #endif
   if (dimension == 2) {
@@ -197,14 +202,14 @@ GEOSPoint::GEOSPoint(const double* pCoords, uint32_t dimension) {
     cerr << dimension << " dimensional points not supported" << endl;
     exit(1);
   }
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "created " << dimension << " dimensional GEOSPoint" << endl;
 #endif
   this->m_dimension = dimension;
 }
 
 GEOSPoint::GEOSPoint(const GEOSPoint& p) {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPoint::GEOSPoint(const GEOSPoint& p) " << endl;
 #endif
   const Coordinate *c = p.g->getCoordinate();
@@ -214,17 +219,17 @@ GEOSPoint::GEOSPoint(const GEOSPoint& p) {
   else if (ISNAN(c->z)) dim = 2;
   else dim = 3;
   this->m_dimension = dim;
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "created " << this->m_dimension << " dimensional GEOSPoint" << endl;
 #endif
 }
 
 GEOSPoint::GEOSPoint(const Coordinate& c) {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPoint::GEOSPoint(const Coordinate& c) " << endl;
 #endif
   this->g = global_factory->createPoint(c);
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "testing this->g " << this->g->getCoordinate()->x << endl;
 #endif
   uint32_t dim;
@@ -232,13 +237,13 @@ GEOSPoint::GEOSPoint(const Coordinate& c) {
   else if (ISNAN(c.z)) dim = 2;
   else dim = 3;
   this->m_dimension = dim;
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "created " << this->m_dimension << " dimensional GEOSPoint from coordinate" << endl;
 #endif
 }
 
 GEOSPoint::~GEOSPoint() {
-#ifdef DEBUG
+#ifdef DEBUGGING
 cout << "entering GEOSPoint::~GEOSPoint() " << endl;
 #endif
  global_factory->destroyGeometry(g);
@@ -247,7 +252,7 @@ cout << "entering GEOSPoint::~GEOSPoint() " << endl;
 
 GEOSPoint* 
 GEOSPoint::clone() {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPoint::clone() " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -256,7 +261,7 @@ GEOSPoint::clone() {
 
 bool
 GEOSPoint::intersectsShape(const GEOSShape& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPoint::intersectsShape(const GEOSShape& in) const " << endl;
 #endif
   return this->g->intersects(in.g);
@@ -264,14 +269,23 @@ GEOSPoint::intersectsShape(const GEOSShape& in) const {
 
 bool 
 GEOSPoint::intersectsShape(const IShape& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPoint::intersectsShape(const IShape& in) const " << endl;
 #endif
   bool rv = false;
   try {
+#ifdef DEBUGGING
+    cout << "IShape& in casts to GEOSShape? ";
+#endif
     const GEOSShape &s = dynamic_cast<const GEOSShape&>(in);
+#ifdef DEBUGGING
+    cout << "yes" << endl;
+#endif
     return this->g->intersects(s.g);
   } catch (std::bad_cast &e) {
+#ifdef DEBUGGING
+    cout << "no" << endl;
+#endif
     Point *p = toPoint();
     try {
       const Region& pr = dynamic_cast<const Region&>(in);
@@ -291,7 +305,7 @@ GEOSPoint::intersectsShape(const IShape& in) const {
 
 bool
 GEOSPoint::containsShape(const GEOSShape& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPoint::containsShape(const GEOSShape& in) const " << endl;
 #endif
   return this->g->contains(in.g);
@@ -299,7 +313,7 @@ GEOSPoint::containsShape(const GEOSShape& in) const {
 
 bool 
 GEOSPoint::containsShape(const IShape& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPoint::containsShape(const IShape& in) const " << endl;
 #endif
   bool rv = false;
@@ -326,7 +340,7 @@ GEOSPoint::containsShape(const IShape& in) const {
 
 bool
 GEOSPoint::touchesShape(const GEOSShape& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPoint::touchesShape(const GEOSShape& in) const " << endl;
 #endif
   return this->g->touches(in.g);
@@ -334,7 +348,7 @@ GEOSPoint::touchesShape(const GEOSShape& in) const {
 
 bool 
 GEOSPoint::touchesShape(const IShape& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPoint::touchesShape(const IShape& in) const " << endl;
 #endif
   bool rv = false;
@@ -361,7 +375,7 @@ GEOSPoint::touchesShape(const IShape& in) const {
 
 SpatialIndex::Point*
 GEOSPoint::toPoint() const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPoint::toPoint() const " << endl;
 #endif
   const Coordinate *c = g->getCoordinate();
@@ -371,7 +385,7 @@ GEOSPoint::toPoint() const {
     a[0] = c->x;
     a[1] = c->y;
     p = new Point(a,2);
-#ifdef DEBUG
+#ifdef DEBUGGING
     cout << "created a 2 dimensional Point" << endl;
 #endif
   } else if (m_dimension == 3) {
@@ -380,14 +394,14 @@ GEOSPoint::toPoint() const {
     a[1] = c->y;
     a[2] = c->z;
     p = new Point(a,3);
-#ifdef DEBUG
+#ifdef DEBUGGING
     cout << "created a 3 dimensional Point" << endl;
 #endif
   } else if (m_dimension == 1) {
     double a[1];
     a[0] = c->x;
     p = new Point(a,1);
-#ifdef DEBUG
+#ifdef DEBUGGING
     cout << "created a 1 dimensional Point" << endl;
 #endif
   } else {
@@ -399,7 +413,7 @@ GEOSPoint::toPoint() const {
 
 void
 GEOSPoint::getCenter(Point& out) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPoint::getCenter(Point& out) const " << endl;
 #endif
   out = *(toPoint());
@@ -407,7 +421,7 @@ GEOSPoint::getCenter(Point& out) const {
 
 uint32_t 
 GEOSPoint::getDimension() const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPoint::getDimension() const " << endl;
 #endif
   return m_dimension;
@@ -415,7 +429,7 @@ GEOSPoint::getDimension() const {
 
 void
 GEOSPoint::getMBR(Region& out) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPoint::getMBR(Region& out) const " << endl;
 #endif
   //Envelope e = this->g->getEnvelope();
@@ -431,14 +445,14 @@ GEOSPoint::getMBR(Region& out) const {
 
 double 
 GEOSPoint::getArea() const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPoint::getArea() const " << endl;
 #endif
   return 0.0;
 }
 double 
 GEOSPoint::getMinimumDistance(const GEOSShape& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPoint::getMinimumDistance(const GEOSShape& in) const " << endl;
 #endif
   return this->g->distance(in.g);
@@ -446,7 +460,7 @@ GEOSPoint::getMinimumDistance(const GEOSShape& in) const {
 
 double 
 GEOSPoint::getMinimumDistance(const IShape& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPoint::getMinimumDistance(const IShape& in) const " << endl;
 #endif
   try {
@@ -473,7 +487,7 @@ GEOSPoint::getMinimumDistance(const IShape& in) const {
 
 double 
 GEOSPoint::getCoordinate(uint32_t index) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPoint::getCoordinate(uint32_t index) const " << endl;
 #endif
   const Coordinate *c = this->g->getCoordinate();
@@ -488,7 +502,7 @@ GEOSPoint::getCoordinate(uint32_t index) const {
 
 void
 GEOSPoint::makeInfinite(uint32_t dimension) {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPoint::makeInfinite(uint32_t dimension) " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -496,7 +510,7 @@ GEOSPoint::makeInfinite(uint32_t dimension) {
 
 void
 GEOSPoint::makeDimension(uint32_t dimension) {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPoint::makeDimension(uint32_t dimension) " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -504,7 +518,7 @@ GEOSPoint::makeDimension(uint32_t dimension) {
 
 GEOSPoint&
 GEOSPoint::operator=(const GEOSPoint& p) {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPoint::operator=(const GEOSPoint& p) " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -513,7 +527,7 @@ GEOSPoint::operator=(const GEOSPoint& p) {
 
 bool
 GEOSPoint::operator==(const GEOSPoint& p) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPoint::operator==(const GEOSPoint& p) const " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -533,35 +547,35 @@ std::ostream& SpatialIndex::operator<<(std::ostream& os, const GEOSPoint& r)
  */
 
 GEOSLineString::GEOSLineString() {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::GEOSLineString() " << endl;
 #endif
   // cerr << "GEOSLineString() constructor not implemented yet" << endl;
 }
 
 GEOSLineString::GEOSLineString(const double** verts, uint32_t nverts, uint32_t dimension) {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::GEOSLineString(const double** verts, uint32_t nverts, uint32_t dimension) " << endl;
 #endif
   cerr << "GEOSLineString(verts,nverts,dimension) constructor not implemented yet" << endl;
 }
 
 GEOSLineString::GEOSLineString(const GEOSPoint*& points, uint32_t nverts) {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::GEOSLineString(const GEOSPoint*& points, uint32_t nverts) " << endl;
 #endif
   cerr << "GEOSLineString(points,nverts) constructor not implemented yet" << endl;
 }
 
 GEOSLineString::GEOSLineString(const GEOSLineString& ls) {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::GEOSLineString(const GEOSLineString& ls) " << endl;
 #endif
   g = ls.g->clone();
 }
 
 GEOSLineString::GEOSLineString(const geos::geom::LineString& ls) {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::GEOSLineString(const geos::geom::LineString& ls) " << endl;
 #endif
   g = ls.clone();
@@ -574,7 +588,7 @@ GEOSLineString::GEOSLineString(const geos::geom::LineString& ls) {
 }
 
 GEOSLineString::~GEOSLineString() {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::~GEOSLineString() " << endl;
 #endif
   global_factory->destroyGeometry(g);
@@ -582,7 +596,7 @@ GEOSLineString::~GEOSLineString() {
 
 GEOSLineString* 
 GEOSLineString::clone() {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::clone() " << endl;
 #endif
   LineString *ls = dynamic_cast<LineString*>(this->g->clone());
@@ -593,7 +607,7 @@ GEOSLineString::clone() {
 
 bool 
 GEOSLineString::intersectsShape(const GEOSShape& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::intersectsShape(const GEOSShape& in) const " << endl;
 #endif
   return this->g->intersects(in.g);
@@ -601,7 +615,7 @@ GEOSLineString::intersectsShape(const GEOSShape& in) const {
 
 bool 
 GEOSLineString::intersectsShape(const IShape& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::intersectsShape(const IShape& in) const " << endl;
 #endif
   try {
@@ -625,16 +639,16 @@ GEOSLineString::intersectsShape(const IShape& in) const {
 
 bool
 GEOSLineString::intersectsRegion(const Region& r) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::intersectsRegion(const Region& r) const " << endl;
   cout << r.m_dimension << " dimensional intersection query" << endl;
 #endif
   geos::geom::Geometry *box = regionToBox(r);
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "this->g defined? " << (this->g != NULL) << endl;
 #endif
   bool rv = this->g->intersects(box);
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "outcome of intersection " << rv << endl;
 #endif
   global_factory->destroyGeometry(box);
@@ -643,7 +657,7 @@ GEOSLineString::intersectsRegion(const Region& r) const {
 
 bool 
 GEOSLineString::containsShape(const GEOSShape& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::containsShape(const GEOSShape& in) const " << endl;
 #endif
   return this->g->contains(in.g);
@@ -651,7 +665,7 @@ GEOSLineString::containsShape(const GEOSShape& in) const {
 
 bool 
 GEOSLineString::containsShape(const IShape& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::containsShape(const IShape& in) const " << endl;
 #endif
   try {
@@ -675,7 +689,7 @@ GEOSLineString::containsShape(const IShape& in) const {
 
 bool 
 GEOSLineString::containsPoint(const Point& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::containsPoint(const Point& in) const " << endl;
 #endif
  const GEOSPoint *p = new GEOSPoint(in.m_pCoords,in.m_dimension);
@@ -686,20 +700,20 @@ GEOSLineString::containsPoint(const Point& in) const {
 
 bool
 GEOSLineString::containsRegion(const Region& r) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::containsRegion(const Region& r) const " << endl;
   cout << r.m_dimension << " dimensional containment query" << endl;
 #endif
   geos::geom::Geometry *box = regionToBox(r);
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "this->g defined? " << (this->g != NULL) << endl;
 #endif
   geos::io::WKTWriter w;
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "shapes: " << w.write(box) << " in " << w.write(this->g) << endl;
 #endif
   bool rv = this->g->contains(box);
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "outcome of containment " << rv << endl;
 #endif
   global_factory->destroyGeometry(box);
@@ -708,7 +722,7 @@ GEOSLineString::containsRegion(const Region& r) const {
 
 bool 
 GEOSLineString::touchesShape(const GEOSShape& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::touchesShape(const GEOSShape& in) const " << endl;
 #endif
   return this->g->touches(in.g);
@@ -716,7 +730,7 @@ GEOSLineString::touchesShape(const GEOSShape& in) const {
 
 bool 
 GEOSLineString::touchesShape(const IShape& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::touchesShape(const IShape& in) const " << endl;
 #endif
   try {
@@ -740,7 +754,7 @@ GEOSLineString::touchesShape(const IShape& in) const {
 
 bool 
 GEOSLineString::touchesPoint(const Point& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::touchesPoint(const Point& in) const " << endl;
 #endif
   const GEOSPoint *p = new GEOSPoint(in.m_pCoords,in.m_dimension);
@@ -751,20 +765,20 @@ GEOSLineString::touchesPoint(const Point& in) const {
 
 bool
 GEOSLineString::touchesRegion(const Region& r) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::touchesRegion(const Region& r) const " << endl;
   cout << r.m_dimension << " dimensional touch query" << endl;
 #endif
   geos::geom::Geometry *box = regionToBox(r);
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "this->g defined? " << (this->g != NULL) << endl;
 #endif
   geos::io::WKTWriter w;
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "shapes: " << w.write(box) << " touch " << w.write(this->g) << endl;
 #endif
   bool rv = this->g->touches(box);
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "outcome of touch " << rv << endl;
 #endif
   global_factory->destroyGeometry(box);
@@ -773,7 +787,7 @@ GEOSLineString::touchesRegion(const Region& r) const {
 
 void
 GEOSLineString::getCenter(Point& out) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::getCenter(Point& out) const " << endl;
 #endif
   geos::geom::Point *p = this->g->getCentroid();
@@ -785,7 +799,7 @@ GEOSLineString::getCenter(Point& out) const {
 
 uint32_t 
 GEOSLineString::getDimension() const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::getDimension() const " << endl;
 #endif
   const Coordinate *c = this->g->getCoordinate();
@@ -796,7 +810,7 @@ GEOSLineString::getDimension() const {
 
 void
 GEOSLineString::getMBR(Region& out) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::getMBR(Region& out) const " << endl;
 #endif
   const Envelope *e = this->g->getEnvelopeInternal();
@@ -833,7 +847,7 @@ GEOSLineString::getMBR(Region& out) const {
 
 double 
 GEOSLineString::getArea() const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::getArea() const " << endl;
 #endif
   return 0.0;
@@ -841,7 +855,7 @@ GEOSLineString::getArea() const {
 
 double 
 GEOSLineString::getMinimumDistance(const GEOSShape& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::getMinimumDistance(const GEOSShape& in) const " << endl;
 #endif
   return this->g->distance(in.g);
@@ -849,7 +863,7 @@ GEOSLineString::getMinimumDistance(const GEOSShape& in) const {
 
 double 
 GEOSLineString::getMinimumDistance(const IShape& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::getMinimumDistance(const IShape& in) const " << endl;
 #endif
   try {
@@ -914,7 +928,7 @@ GEOSLineString::getMinimumDistance(const IShape& in) const {
 
 GEOSLineString* 
 GEOSLineString::getIntersectingGEOSLineString(const GEOSLineString& r) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::getIntersectingGEOSLineString(const GEOSLineString& r) const " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -923,7 +937,7 @@ GEOSLineString::getIntersectingGEOSLineString(const GEOSLineString& r) const {
 
 double 
 GEOSLineString::getIntersectingArea(const GEOSLineString& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::getIntersectingArea(const GEOSLineString& in) const " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -932,7 +946,7 @@ GEOSLineString::getIntersectingArea(const GEOSLineString& in) const {
 
 double 
 GEOSLineString::getMargin() const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::getMargin() const " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -941,7 +955,7 @@ GEOSLineString::getMargin() const {
 
 void
 GEOSLineString::combineRegion(const Region& in) {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::combineRegion(const Region& in) " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -949,7 +963,7 @@ GEOSLineString::combineRegion(const Region& in) {
 
 void
 GEOSLineString::combineGEOSPoint(const GEOSPoint& in) {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::combineGEOSPoint(const GEOSPoint& in) " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -957,7 +971,7 @@ GEOSLineString::combineGEOSPoint(const GEOSPoint& in) {
 
 void
 GEOSLineString::getCombinedGEOSLineString(GEOSLineString& out, const GEOSLineString& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::getCombinedGEOSLineString(GEOSLineString& out, const GEOSLineString& in) const " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -965,7 +979,7 @@ GEOSLineString::getCombinedGEOSLineString(GEOSLineString& out, const GEOSLineStr
 
 GEOSPoint* 
 GEOSLineString::getVertex(uint32_t vert) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::getVertex(uint32_t vert) const " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -974,7 +988,7 @@ GEOSLineString::getVertex(uint32_t vert) const {
 
 double 
 GEOSLineString::getCoordinate(uint32_t vert, uint32_t index) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::getCoordinate(uint32_t vert, uint32_t index) const " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -983,7 +997,7 @@ GEOSLineString::getCoordinate(uint32_t vert, uint32_t index) const {
 
 void
 GEOSLineString::makeInfinite(uint32_t dimension) {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::makeInfinite(uint32_t dimension) " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -991,7 +1005,7 @@ GEOSLineString::makeInfinite(uint32_t dimension) {
 
 void
 GEOSLineString::makeDimension(uint32_t dimension) {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::makeDimension(uint32_t dimension) " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -999,7 +1013,7 @@ GEOSLineString::makeDimension(uint32_t dimension) {
 
 void
 GEOSLineString::initialize(const double* verts, uint32_t nverts, uint32_t dimension) {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::initialize(const double* verts, uint32_t nverts, uint32_t dimension) " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -1007,7 +1021,7 @@ GEOSLineString::initialize(const double* verts, uint32_t nverts, uint32_t dimens
 
 GEOSLineString&
 GEOSLineString::operator=(const GEOSLineString& p) {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::operator=(const GEOSLineString& p) " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -1016,7 +1030,7 @@ GEOSLineString::operator=(const GEOSLineString& p) {
 
 bool
 GEOSLineString::operator==(const GEOSLineString&) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSLineString::operator==(const GEOSLineString&) const " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -1041,35 +1055,35 @@ std::ostream& SpatialIndex::operator<<(std::ostream& os, const GEOSLineString& r
  */
 
 GEOSPolygon::GEOSPolygon() {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::GEOSPolygon() " << endl;
 #endif
   // cerr << "GEOSPolygon() constructor not implemented yet" << endl;
 }
 
 GEOSPolygon::GEOSPolygon(const double** verts, uint32_t nverts, uint32_t dimension) {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::GEOSPolygon(const double** verts, uint32_t nverts, uint32_t dimension) " << endl;
 #endif
   cerr << "GEOSPolygon(verts,nverts,dimension) constructor not implemented yet" << endl;
 }
 
 GEOSPolygon::GEOSPolygon(const GEOSPoint*& points, uint32_t nverts) {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::GEOSPolygon(const GEOSPoint*& points, uint32_t nverts) " << endl;
 #endif
   cerr << "GEOSPolygon(points,nverts) constructor not implemented yet" << endl;
 }
 
 GEOSPolygon::GEOSPolygon(const GEOSPolygon& poly) {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::GEOSPolygon(const GEOSPolygon& poly) " << endl;
 #endif
   g = poly.g->clone();
 }
 
 GEOSPolygon::GEOSPolygon(const geos::geom::Polygon& poly) {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::GEOSPolygon(const geos::geom::Polygon& poly) " << endl;
 #endif
   g = poly.clone();
@@ -1082,7 +1096,7 @@ GEOSPolygon::GEOSPolygon(const geos::geom::Polygon& poly) {
 }
 
 GEOSPolygon::~GEOSPolygon() {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::~GEOSPolygon() " << endl;
 #endif
   global_factory->destroyGeometry(g);
@@ -1090,7 +1104,7 @@ GEOSPolygon::~GEOSPolygon() {
 
 GEOSPolygon* 
 GEOSPolygon::clone() {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::clone() " << endl;
 #endif
   Polygon *poly = dynamic_cast<Polygon*>(this->g->clone());
@@ -1101,7 +1115,7 @@ GEOSPolygon::clone() {
 
 bool 
 GEOSPolygon::intersectsShape(const GEOSShape& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::intersectsShape(const GEOSShape& in) const " << endl;
 #endif
   return this->g->intersects(in.g);
@@ -1109,7 +1123,7 @@ GEOSPolygon::intersectsShape(const GEOSShape& in) const {
 
 bool 
 GEOSPolygon::intersectsShape(const IShape& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::intersectsShape(const IShape& in) const " << endl;
 #endif
   try {
@@ -1133,16 +1147,16 @@ GEOSPolygon::intersectsShape(const IShape& in) const {
 
 bool
 GEOSPolygon::intersectsRegion(const Region& r) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::intersectsRegion(const Region& r) const " << endl;
   cout << r.m_dimension << " dimensional intersection query" << endl;
 #endif
   geos::geom::Geometry *box = regionToBox(r);
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "this->g defined? " << (this->g != NULL) << endl;
 #endif
   bool rv = this->g->intersects(box);
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "outcome of intersection " << rv << endl;
 #endif
   global_factory->destroyGeometry(box);
@@ -1151,7 +1165,7 @@ GEOSPolygon::intersectsRegion(const Region& r) const {
 
 bool 
 GEOSPolygon::containsShape(const GEOSShape& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::containsShape(const GEOSShape& in) const " << endl;
 #endif
   return this->g->contains(in.g);
@@ -1159,7 +1173,7 @@ GEOSPolygon::containsShape(const GEOSShape& in) const {
 
 bool 
 GEOSPolygon::containsShape(const IShape& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::containsShape(const IShape& in) const " << endl;
 #endif
   try {
@@ -1183,7 +1197,7 @@ GEOSPolygon::containsShape(const IShape& in) const {
 
 bool 
 GEOSPolygon::containsPoint(const Point& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::containsPoint(const Point& in) const " << endl;
 #endif
  const GEOSPoint *p = new GEOSPoint(in.m_pCoords,in.m_dimension);
@@ -1194,20 +1208,20 @@ GEOSPolygon::containsPoint(const Point& in) const {
 
 bool
 GEOSPolygon::containsRegion(const Region& r) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::containsRegion(const Region& r) const " << endl;
   cout << r.m_dimension << " dimensional containment query" << endl;
 #endif
   geos::geom::Geometry *box = regionToBox(r);
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "this->g defined? " << (this->g != NULL) << endl;
 #endif
   geos::io::WKTWriter w;
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "shapes: " << w.write(box) << " in " << w.write(this->g) << endl;
 #endif
   bool rv = this->g->contains(box);
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "outcome of containment " << rv << endl;
 #endif
   global_factory->destroyGeometry(box);
@@ -1216,7 +1230,7 @@ GEOSPolygon::containsRegion(const Region& r) const {
 
 bool 
 GEOSPolygon::touchesShape(const GEOSShape& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::touchesShape(const GEOSShape& in) const " << endl;
 #endif
   return this->g->touches(in.g);
@@ -1224,7 +1238,7 @@ GEOSPolygon::touchesShape(const GEOSShape& in) const {
 
 bool 
 GEOSPolygon::touchesShape(const IShape& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::touchesShape(const IShape& in) const " << endl;
 #endif
   try {
@@ -1248,7 +1262,7 @@ GEOSPolygon::touchesShape(const IShape& in) const {
 
 bool 
 GEOSPolygon::touchesPoint(const Point& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::touchesPoint(const Point& in) const " << endl;
 #endif
   const GEOSPoint *p = new GEOSPoint(in.m_pCoords,in.m_dimension);
@@ -1259,20 +1273,20 @@ GEOSPolygon::touchesPoint(const Point& in) const {
 
 bool
 GEOSPolygon::touchesRegion(const Region& r) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::touchesRegion(const Region& r) const " << endl;
   cout << r.m_dimension << " dimensional touch query" << endl;
 #endif
   geos::geom::Geometry *box = regionToBox(r);
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "this->g defined? " << (this->g != NULL) << endl;
 #endif
   geos::io::WKTWriter w;
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "shapes: " << w.write(box) << " touch " << w.write(this->g) << endl;
 #endif
   bool rv = this->g->touches(box);
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "outcome of touch " << rv << endl;
 #endif
   global_factory->destroyGeometry(box);
@@ -1281,7 +1295,7 @@ GEOSPolygon::touchesRegion(const Region& r) const {
 
 void
 GEOSPolygon::getCenter(Point& out) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::getCenter(Point& out) const " << endl;
 #endif
   geos::geom::Point *p = this->g->getCentroid();
@@ -1293,7 +1307,7 @@ GEOSPolygon::getCenter(Point& out) const {
 
 uint32_t 
 GEOSPolygon::getDimension() const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::getDimension() const " << endl;
 #endif
   const Coordinate *c = this->g->getCoordinate();
@@ -1304,7 +1318,7 @@ GEOSPolygon::getDimension() const {
 
 void
 GEOSPolygon::getMBR(Region& out) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::getMBR(Region& out) const " << endl;
 #endif
   const Envelope *e = this->g->getEnvelopeInternal();
@@ -1341,7 +1355,7 @@ GEOSPolygon::getMBR(Region& out) const {
 
 double 
 GEOSPolygon::getArea() const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::getArea() const " << endl;
 #endif
   return 0.0;
@@ -1349,7 +1363,7 @@ GEOSPolygon::getArea() const {
 
 double 
 GEOSPolygon::getMinimumDistance(const GEOSShape& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::getMinimumDistance(const GEOSShape& in) const " << endl;
 #endif
   return this->g->distance(in.g);
@@ -1357,7 +1371,7 @@ GEOSPolygon::getMinimumDistance(const GEOSShape& in) const {
 
 double 
 GEOSPolygon::getMinimumDistance(const IShape& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::getMinimumDistance(const IShape& in) const " << endl;
 #endif
   try {
@@ -1422,7 +1436,7 @@ GEOSPolygon::getMinimumDistance(const IShape& in) const {
 
 GEOSPolygon* 
 GEOSPolygon::getIntersectingGEOSPolygon(const GEOSPolygon& r) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::getIntersectingGEOSPolygon(const GEOSPolygon& r) const " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -1431,7 +1445,7 @@ GEOSPolygon::getIntersectingGEOSPolygon(const GEOSPolygon& r) const {
 
 double 
 GEOSPolygon::getIntersectingArea(const GEOSPolygon& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::getIntersectingArea(const GEOSPolygon& in) const " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -1440,7 +1454,7 @@ GEOSPolygon::getIntersectingArea(const GEOSPolygon& in) const {
 
 double 
 GEOSPolygon::getMargin() const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::getMargin() const " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -1449,7 +1463,7 @@ GEOSPolygon::getMargin() const {
 
 void
 GEOSPolygon::combineRegion(const Region& in) {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::combineRegion(const Region& in) " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -1457,7 +1471,7 @@ GEOSPolygon::combineRegion(const Region& in) {
 
 void
 GEOSPolygon::combineGEOSPoint(const GEOSPoint& in) {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::combineGEOSPoint(const GEOSPoint& in) " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -1465,7 +1479,7 @@ GEOSPolygon::combineGEOSPoint(const GEOSPoint& in) {
 
 void
 GEOSPolygon::getCombinedGEOSPolygon(GEOSPolygon& out, const GEOSPolygon& in) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::getCombinedGEOSPolygon(GEOSPolygon& out, const GEOSPolygon& in) const " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -1473,7 +1487,7 @@ GEOSPolygon::getCombinedGEOSPolygon(GEOSPolygon& out, const GEOSPolygon& in) con
 
 GEOSPoint* 
 GEOSPolygon::getVertex(uint32_t vert) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::getVertex(uint32_t vert) const " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -1482,7 +1496,7 @@ GEOSPolygon::getVertex(uint32_t vert) const {
 
 double 
 GEOSPolygon::getCoordinate(uint32_t vert, uint32_t index) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::getCoordinate(uint32_t vert, uint32_t index) const " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -1491,7 +1505,7 @@ GEOSPolygon::getCoordinate(uint32_t vert, uint32_t index) const {
 
 void
 GEOSPolygon::makeInfinite(uint32_t dimension) {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::makeInfinite(uint32_t dimension) " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -1499,7 +1513,7 @@ GEOSPolygon::makeInfinite(uint32_t dimension) {
 
 void
 GEOSPolygon::makeDimension(uint32_t dimension) {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::makeDimension(uint32_t dimension) " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -1507,7 +1521,7 @@ GEOSPolygon::makeDimension(uint32_t dimension) {
 
 void
 GEOSPolygon::initialize(const double* verts, uint32_t nverts, uint32_t dimension) {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::initialize(const double* verts, uint32_t nverts, uint32_t dimension) " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -1515,7 +1529,7 @@ GEOSPolygon::initialize(const double* verts, uint32_t nverts, uint32_t dimension
 
 GEOSPolygon&
 GEOSPolygon::operator=(const GEOSPolygon& p) {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::operator=(const GEOSPolygon& p) " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;
@@ -1524,7 +1538,7 @@ GEOSPolygon::operator=(const GEOSPolygon& p) {
 
 bool
 GEOSPolygon::operator==(const GEOSPolygon&) const {
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "entering GEOSPolygon::operator==(const GEOSPolygon&) const " << endl;
 #endif
   cerr << __FUNCTION__ << " not supported yet" << endl;

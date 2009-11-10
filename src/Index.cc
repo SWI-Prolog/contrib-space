@@ -27,8 +27,27 @@
     the GNU General Public License.
 */
 
+/*
+ * TODO: improve index initialization to support configuration for storage and distance
+ * TODO: improve error message handling
+ */
 
 #include "Index.h"
+
+
+		 /*******************************
+		 *	       LOCKING		*
+		 *******************************/
+
+#define RDLOCK(lock)			rdlock(lock)
+#define WRLOCK(lock, allowreaders)	wrlock(lock, allowreaders)
+#define LOCKOUT_READERS(lock)		lockout_readers(lock)
+#define REALLOW_READERS(lock)		reallow_readers(lock)
+#define WRUNLOCK(lock)			unlock(lock, FALSE)
+#define RDUNLOCK(lock)			unlock(lock, TRUE)
+#define LOCK_MISC(lock)			lock_misc(lock)
+#define UNLOCK_MISC(lock)		unlock_misc(lock)
+#define INIT_LOCK(lock)			init_lock(lock)
 
 
 /*
@@ -58,21 +77,30 @@ public:
     //    index->bulkload_tmp_id_cnt = -1;
   }
   virtual IData* getNext() {
-    if (!cached && !PL_next_solution(q)) return NULL;
-    cached = false;
-    IShape *s = index->interpret_shape((term_t)(cache0+2));
-    Region r;
-    s->getMBR(r);
-    PlTerm uri_term((term_t)cache0+1);
-    PlAtom uri_atom(uri_term);
-    id_type id = index->get_uri_id(uri_term); // FIXME: PlAtom argument
-    if (id == -1) id = index->get_new_id(uri_term);
-    index->storeShape(id,s);
-#ifdef DEBUG
-    cout << "uri " << (char*)uri_term << " atom " << uri_atom.handle << " shape " << r << " id " << id << endl;
+    RTree::Data* rv = NULL;
+    if ( !WRLOCK(&index->lock, FALSE) ) {
+      cerr << __FUNCTION__ << " could not acquire write lock" << endl;
+      return NULL;
+    }
+    if (!cached && !PL_next_solution(q)) { 
+      rv = NULL;
+    } else {
+      cached = false;
+      IShape *s = index->interpret_shape((term_t)(cache0+2));
+      Region r;
+      s->getMBR(r);
+      PlTerm uri_term((term_t)cache0+1);
+      PlAtom uri_atom(uri_term);
+      id_type id = index->get_uri_id(uri_term); // FIXME: PlAtom argument
+      if (id == -1) id = index->get_new_id(uri_term);
+      index->storeShape(id,s);
+#ifdef DEBUGGING
+      cout << "uri " << (char*)uri_term << " atom " << uri_atom.handle << " shape " << r << " id " << id << endl;
 #endif
-    RTree::Data* next = new RTree::Data(sizeof(uri_atom.handle), (byte*)&uri_atom.handle, r, id);
-    return next;
+       rv = new RTree::Data(sizeof(uri_atom.handle), (byte*)&uri_atom.handle, r, id);
+    }
+    WRUNLOCK(&index->lock);
+    return rv;
   }
   virtual bool hasNext() throw (NotSupportedException)
   {
@@ -104,33 +132,47 @@ public:
  * -- RTreeIndex -------------------------------------
  */
 
-RTreeIndex::RTreeIndex(PlTerm indexname) : baseName(indexname), utilization(0.7), nodesize(4),  diskfile(NULL), file(NULL), tree(NULL) { 
+
+RTreeIndex::RTreeIndex(PlTerm indexname) :  storage(MEMORY), distance_function(PYTHAGOREAN), baseName(indexname), utilization(0.7), nodesize(4),  storage_manager(NULL), buffer(NULL), tree(NULL) { 
   bulkload_tmp_id_cnt = -1;
+  INIT_LOCK(&lock);
+  PL_register_atom(PlAtom(indexname).handle);
 }
 
-RTreeIndex::RTreeIndex(PlTerm indexname, double util, int nodesz) : baseName(indexname), diskfile(NULL), file(NULL), tree(NULL) {
+RTreeIndex::RTreeIndex(PlTerm indexname, double util, int nodesz) : storage(MEMORY), distance_function(PYTHAGOREAN), baseName(indexname), storage_manager(NULL), buffer(NULL), tree(NULL) {
   utilization = util;
   nodesize = nodesz;
   bulkload_tmp_id_cnt = -1;
+  PL_register_atom(PlAtom(indexname).handle);
+  INIT_LOCK(&lock);
 }
 
-
 RTreeIndex::~RTreeIndex() {
+  if ( !WRLOCK(&lock,FALSE) ) {
+    cerr << __FUNCTION__ << " could not acquire write lock" << endl;
+    return;
+  }
   this->clear_tree();
+  PL_unregister_atom(PlAtom(baseName).handle);
+  WRUNLOCK(&lock);
 }
 
 void RTreeIndex::clear_tree() {
+  if ( !WRLOCK(&lock,FALSE) ) {
+    cerr << __FUNCTION__ << " could not acquire write lock" << endl;
+    return;
+  }
   if (tree != NULL) {
     delete tree;
     tree = NULL;
   }
-  if (file != NULL) { 
-    delete file;
-    file = NULL;
+  if (buffer != NULL) { 
+    delete buffer;
+    buffer = NULL;
   }
-  if(diskfile != NULL) {
-    delete diskfile;
-    diskfile = NULL;
+  if(storage_manager != NULL) {
+    delete storage_manager;
+    storage_manager = NULL;
   }
   uri_id_map.clear();
   map<id_type,IShape*>::iterator id_shape_iter;
@@ -143,61 +185,105 @@ void RTreeIndex::clear_tree() {
     delete id_shape_iter->second;
   }
   id_shape_map.clear();
+  WRUNLOCK(&lock);
 }
 
 void RTreeIndex::storeShape(id_type id,IShape *s) {
+  if ( !WRLOCK(&lock,FALSE) ) {
+    cerr << __FUNCTION__ << " could not acquire write lock" << endl;
+    return;
+  }
   id_shape_map[id] = s;
+  WRUNLOCK(&lock);
 }
 IShape* RTreeIndex::getShape(id_type id) {
+  IShape *rv = NULL;
+  if ( !RDLOCK(&lock) ) {
+    cerr << __FUNCTION__ << " could not acquire read lock" << endl;
+    return NULL;
+  }
   map<id_type,IShape*>::iterator iter = id_shape_map.find(id);
-  if (iter == id_shape_map.end()) return NULL;
-  return iter->second;
+  if (iter == id_shape_map.end()) {
+    rv = NULL;
+  } else {
+    rv = iter->second;
+  }
+  RDUNLOCK(&lock);
+  return rv;
 }
 
 id_type  RTreeIndex::get_new_id(PlTerm uri) {
   id_type id = -1;
+  if ( !WRLOCK(&lock, FALSE) ) {
+    cerr << __FUNCTION__ << " could not acquire write lock" << endl;
+    return NULL;
+  }
   PlAtom uri_atom(uri);
   PL_register_atom(uri_atom.handle); // FIXME: unregister somewhere...
   if (bulkload_tmp_id_cnt != -1) { // we're bulkloading
     id = bulkload_tmp_id_cnt++;
     uri_id_map[uri_atom.handle] = id;
   } else {
-    if (tree == NULL) return -1;
-    IStatistics* stats;
-    tree->getStatistics(&stats);
-    id = stats->getNumberOfData();
-    uri_id_map[uri_atom.handle] = id;
-    delete stats;
+    if (tree == NULL) {
+      id = -1;
+    } else {
+      IStatistics* stats;
+      tree->getStatistics(&stats);
+      id = stats->getNumberOfData();
+      uri_id_map[uri_atom.handle] = id;
+      delete stats;
+    }
   }
+  WRUNLOCK(&lock);
   return id;
 }
 
 id_type   RTreeIndex::get_uri_id(PlTerm uri) {
+  id_type rv = -1;
+  if ( !RDLOCK(&lock) ) {
+    cerr << __FUNCTION__ << " could not acquire read lock" << endl;
+    return -1;
+  }
   PlAtom uri_atom(uri);
   map<atom_t,id_type>::iterator iter = uri_id_map.find(uri_atom.handle);
-  if (iter == uri_id_map.end()) return -1;
-  return iter->second;
+  if (iter == uri_id_map.end()) {
+    rv = -1;
+  } else {
+    rv = iter->second;
+  }
+  RDUNLOCK(&lock);
+  return rv;
 }
   
 
 void RTreeIndex::create_tree(uint32_t dimensionality) {
+  if ( !WRLOCK(&lock,FALSE) ) {
+    cerr << __FUNCTION__ << " could not acquire write lock" << endl;
+    return;
+  }
   RTreeIndex::create_tree(dimensionality,utilization,nodesize);
+  WRUNLOCK(&lock);
 }
 void RTreeIndex::create_tree(uint32_t dimensionality, double util, int nodesz) {
+  if ( !WRLOCK(&lock,FALSE) ) {
+    cerr << __FUNCTION__ << " could not acquire write lock" << endl;
+    return;
+  }
   utilization = util;
   nodesize = nodesz;
   PlTerm bnt(baseName);
-#ifdef MEMORY_STORE
-  diskfile = StorageManager::createNewMemoryStorageManager();
-#else
-  string *bns = new string((char*)bnt);
-  diskfile = StorageManager::createNewDiskStorageManager(*bns, 32);
-  delete bns;
-#endif
-  file = StorageManager::createNewRandomEvictionsBuffer(*diskfile, 4096, false);
-  tree = RTree::createNewRTree(*file, utilization,
+  if (storage == MEMORY) {
+    storage_manager = StorageManager::createNewMemoryStorageManager();
+  } else if (storage == DISK) {
+    string *bns = new string((char*)bnt);
+    storage_manager = StorageManager::createNewDiskStorageManager(*bns, 32);
+    delete bns;
+  }
+  buffer = StorageManager::createNewRandomEvictionsBuffer(*storage_manager, 4096, false);
+  tree = RTree::createNewRTree(*buffer, utilization,
                                nodesize, nodesize, dimensionality, 
                                SpatialIndex::RTree::RV_RSTAR, indexIdentifier);
+  WRUNLOCK(&lock);
 }
 
 
@@ -211,20 +297,30 @@ RTreeIndex::bulk_load(PlTerm goal,uint32_t dimensionality) {
 
   // FIXME: add a nice customization interface that allows you to choose between disk and memory storage
   // and to set the parameters of the disk store and buffer
-#ifdef MEMORY_STORE
-  diskfile = StorageManager::createNewMemoryStorageManager();
-#else 
-  string *bns = new string((const char*)baseName);
-  diskfile = StorageManager::createNewDiskStorageManager(*bns, 32);
-  delete bns;
-#endif
-  file = StorageManager::createNewRandomEvictionsBuffer(*diskfile, 4096, false);
+  if ( !WRLOCK(&lock,FALSE) ) {
+    cerr << __FUNCTION__ << " could not acquire write lock" << endl;
+    return false;
+  }
+  if (storage == MEMORY) {
+    storage_manager = StorageManager::createNewMemoryStorageManager();
+  } else if (storage == DISK) {
+    string *bns = new string((const char*)baseName);
+    storage_manager = StorageManager::createNewDiskStorageManager(*bns, 32);
+    delete bns;
+  }
+  buffer = StorageManager::createNewRandomEvictionsBuffer(*storage_manager, 4096, false);
   id_type indexIdentifier;
   tree = RTree::createAndBulkLoadNewRTree(RTree::BLM_STR, 
-                                          stream, *file, utilization,
+                                          stream, *buffer, utilization,
                                           nodesize, nodesize, dimensionality, 
                                           SpatialIndex::RTree::RV_RSTAR, indexIdentifier);
-  return tree->isIndexValid();
+  WRUNLOCK(&lock);
+  if ( !RDLOCK(&lock) ) {
+    return FALSE;
+  }
+  bool rv = tree->isIndexValid();
+  RDUNLOCK(&lock);
+  return rv;
 }
 
 
@@ -238,7 +334,7 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
     }
     //  return new Point(point,shape_term.arity());
     GEOSPoint *p = new GEOSPoint(point,shape_term.arity()); // testing GEOS points
-    #ifdef DEBUG
+    #ifdef DEBUGGING
     cout << "made point " << p << endl;
     #endif
     return p;
@@ -339,7 +435,6 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
       holes->push_back(hlr);
     }
     geos::geom::Polygon *p = global_factory->createPolygon(lr,holes);
-    p->normalize();
     GEOSPolygon *poly = new GEOSPolygon(*p);
     delete p;
     delete cl;
@@ -347,7 +442,7 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
 
   } else if (shape_term.name() == ATOM_box) {
 
-    #ifdef DEBUG
+    #ifdef DEBUGGING
     cout << "reading box" << endl;
     #endif
     if (shape_term.arity() != 2) {
@@ -402,12 +497,16 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
   return NULL;
 }
 
-
 bool RTreeIndex::insert_single_object(PlTerm uri,PlTerm shape_term) {
   IShape *shape;
   id_type id;
+  if ( !WRLOCK(&lock,FALSE) ) {
+    cerr << __FUNCTION__ << " could not acquire write lock" << endl;
+    return FALSE;
+  }
   if ((shape = RTreeIndex::interpret_shape(shape_term)) == NULL) {
     cerr << "could not interpret shape" << endl;
+    WRUNLOCK(&lock);
     return FALSE;
   }
   if (tree == NULL) {
@@ -417,23 +516,31 @@ bool RTreeIndex::insert_single_object(PlTerm uri,PlTerm shape_term) {
   }
   if ((id = get_new_id(uri)) == -1) {
     cerr << "could not generate new ID" << endl;
+    WRUNLOCK(&lock);
     return FALSE;
   }
   try { 
     PlAtom uri_atom(uri);
     tree->insertData(sizeof(uri_atom.handle), (byte*)&uri_atom.handle, *shape, id);    
   } catch (...) {
+    WRUNLOCK(&lock);
     return FALSE;
   }
   storeShape(id,shape);
+  WRUNLOCK(&lock);
   return TRUE;
 }
 
 bool RTreeIndex::delete_single_object(PlTerm uri,PlTerm shape_term) {
   IShape *shape;
   id_type id;
+  if ( !WRLOCK(&lock,FALSE) ) {
+    cerr << __FUNCTION__ << " could not acquire write lock" << endl;
+    return FALSE;
+  }
   if ((shape = RTreeIndex::interpret_shape(shape_term)) == NULL) {
     cerr << "could not interpret shape" << endl;
+    WRUNLOCK(&lock);
     return FALSE;
   }
   if (tree == NULL) {
@@ -445,9 +552,11 @@ bool RTreeIndex::delete_single_object(PlTerm uri,PlTerm shape_term) {
     PlTerm bnt(baseName);
     cerr << "could not find ID for " << (char*)uri << " in " << (char*)bnt << endl;
     delete shape;
+    WRUNLOCK(&lock);
     return FALSE;
   }
   bool rv = tree->deleteData(*shape, id);
   delete shape;
+  WRUNLOCK(&lock);
   return rv;
 }

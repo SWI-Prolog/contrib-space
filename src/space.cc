@@ -31,7 +31,7 @@
 
 /* TODO:
  * neat choice between memory-based and file-based indices
- * locking so that two threads can't change the tree at the same time (check if existing RTree locking is sufficient)
+ * check if locking works...
  */
 
 #include "globals.h"
@@ -42,15 +42,36 @@
 #include <iostream>
 #include <string.h>
 
+
+		 /*******************************
+		 *	       LOCKING		*
+		 *******************************/
+
+#define RDLOCK(lock)			rdlock(lock)
+#define WRLOCK(lock, allowreaders)	wrlock(lock, allowreaders)
+#define LOCKOUT_READERS(lock)		lockout_readers(lock)
+#define REALLOW_READERS(lock)		reallow_readers(lock)
+#define WRUNLOCK(lock)			unlock(lock, FALSE)
+#define RDUNLOCK(lock)			unlock(lock, TRUE)
+#define LOCK_MISC(lock)			lock_misc(lock)
+#define UNLOCK_MISC(lock)		unlock_misc(lock)
+#define INIT_LOCK(lock)			init_lock(lock)
+
+
 extern geos::geom::GeometryFactory* global_factory;
 map<atom_t,Index*> index_map;
-
+rwlock index_map_lock;
 
 static void index_clear(PlTerm indexname) {
-  #ifdef DEBUG
+  #ifdef DEBUGGING
   cout << "clearing " << (char*)indexname << endl;
   #endif
+  if ( index_map_lock.writer != -1 ) INIT_LOCK(&index_map_lock);
   PlAtom idx_atom(indexname);
+  if ( !WRLOCK(&index_map_lock, FALSE) ) {
+    cerr << __FUNCTION__ << " could not acquire write lock" << endl;
+    return;
+  }
   map<atom_t,Index*>::iterator iter = index_map.find(idx_atom.handle);
   if (iter != index_map.end()) {
     Index *idx = iter->second;
@@ -60,43 +81,63 @@ static void index_clear(PlTerm indexname) {
   if (index_map.size() == 0) {
     cleanup_geos();
   }
+  WRUNLOCK(&index_map_lock);
 }
 
 static RTreeIndex* assert_rtree_index(PlTerm indexname, double util, int nodesz) {
+  if ( index_map_lock.writer != -1 ) INIT_LOCK(&index_map_lock);
   PlAtom idx_atom(indexname);
-  map<atom_t,Index*>::iterator iter = index_map.find(idx_atom.handle);
-  if (iter != index_map.end()) return dynamic_cast<RTreeIndex*>(iter->second);
-  #ifdef DEBUG
-  cout << "did not find " << (char*)indexname << " creating new empty index" << endl;
-  #endif
-  RTreeIndex *idx = new RTreeIndex(indexname,util,nodesz);  
-  if (index_map.size() == 0) {
-    init_geos();
+  RTreeIndex *rv = NULL;
+  if ( !WRLOCK(&index_map_lock, FALSE) ) {
+    cerr << __FUNCTION__ << " could not acquire write lock" << endl;
+    return NULL;
   }
-  index_map[idx_atom.handle] = idx;
-  return idx;
+  map<atom_t,Index*>::iterator iter = index_map.find(idx_atom.handle);
+  if (iter != index_map.end()) {
+    rv = dynamic_cast<RTreeIndex*>(iter->second);
+  } else {
+  #ifdef DEBUGGING
+    cout << "did not find " << (char*)indexname << " creating new empty index" << endl;
+  #endif
+    rv = new RTreeIndex(indexname,util,nodesz);  
+    if (index_map.size() == 0) {
+      init_geos();
+    }
+    index_map[idx_atom.handle] = rv;
+  }
+  WRUNLOCK(&index_map_lock);
+  return rv;
 }
 
 static RTreeIndex* assert_rtree_index(PlTerm indexname) {
+  if ( index_map_lock.writer != -1 ) INIT_LOCK(&index_map_lock);
   PlAtom idx_atom(indexname);
-  map<atom_t,Index*>::iterator iter = index_map.find(idx_atom.handle);
-  if (iter != index_map.end()) return dynamic_cast<RTreeIndex*>(iter->second);
-  #ifdef DEBUG
-  cout << "did not find " << (char*)indexname << " creating new empty index" << endl;
-  #endif
-  RTreeIndex *idx = new RTreeIndex(indexname);  
-  if (index_map.size() == 0) {
-    init_geos();
+  RTreeIndex *rv = NULL;
+  if ( !WRLOCK(&index_map_lock, FALSE) ) {
+    cerr << __FUNCTION__ << " could not acquire write lock" << endl;
+    return NULL;
   }
-  index_map[idx_atom.handle] = idx;
-  return idx;
+  map<atom_t,Index*>::iterator iter = index_map.find(idx_atom.handle);
+  if (iter != index_map.end()) {
+    rv = dynamic_cast<RTreeIndex*>(iter->second);
+  } else {
+  #ifdef DEBUGGING
+    cout << "did not find " << (char*)indexname << " creating new empty index" << endl;
+  #endif
+    rv = new RTreeIndex(indexname);  
+    if (index_map.size() == 0) {
+      init_geos();
+    }
+    index_map[idx_atom.handle] = rv;
+  }
+  WRUNLOCK(&index_map_lock);
+  return rv;
 }
-
 
 
 PREDICATE(rtree_clear,1)
 {
-  #ifdef DEBUG
+  #ifdef DEBUGGING
   cout << "clearing " << (char*)A1 << endl;
   #endif
   index_clear(A1);
@@ -108,7 +149,7 @@ PREDICATE(rtree_clear,1)
 // indexname, uri, shape
 PREDICATE(rtree_insert_object,3)
 {
-  #ifdef DEBUG
+  #ifdef DEBUGGING
   cout << "inserting object " << (char*)A2 << " into " << (char*)A1 << endl;
   #endif
   RTreeIndex* idx = dynamic_cast<RTreeIndex*> (assert_rtree_index(A1));
@@ -118,7 +159,7 @@ PREDICATE(rtree_insert_object,3)
 // index_name, candidate generating Prolog goal (of shape somepred(URI,Shape)), dimensionality
 PREDICATE(rtree_bulkload,3)
 {
-  #ifdef DEBUG
+  #ifdef DEBUGGING
   cout << "bulk loading of objects into " << (char*)A1 << endl;
   #endif
   RTreeIndex *idx = dynamic_cast<RTreeIndex*> (assert_rtree_index(A1));
@@ -129,14 +170,14 @@ PREDICATE(rtree_bulkload,3)
 
 PREDICATE(rtree_insert_list,2)
 {
-  #ifdef DEBUG
+  #ifdef DEBUGGING
   cout << "inserting list of objects into " << (char*)A1 << endl;
   #endif
   PlTerm list = PL_copy_term_ref((term_t)A2);
   PlTerm head = PL_new_term_ref();
+  PlTerm uri_term = PL_new_term_ref();
+  PlTerm shape_term = PL_new_term_ref();
   while( PL_get_list(list, head, list) ) { 
-    PlTerm uri_term = PL_new_term_ref();
-    PlTerm shape_term = PL_new_term_ref();
     atom_t name_atom;
     int arity;
     if (!PL_get_name_arity(head,&name_atom,&arity)) PL_fail;
@@ -151,7 +192,7 @@ PREDICATE(rtree_insert_list,2)
 
 PREDICATE(rtree_delete_object,3)
 {
-  #ifdef DEBUG
+  #ifdef DEBUGGING
   cout << "deleting object " << (char*)A2 << " from " << (char*)A1 << endl;
   #endif
   RTreeIndex *idx = dynamic_cast<RTreeIndex*> (assert_rtree_index(A1));
@@ -161,14 +202,14 @@ PREDICATE(rtree_delete_object,3)
 
 PREDICATE(rtree_delete_list,2)
 {
-  #ifdef DEBUG
+  #ifdef DEBUGGING
   cout << "deleting list of objects from " << (char*)A1 << endl;
   #endif
   PlTerm list = PL_copy_term_ref((term_t)A2);
   PlTerm head = PL_new_term_ref();
+  PlTerm uri_term = PL_new_term_ref();
+  PlTerm shape_term = PL_new_term_ref();
   while( PL_get_list(list, head, list) ) { 
-    PlTerm uri_term = PL_new_term_ref();
-    PlTerm shape_term = PL_new_term_ref();
     atom_t name_atom;
     int arity;
     if (!PL_get_name_arity(head,&name_atom,&arity)) PL_fail;
