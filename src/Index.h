@@ -30,7 +30,6 @@
 #ifndef __INDEX_H
 #define __INDEX_H
 
-//#include <spatialindex/SpatialIndex.h>
 #include <SWI-cpp.h>
 #include "globals.h"
 #include "Shapes.h"

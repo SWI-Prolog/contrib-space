@@ -166,7 +166,7 @@ IncrementalRangeStrategy::~IncrementalRangeStrategy() {
 
 void IncrementalRangeStrategy::getNextEntry(const IEntry& entry, id_type& nextEntry, bool& hasNext) {
   // This run we have not fetched a result yet, so the value is NULL.
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "visiting node " << entry.getIdentifier() << endl;
 #endif
 
@@ -194,24 +194,24 @@ void IncrementalRangeStrategy::getNextEntry(const IEntry& entry, id_type& nextEn
         if (t == IntersectionQuery) {
           if (qs != NULL) {
             b = qs->intersectsShape(*childShape);
-#ifdef DEBUG
+#ifdef DEBUGGING
             cout << "Query GEOSShape intersects Shape? " << b << endl;
 #endif
           } else {
             b = query->intersectsShape(*childShape);
-#ifdef DEBUG
+#ifdef DEBUGGING
             cout << "Query IShape intersects Shape? " << b << endl;
 #endif
           }
         } else { // ContainmentQuery
           if (qs != NULL) {
             b = qs->containsShape(*childShape);
-#ifdef DEBUG
+#ifdef DEBUGGING
             cout << "Query GEOSShape contains Shape? " << b << endl;
 #endif
           } else {
             b = query->containsShape(*childShape);
-#ifdef DEBUG
+#ifdef DEBUGGING
             cout << "Query GEOSShape contains Shape? " << b << endl;
 #endif
           }
@@ -230,8 +230,8 @@ void IncrementalRangeStrategy::getNextEntry(const IEntry& entry, id_type& nextEn
             delete e;
           }
           result = *(atom_t*)data;
-#ifdef DEBUG
-          cout << "result str" << (char*)result << endl;
+#ifdef DEBUGGING
+          cout << "result atom " << result << " str " << (char*)PlTerm(PlAtom(result)) << endl;
 #endif
           result_found = true;
           hasNext = false; // We stop looking for other results (incremental behavior).
@@ -291,7 +291,7 @@ IncrementalNearestNeighborStrategy::IncrementalNearestNeighborStrategy(IShape* q
 
 void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_type& nextEntry, bool& hasNext) {
   result_found = false;
-#ifdef DEBUG
+#ifdef DEBUGGING
   cout << "visiting node " << entry.getIdentifier() << endl;
 #endif
 
@@ -313,27 +313,27 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
     if (!queue.empty()) {
       const INode* n = dynamic_cast<const INode*>(&entry);
       const NNEntry* e = queue.top();
-#ifdef DEBUG
+#ifdef DEBUGGING
       cout << "taking " << e->m_id << " from the queue" << endl;
 #endif
       if (e->m_pEntry == NULL) {
         // only pop the queue when we're searching for data
         // when data has been reached, don't pop.
-#ifdef DEBUG
+#ifdef DEBUGGING
         cout << "pop " << queue.top()->m_id << ", new top is ";
 #endif
         queue.pop();
-#ifdef DEBUG
+#ifdef DEBUGGING
         cout << queue.top()->m_id << endl;
 #endif
       }
 
       if (n->isLeaf() || e->m_pEntry != NULL) { // leaf node or data
-#ifdef DEBUG
+#ifdef DEBUGGING
         cout << "leaf\n";
 #endif
         if (e->m_pEntry != NULL) { // data
-#ifdef DEBUG
+#ifdef DEBUGGING
           cout << "leaf data\n";
 #endif
           // If we got an IVisitor, use it to report the result.
@@ -344,8 +344,8 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
           uint32_t length;
           (dynamic_cast<const IData&>(*(queue.top()->m_pEntry))).getData(length,&data);
           result = *(atom_t*)data;
-#ifdef DEBUG          
-          cout << "result str" << (char*)result << endl;
+#ifdef DEBUGGING          
+          cout << "result atom " << result << " str " << (char*)PlTerm(PlAtom(result)) << endl;
 #endif
           result_found = true;
           hasNext = false; // We stop looking for other results (incremental behavior).
@@ -355,7 +355,7 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
           nextEntry = queue.top()->m_id;
           return; // Stop looking for more matches.
         } else { // leaf node
-#ifdef DEBUG
+#ifdef DEBUGGING
           cout << "leaf node\n";
 #endif
           for (uint32_t cChild = 0; cChild < n->getChildrenCount(); cChild++) {
@@ -371,23 +371,23 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
             id_type childIdentifier = n->getChildIdentifier(cChild);
             RTree::Data* e = new RTree::Data(length, data, childMBR ,childIdentifier);
             if (dist > queue.top()->m_minDist) {
-#ifdef DEBUG
+#ifdef DEBUGGING
               cout << "dist > mindist (Shape)\n";
 #endif
               // we push the actual shape of the object on the queue,
               // because there are already objects in the queue that are closer than the MBR.
               double shapeDist = nnc.getMinimumDistance(*query,*childShape);
               queue.push(new NNEntry(childId, e, shapeDist));
-#ifdef DEBUG
+#ifdef DEBUGGING
               cout << "push " << childIdentifier << " with shape" << endl;
 #endif
             } else {
-#ifdef DEBUG
+#ifdef DEBUGGING
               cout << "dist <= mindist (MBR)\n";
 #endif
               // we push the MBR on the queue
               queue.push(new NNEntry(childId, e, dist));
-#ifdef DEBUG
+#ifdef DEBUGGING
               cout << "push " << childId << " with MBR" << endl;
 #endif
             }
@@ -395,7 +395,7 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
         }
         hasNext = true; // continue searching until we hit data
       } else { // index node
-#ifdef DEBUG
+#ifdef DEBUGGING
         cout << "index node\n";
 #endif
         for (uint32_t cChild = 0; cChild < n->getChildrenCount() ; cChild++) {
@@ -406,7 +406,7 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
           delete childShape;
           double dist = nnc.getMinimumDistance(*query,childMBR);
           queue.push(new NNEntry(n->getChildIdentifier(cChild),NULL,dist));
-#ifdef DEBUG
+#ifdef DEBUGGING
           cout << "push " << n->getChildIdentifier(cChild) << endl;
 #endif
         }
@@ -423,12 +423,12 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
   // This takes care that the nextEntry is never data,
   // to circumvent the readNode call in the queryStrategy method.
   if (queue.top()->m_pEntry != NULL) {
-#ifdef DEBUG
+#ifdef DEBUGGING
     cout << "next is data, setting entry to NULL" << endl;
 #endif
     nextEntry = 0; // really? FIXME
   } else {
-#ifdef DEBUG
+#ifdef DEBUGGING
     cout << "next is " << queue.top()->m_id << endl;
 #endif
     nextEntry = queue.top()->m_id;

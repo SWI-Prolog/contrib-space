@@ -63,7 +63,7 @@ map<atom_t,Index*> index_map;
 rwlock index_map_lock;
 
 static void index_clear(PlTerm indexname) {
-  #ifdef DEBUG
+  #ifdef DEBUGGING
   cout << "clearing " << (char*)indexname << endl;
   #endif
   if ( index_map_lock.writer != -1 ) INIT_LOCK(&index_map_lock);
@@ -96,14 +96,14 @@ static RTreeIndex* assert_rtree_index(PlTerm indexname, double util, int nodesz)
   if (iter != index_map.end()) {
     rv = dynamic_cast<RTreeIndex*>(iter->second);
   } else {
-  #ifdef DEBUG
+  #ifdef DEBUGGING
     cout << "did not find " << (char*)indexname << " creating new empty index" << endl;
   #endif
     rv = new RTreeIndex(indexname,util,nodesz);  
     if (index_map.size() == 0) {
       init_geos();
     }
-  index_map[idx_atom.handle] = rv;
+    index_map[idx_atom.handle] = rv;
   }
   WRUNLOCK(&index_map_lock);
   return rv;
@@ -121,7 +121,7 @@ static RTreeIndex* assert_rtree_index(PlTerm indexname) {
   if (iter != index_map.end()) {
     rv = dynamic_cast<RTreeIndex*>(iter->second);
   } else {
-  #ifdef DEBUG
+  #ifdef DEBUGGING
     cout << "did not find " << (char*)indexname << " creating new empty index" << endl;
   #endif
     rv = new RTreeIndex(indexname);  
@@ -137,7 +137,7 @@ static RTreeIndex* assert_rtree_index(PlTerm indexname) {
 
 PREDICATE(rtree_clear,1)
 {
-  #ifdef DEBUG
+  #ifdef DEBUGGING
   cout << "clearing " << (char*)A1 << endl;
   #endif
   index_clear(A1);
@@ -149,7 +149,7 @@ PREDICATE(rtree_clear,1)
 // indexname, uri, shape
 PREDICATE(rtree_insert_object,3)
 {
-  #ifdef DEBUG
+  #ifdef DEBUGGING
   cout << "inserting object " << (char*)A2 << " into " << (char*)A1 << endl;
   #endif
   RTreeIndex* idx = dynamic_cast<RTreeIndex*> (assert_rtree_index(A1));
@@ -159,7 +159,7 @@ PREDICATE(rtree_insert_object,3)
 // index_name, candidate generating Prolog goal (of shape somepred(URI,Shape)), dimensionality
 PREDICATE(rtree_bulkload,3)
 {
-  #ifdef DEBUG
+  #ifdef DEBUGGING
   cout << "bulk loading of objects into " << (char*)A1 << endl;
   #endif
   RTreeIndex *idx = dynamic_cast<RTreeIndex*> (assert_rtree_index(A1));
@@ -170,7 +170,7 @@ PREDICATE(rtree_bulkload,3)
 
 PREDICATE(rtree_insert_list,2)
 {
-  #ifdef DEBUG
+  #ifdef DEBUGGING
   cout << "inserting list of objects into " << (char*)A1 << endl;
   #endif
   PlTerm list = PL_copy_term_ref((term_t)A2);
@@ -192,7 +192,7 @@ PREDICATE(rtree_insert_list,2)
 
 PREDICATE(rtree_delete_object,3)
 {
-  #ifdef DEBUG
+  #ifdef DEBUGGING
   cout << "deleting object " << (char*)A2 << " from " << (char*)A1 << endl;
   #endif
   RTreeIndex *idx = dynamic_cast<RTreeIndex*> (assert_rtree_index(A1));
@@ -202,7 +202,7 @@ PREDICATE(rtree_delete_object,3)
 
 PREDICATE(rtree_delete_list,2)
 {
-  #ifdef DEBUG
+  #ifdef DEBUGGING
   cout << "deleting list of objects from " << (char*)A1 << endl;
   #endif
   PlTerm list = PL_copy_term_ref((term_t)A2);

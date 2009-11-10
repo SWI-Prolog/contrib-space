@@ -94,7 +94,7 @@ public:
       id_type id = index->get_uri_id(uri_term); // FIXME: PlAtom argument
       if (id == -1) id = index->get_new_id(uri_term);
       index->storeShape(id,s);
-#ifdef DEBUG
+#ifdef DEBUGGING
       cout << "uri " << (char*)uri_term << " atom " << uri_atom.handle << " shape " << r << " id " << id << endl;
 #endif
        rv = new RTree::Data(sizeof(uri_atom.handle), (byte*)&uri_atom.handle, r, id);
@@ -136,12 +136,14 @@ public:
 RTreeIndex::RTreeIndex(PlTerm indexname) :  storage(MEMORY), distance_function(PYTHAGOREAN), baseName(indexname), utilization(0.7), nodesize(4),  storage_manager(NULL), buffer(NULL), tree(NULL) { 
   bulkload_tmp_id_cnt = -1;
   INIT_LOCK(&lock);
+  PL_register_atom(PlAtom(indexname).handle);
 }
 
 RTreeIndex::RTreeIndex(PlTerm indexname, double util, int nodesz) : storage(MEMORY), distance_function(PYTHAGOREAN), baseName(indexname), storage_manager(NULL), buffer(NULL), tree(NULL) {
   utilization = util;
   nodesize = nodesz;
   bulkload_tmp_id_cnt = -1;
+  PL_register_atom(PlAtom(indexname).handle);
   INIT_LOCK(&lock);
 }
 
@@ -151,6 +153,7 @@ RTreeIndex::~RTreeIndex() {
     return;
   }
   this->clear_tree();
+  PL_unregister_atom(PlAtom(baseName).handle);
   WRUNLOCK(&lock);
 }
 
@@ -331,7 +334,7 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
     }
     //  return new Point(point,shape_term.arity());
     GEOSPoint *p = new GEOSPoint(point,shape_term.arity()); // testing GEOS points
-    #ifdef DEBUG
+    #ifdef DEBUGGING
     cout << "made point " << p << endl;
     #endif
     return p;
@@ -432,7 +435,6 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
       holes->push_back(hlr);
     }
     geos::geom::Polygon *p = global_factory->createPolygon(lr,holes);
-    p->normalize();
     GEOSPolygon *poly = new GEOSPolygon(*p);
     delete p;
     delete cl;
@@ -440,7 +442,7 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
 
   } else if (shape_term.name() == ATOM_box) {
 
-    #ifdef DEBUG
+    #ifdef DEBUGGING
     cout << "reading box" << endl;
     #endif
     if (shape_term.arity() != 2) {
@@ -494,7 +496,6 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
   }
   return NULL;
 }
-
 
 bool RTreeIndex::insert_single_object(PlTerm uri,PlTerm shape_term) {
   IShape *shape;
