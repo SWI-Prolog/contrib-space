@@ -121,16 +121,22 @@ georss_uri_shape_triple(URI, Shape, URI, P, O) :-
 	    ;	var(Shape)
 	    )
 	->  georss_simple_candidate(URI,Shape)
+	;   true
 	),
 	georss_simple_predicate(Shape, P),
 	georss_simple_literal(Shape, O).
 
-term_expansion(georss_simple_predicate(S,P),georss_simple_predicate(S,P2)) :- rdf_global_id(P,P2).
-
-georss_simple_predicate(point(_),georss:point).
-georss_simple_predicate(linestring(_),georss:line).
-georss_simple_predicate(linearring(_),georss:line).
-georss_simple_predicate(polygon(_),georss:polygon).
+georss_simple_predicate(S,P) :-
+	functor(S,point,1),
+	rdf_global_id(georss:point,P).
+georss_simple_predicate(S,P) :-
+	(   functor(S,linestring,1)
+	;   functor(S,linearring,1)
+	), !,
+	rdf_global_id(georss:line,P).
+georss_simple_predicate(S,P) :-
+	functor(S,polygon,1),
+	rdf_global_id(georss:polygon,P).
 
 number_atom(N,A) :- atom_number(A,N).
 
