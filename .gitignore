@@ -16,3 +16,5 @@ configure
 config.h
 config.status
 autom4te.cache
+space.html
+space.pdf
