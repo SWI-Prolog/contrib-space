@@ -102,7 +102,7 @@ public:
     WRUNLOCK(&index->lock);
     return rv;
   }
-  virtual bool hasNext() throw (NotSupportedException)
+  virtual bool hasNext() throw (Tools::NotSupportedException)
   {
     if (cached) return true;
     if (PL_next_solution(q)) {
@@ -113,13 +113,13 @@ public:
     return false;
   }
   
-  virtual uint32_t size() throw (NotSupportedException)
+  virtual uint32_t size() throw (Tools::NotSupportedException)
   {
-    throw NotSupportedException("Operation not supported.");
+    throw Tools::NotSupportedException("Operation not supported.");
     return 0;
   }
   
-  virtual void rewind() throw (NotSupportedException)  
+  virtual void rewind() throw (Tools::NotSupportedException)  
   {
     cerr << "rewinding a RTreePrologStream does nothing" << endl;
     //    throw NotSupportedException("Operation not supported.");
