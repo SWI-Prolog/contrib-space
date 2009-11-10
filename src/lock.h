@@ -29,7 +29,8 @@
 #include <config.h>
 #endif
 
-extern "C" {
+extern "C"
+{
 
 #ifdef __WINDOWS__
 #include <windows.h>
@@ -67,6 +68,7 @@ typedef struct rwlock
   int			waiting_readers;
   int			waiting_writers;
   int			waiting_upgrade;
+  size_t		thread_max;
   int		       *read_by_thread;
   int			allow_readers;
   int			lock_level;	/* recursive locks */
