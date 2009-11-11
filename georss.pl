@@ -40,6 +40,7 @@
 :- use_module(gml).
 
 :- rdf_register_ns(georss,'http://www.georss.org/georss/').
+:- rdf_register_ns(foaf,'http://xmlns.com/foaf/0.1/').
 
 %%	georss_candidate(?URI,?Shape) is nondet.
 %
@@ -174,12 +175,18 @@ georss_gml_candidate(URI, Shape) :-
 	georss_gml_candidate(URI, Shape, _).
 
 georss_gml_candidate(URI, Shape, Source) :-
-	(   rdf(URI, georss:where, literal(type(_,GML)), Source)
-	;   rdf(URI, georss:where, literal(GML), Source)
-	;   rdf(URI, georss:where, GML, Source)
-	),
+        (   rdf_global_id(georss:where, P)
+        ;   rdf_global_id(foaf:based_near, P)
+        ),
+        georss_gml_triple(URI, P, GML),
+        atom(GML),
 	gml_shape(GML, Shape).
 
+georss_gml_triple(URI,Property,GML) :-
+	(   rdf(URI, Property, literal(type(_,GML)), Source), !
+	;   rdf(URI, Property, literal(GML), Source), !
+	;   rdf(URI, Property, GML, Source)
+	).
 
 poslist(T) --> blank_star, poslist_plus(T), blank_star, !.
 poslist_plus([H|T]) --> pos(H), poslist_star(T).
