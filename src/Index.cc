@@ -269,6 +269,7 @@ void RTreeIndex::create_tree(uint32_t dimensionality, double util, int nodesz) {
     cerr << __FUNCTION__ << " could not acquire write lock" << endl;
     return;
   }
+  if (tree != NULL) clear_tree();
   utilization = util;
   nodesize = nodesz;
   PlTerm bnt(baseName);
@@ -301,6 +302,7 @@ RTreeIndex::bulk_load(PlTerm goal,uint32_t dimensionality) {
     cerr << __FUNCTION__ << " could not acquire write lock" << endl;
     return false;
   }
+  if (tree != NULL) clear_tree();
   if (storage == MEMORY) {
     storage_manager = StorageManager::createNewMemoryStorageManager();
   } else if (storage == DISK) {

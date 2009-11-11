@@ -362,7 +362,7 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
             id_type childId = n->getChildIdentifier(cChild); // for fetching the ACTUAL shape, not MBR from the ID-Shape map
             IShape* childShape = index->getShape(childId);
             double dist = nnc.getMinimumDistance(*query,*childShape);
-
+            // FIXME: insert Haversine support
             Region childMBR;
             childShape->getMBR(childMBR);
             uint32_t length;
@@ -377,6 +377,7 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
               // we push the actual shape of the object on the queue,
               // because there are already objects in the queue that are closer than the MBR.
               double shapeDist = nnc.getMinimumDistance(*query,*childShape);
+              // FIXME: insert Haversine support
               queue.push(new NNEntry(childId, e, shapeDist));
 #ifdef DEBUGGING
               cout << "push " << childIdentifier << " with shape" << endl;
@@ -405,6 +406,7 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
           childShape->getMBR(childMBR);
           delete childShape;
           double dist = nnc.getMinimumDistance(*query,childMBR);
+          // FIXME: insert Haversine support
           queue.push(new NNEntry(n->getChildIdentifier(cChild),NULL,dist));
 #ifdef DEBUGGING
           cout << "push " << n->getChildIdentifier(cChild) << endl;

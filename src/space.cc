@@ -134,6 +134,39 @@ static RTreeIndex* assert_rtree_index(PlTerm indexname) {
   return rv;
 }
 
+PREDICATE(rtree_set_space,2)
+{
+#ifdef DEBUGGING
+  cout << "setting " << (char*)A2 << " parameter of " << (char*)A1 << endl;
+#endif
+  RTreeIndex* idx = dynamic_cast<RTreeIndex*>(assert_rtree_index(A1));
+  if (A2.name() == ATOM_rtree_utilization) {
+    idx->utilization = (double)A2[1];
+  } else if (A2.name() == ATOM_rtree_nodesize) {
+    idx->nodesize = (int)A2[1];
+  } else if (A2.name() == ATOM_rtree_storage) {
+    if (A2[1].name() == ATOM_memory) {
+      idx->storage = MEMORY;
+    } else if (A2[1].name() == ATOM_disk) {
+      idx->storage = DISK;
+    } else {
+      throw PlDomainError("space_option",A2);
+    }
+  } else if (A2.name() == ATOM_rtree_distance_function) {
+    if (idx == NULL) PL_fail;
+    if (A2[1].name() == ATOM_pythagorean) {
+      idx->distance_function = PYTHAGOREAN;
+    } else if (A2[1].name() == ATOM_haversine) {
+      idx->distance_function = HAVERSINE;
+    } else {
+      throw PlDomainError("space_option",A2);
+    }
+  } else {
+    throw PlDomainError("space_option",A2);
+  }
+  PL_succeed;
+}
+
 
 PREDICATE(rtree_clear,1)
 {

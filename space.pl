@@ -29,7 +29,9 @@
 
 :- module(space,
           [
-
+           set_space/1,               % +Option
+           set_space/2,               % +IndexName, +Option
+           
 	   space_index_all/1,         % +IndexNames
 	   space_index_all/0,         % uses default index
 
@@ -87,17 +89,31 @@
 
 
 %% configuration
-:- dynamic space_setting_aux/1.
-space_setting_aux(rtree_utilization(0.7)).
-space_setting_aux(rtree_nodesize(4)).
-space_setting_aux(rtree_default_index('space_index')).
 
-%:- set_space(myspace, rtree_utilization(0.8)).
-%:- space_bulkload(myindex, uri_shape).
+:- dynamic space_setting_aux/1.
+space_setting_aux(rtree_default_index(space_index)).
 
 % foreign language predicate:
-%set_space(IndexName,Option) :-
+% set_space(IndexName,Option)
 
+%%       set_space(+Option) is det.
+%%       set_space(+IndexName,+Option) is det.
+%
+%        This predicate can be used to change the options of
+%        a spatial index (or de default index for set_space/1).
+%        Some options, like rtree_storage(S) where S is disk or memory
+%        only have effect after clearing or bulkloading.
+%        Others, take effect immediately on a running index.
+%        More documentation will be provided in the near future.
+
+set_space(Option) :-
+        space_setting(rtree_default_index(I)),
+        rtree_set_space(I, Option).
+
+set_space(I, Option) :-
+        rtree_set_space(I, Option).
+
+/* 
 set_space(Option) :-
         functor(Option,Name,1),
         functor(Term,Name,1),
@@ -105,7 +121,9 @@ set_space(Option) :-
                    (   retractall(space_setting_aux(Term)),
                        assert(space_setting_aux(Option))
                    )).
+*/
 
+% FIXME: make bidirectional for settings stored in C++
 space_setting(Option) :-
         with_mutex(space_mutex,space_setting_aux(Option)).
 
@@ -209,7 +227,7 @@ space_bulkload(Functor,IndexName) :-
         once(call(Functor, _Uri, Shape)),
         dimensionality(Shape,Dimensionality),
 	must_be(between(1,3), Dimensionality),
-	space_clear(IndexName),
+%	space_clear(IndexName),  % FIXME: is this ok to skip?
         rtree_bulkload(IndexName,Functor,Dimensionality).
 
 %%	space_contains(+Shape,?Cont,+IndexName) is nondet.
