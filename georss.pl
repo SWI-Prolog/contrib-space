@@ -50,7 +50,8 @@
 %	Both GeoRSS Simple and GML are supported.
 
 georss_candidate(URI, Shape) :-
-	georss_simple_candidate(URI, Shape) ;
+	georss_simple_candidate(URI, Shape).
+georss_candidate(URI, Shape) :-
 	georss_gml_candidate(URI, Shape).
 
 %%	georss_candidate(?URI,?Shape,+Source) is nondet.
@@ -59,9 +60,10 @@ georss_candidate(URI, Shape) :-
 %	that was loaded from a certain Source.
 
 georss_candidate(URI, Shape, Source) :-
-	(   georss_simple_candidate(URI, Shape, Source)
-	;   georss_gml_candidate(URI, Shape, Source)
-	).
+	georss_simple_candidate(URI, Shape, Source).
+georss_candidate(URI, Shape, Source) :-
+	georss_gml_candidate(URI, Shape, Source).
+
 
 %
 % GeoRSS Simple
@@ -75,31 +77,21 @@ georss_candidate(URI, Shape, Source) :-
 georss_simple_candidate(URI, Shape) :-
 	georss_simple_candidate(URI, Shape, _).
 
-georss_simple_candidate(URI, Shape, Source) :-
-	(   rdf(URI, georss:point, PointStringLit, Source),
-	    parse_poslist_literal(PointStringLit,[Point]),
-	    Shape = Point
-	)
-	;
-	(   rdf(URI, georss:line, LineStringLit, Source),
-	    parse_poslist_literal(LineStringLit,Line),
-	    Shape = linestring(Line)
-	)
-	;
-	(   rdf(URI, georss:polygon, LineStringLit, Source),
-	    parse_poslist_literal(LineStringLit,Line),
-	    Shape = polygon([Line])
-	)
-	;
-	(   rdf(URI, georss:box, LineStringLit, Source),
-	    parse_poslist_literal(LineStringLit,Line),
-	    Shape = box(Line)
-	)
-	;
-	(   rdf(URI, georss:circle, CenterRadiusLit, Source),
-	    parse_circle_literal(CenterRadiusLit,Circle),
-	    Shape = Circle
-	).
+georss_simple_candidate(URI, Point, Source) :-
+	rdf(URI, georss:point, PointStringLit, Source),
+	parse_poslist_literal(PointStringLit,[Point]).
+georss_simple_candidate(URI, linestring(Line), Source) :-
+	rdf(URI, georss:line, LineStringLit, Source),
+	parse_poslist_literal(LineStringLit,Line).
+georss_simple_candidate(URI, polygon([Line]), Source) :-
+	rdf(URI, georss:polygon, LineStringLit, Source),
+	parse_poslist_literal(LineStringLit,Line).
+georss_simple_candidate(URI, box(Line), Source) :-
+	rdf(URI, georss:box, LineStringLit, Source),
+	parse_poslist_literal(LineStringLit,Line).
+georss_simple_candidate(URI, Circle, Source) :-
+	rdf(URI, georss:circle, CenterRadiusLit, Source),
+	parse_circle_literal(CenterRadiusLit,Circle).
 
 parse_poslist_literal(literal(Lit), Shape) :-
 	atom_codes(Lit,LSC),
@@ -124,42 +116,31 @@ georss_uri_shape_triple(URI, Shape, URI, P, O) :-
 	->  georss_simple_candidate(URI,Shape)
 	;   true
 	),
-	georss_simple_predicate(Shape, P),
+	functor(Shape,GeomType,_),
+	georss_simple_predicate(GeomType, P),
 	georss_simple_literal(Shape, O).
 
-georss_simple_predicate(S,P) :-
-	functor(S,point,1),
-	rdf_global_id(georss:point,P).
-georss_simple_predicate(S,P) :-
-	(   functor(S,linestring,1)
-	;   functor(S,linearring,1)
-	), !,
-	rdf_global_id(georss:line,P).
-georss_simple_predicate(S,P) :-
-	functor(S,polygon,1),
-	rdf_global_id(georss:polygon,P).
+georss_simple_predicate(point,P) :- rdf_equal(georss:point,P).
+georss_simple_predicate(linestring,P) :- rdf_equal(georss:line,P).
+georss_simple_predicate(linearring,P) :- rdf_equal(georss:line,P).
+georss_simple_predicate(polygon,P) :- rdf_equal(georss:polygon,P).
 
-number_atom(N,A) :- atom_number(A,N).
+georss_simple_literal(X, literal(L)) :-
+	phrase(coordinates(X), Atomics),
+	atomic_list_concat(Atomics, ' ', L).
 
-georss_simple_literal_aux(T,L) :-
-	T =.. [point | Coords],
-	maplist(number_atom, Coords, Atoms),
-	atomic_list_concat(Atoms, ' ', L).
+coordinates(polygon([Coords|_])) --> !, point_list(Coords).
+coordinates(linestring(Coords)) --> !, point_list(Coords).
+coordinates(linearing(Coords)) --> !, point_list(Coords).
+coordinates(Point) --> point(Point).
 
-georss_simple_literal(T,literal(L)) :-
-	georss_simple_literal_aux(T,L).
+point_list([]) --> [].
+point_list([H|T]) -->
+	point(H), point_list(T).
 
-georss_simple_literal(linestring(Coords),literal(L)) :-
-	maplist(number_atom, Coords, Atoms),
-	atomic_list_concat(Atoms, ' ', L).
-
-georss_simple_literal(linearring(Coords),literal(L)) :-
-	maplist(georss_simple_literal_aux, Coords, Atoms),
-	atomic_list_concat(Atoms, ' ', L).
-
-georss_simple_literal(polygon([Coords|_]),L) :-
-	georss_simple_literal(linearring(Coords),L).
-
+point(Point) -->
+	{ Point =.. [ point | List ] },
+	List.
 
 %
 % GeoRSS GML
@@ -175,18 +156,18 @@ georss_gml_candidate(URI, Shape) :-
 	georss_gml_candidate(URI, Shape, _).
 
 georss_gml_candidate(URI, Shape, Source) :-
-        (   rdf_global_id(georss:where, P)
-        ;   rdf_global_id(foaf:based_near, P)
+        (   rdf_equal(georss:where, P)
+        ;   rdf_equal(foaf:based_near, P)
         ),
-        georss_gml_triple(URI, P, GML),
-        atom(GML),
+        georss_gml_triple(URI, P, GML, Source),
 	gml_shape(GML, Shape).
 
-georss_gml_triple(URI,Property,GML) :-
-	(   rdf(URI, Property, literal(type(_,GML)), Source), !
-	;   rdf(URI, Property, literal(GML), Source), !
-	;   rdf(URI, Property, GML, Source)
-	).
+georss_gml_triple(URI, Property, GML, Source) :-
+	rdf(URI, Property, Lit, Source),
+	gml_literal(Lit, GML).
+
+gml_literal(literal(type(_,GML)),GML) :- !.
+gml_literal(literal(GML),GML).
 
 poslist(T) --> blank_star, poslist_plus(T), blank_star, !.
 poslist_plus([H|T]) --> pos(H), poslist_star(T).
