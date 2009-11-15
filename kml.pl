@@ -220,11 +220,13 @@ placemark_term(placemark(Geom), A, C, T) :-
 placemark_term(placemark(Geom, Attributes, Content), _A, _C, T) :-
 	(   member(geom_attributes(_), Attributes)
 	->  select(geom_attributes(GeomAttr), Attributes, PMAttr)
-	;   GeomAttr = []
+	;   GeomAttr = [],
+            PMAttr = Attributes
 	),
 	(   member(geom_content(_), Content)
 	->  select(geom_content(GeomCont), Content, PMCont)
-	;   GeomCont = []
+	;   GeomCont = [],
+            PMCont = Content
 	),
 	construct_term(Geom, GeomAttr, GeomCont, GT),
 	T = 'Placemark'(PMAttr, [ GT | PMCont ]), !.
