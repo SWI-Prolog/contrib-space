@@ -55,7 +55,7 @@ space_load_url(URL) :-
 		   nb_setarg(1, Counter, N)
 	       )),
 	arg(1, Counter, C),
-	space:rtree_default_index(IndexName),
+	space:space_setting(rtree_default_index(IndexName)),
 	print_message(informational,space_load_url(C,IndexName)).
 
 %%	space_load_url(+URL,+IndexName) is det.
@@ -89,7 +89,7 @@ space_unload_url(URL) :-
 		   nb_setarg(1, Counter, N)
 	       )),
 	arg(1, Counter, C),
-	space:rtree_default_index(IndexName),
+	space:space_setting(rtree_default_index(IndexName)),
 	print_message(informational,space_unload_url(C,IndexName)),
 	rdf_unload(URL).
 
