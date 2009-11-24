@@ -76,8 +76,11 @@ kml_shape(KML, Geom, Attributes, Content) :-
 %	Converts between the KML serialization of a URI-shape pair and its
 %	internal Prolog term representation.
 %	It is assumed the KML Geometry element has a ID attribute
-%       specifying the URI of the shape.
-%	e.g. <Point ID="http://example.org/point1"><coordinates>52.37,4.89</coordinates></Point>
+%       specifying the URI of the shape. e.g.
+%
+%	    ==
+%	    <PointID="http://example.org/point1"><coordinates>52.37,4.89</coordinates></Point>
+%	    ==
 
 kml_uri_shape(KML, URI, Shape) :-
 	(   nonvar(KML)
