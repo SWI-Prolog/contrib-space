@@ -425,10 +425,6 @@ kml_save_header(Stream,Options) :-
 	).
 
 
-% FIXME: update documentation below to suit this:
-%
-% kml_save_shape(Str,placemark(Shape,Attr,Cont),Options)
-
 %%	kml_save_shape(+Stream,+Shape,+Options) is semidet.
 %
 %	Outputs a KML serialization of Shape to Stream.
@@ -440,6 +436,29 @@ kml_save_header(Stream,Options) :-
 %	attr(+List) or content(+List) that can be used to add
 %	additional attributes or xml element content to a shape.
 %	This can be used to specify things like the ID or name.
+%
+%	Layout elements, like Placemark and Folder, have their
+%       own separate extra attributes to supply additional
+%       attributes and content.
+%       These can contain the special terms geom_attributes and
+%	geom_content that pass their content to the shape contained by
+%	the Placemark.
+%       For example, rendering a Placemark with the ID
+%	"placemark12" of an extruded Point shape with its URI as name of
+%	the Placemark and as ID of the shape and an additional styleUrl
+%	works as follows:
+%
+%       ==
+%       kml_save_shape(Stream,
+%                      placemark(point(53.0,3.9),
+%				 [ id(placemark12),
+%				   geom_attributes([ id(URI) ])
+%                                ],
+%                                [ name(URI),styleUrl(URI),
+%				   geom_content([ extrude(1) ])
+%                                ]),
+%                      []).
+%	==
 
 kml_save_shape(Stream,Shape,Options) :-
 	option(attr(Attributes),Options,[]),

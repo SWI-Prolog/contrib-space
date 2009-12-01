@@ -26,7 +26,9 @@
 \begin{abstract}
 SWI-Prolog interface to Spatial Index and GEOS libraries, providing spatial
 indexing of URI's. Supports import and export to GML, KML, and RDF with GeoRSS
-Simple, GeoRSS GML, and W3C WGS84 vocabulary properties.
+Simple, GeoRSS GML, and W3C WGS84 vocabulary properties.\\
+\\
+{\bf Nota bene} that the spatialindex and GEOS C++ libraries have to be installed separately for this module to work.
 \end{abstract}
 
 \pagebreak
