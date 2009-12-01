@@ -31,7 +31,7 @@
           [
            set_space/1,               % +Option
            set_space/2,               % +IndexName, +Option
-           
+
 	   space_index_all/1,         % +IndexNames
 	   space_index_all/0,         % uses default index
 
@@ -74,6 +74,7 @@
 :- use_module(kml).
 :- use_module(georss). % also GML support
 :- use_module(wgs84).
+:- use_module(freebase).
 :- use_module(library(error)).
 :- use_module(library(shlib)).
 
@@ -113,7 +114,7 @@ set_space(Option) :-
 set_space(I, Option) :-
         rtree_set_space(I, Option).
 
-/* 
+/*
 set_space(Option) :-
         functor(Option,Name,1),
         functor(Term,Name,1),
@@ -330,8 +331,11 @@ space_display_mbrs(IndexName) :-
 %	has to be a canonical URI, not a QName.
 
 uri_shape(URI,Shape) :-
-	georss_candidate(URI,Shape) ;
+	georss_candidate(URI,Shape).
+uri_shape(URI,Shape) :-
 	wgs84_candidate(URI,Shape).
+uri_shape(URI,Shape) :-
+	freebase_candidate(URI,Shape).
 
 %%	uri_shape(?URI,?Shape,+Source) is nondet.
 %
@@ -339,9 +343,11 @@ uri_shape(URI,Shape) :-
 %	uri_shape/2 from RDF that was loaded from a given Source.
 
 uri_shape(URI,Shape,Source) :-
-	georss_candidate(URI,Shape,Source) ;
+	georss_candidate(URI,Shape,Source).
+uri_shape(URI,Shape,Source) :-
 	wgs84_candidate(URI,Shape,Source).
-
+uri_shape(URI,Shape,Source) :-
+	freebase_candidate(URI,Shape,Source).
 
 % allows you to use namespaces in the URI argument when using it to find pairs.
 :- rdf_meta(uri_shape(r,?)).

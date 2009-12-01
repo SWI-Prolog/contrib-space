@@ -217,6 +217,7 @@ multigeometry_term_aux([Geom|Geoms], [T|Ts]) :-
 	construct_term(Geom, [], [], T),
 	multigeometry_term_aux(Geoms, Ts).
 
+% FIXME: prehaps switch around [],[] and A,C?
 placemark_term(placemark(Geom), A, C, T) :-
 	placemark_term(placemark(Geom, [], []), A, C, T).
 
@@ -424,6 +425,10 @@ kml_save_header(Stream,Options) :-
 	).
 
 
+% FIXME: update documentation below to suit this:
+%
+% kml_save_shape(Str,placemark(Shape,Attr,Cont),Options)
+
 %%	kml_save_shape(+Stream,+Shape,+Options) is semidet.
 %
 %	Outputs a KML serialization of Shape to Stream.
@@ -433,9 +438,8 @@ kml_save_header(Stream,Options) :-
 %
 %	Options is an option list that can contain the option
 %	attr(+List) or content(+List) that can be used to add
-%	additional attributes or xml element content to the placemark.
-%	This can be used to specify things like the ID, name, or
-%	styleUrl of the placemark element.
+%	additional attributes or xml element content to a shape.
+%	This can be used to specify things like the ID or name.
 
 kml_save_shape(Stream,Shape,Options) :-
 	option(attr(Attributes),Options,[]),
