@@ -66,7 +66,7 @@ kml_shape(KML, Geom, Attributes, Content) :-
 					  xmlns('http://www.opengis.net/kml/2.2'),
 					  xmlns(kml, 'http://www.opengis.net/kml/2.2')
 					]),
-			 free_data(Stream, Memfile)),
+			 free_data(Stream, Memfile)), !,
 	    transform_kml(XML, Geom, Attributes, Content)
 	;   construct_kml(KML, Geom, Attributes, Content)
 	).
@@ -112,8 +112,6 @@ kml_file_shape(File, Geom, Attributes, Content) :-
 	kml_shape(KML, Geom, Attributes, Content).
 
 
-% FIXME: only returns one result
-
 %%	kml_file_uri_shape(+File,?URI,?Shape) is semidet.
 %
 %	Reads URI-shape pairs from File using kml_uri_shape/2.
@@ -131,9 +129,11 @@ get_uri_shape(folder([H|T]), URI, Shape) :-
 get_uri_shape(folder([H|T],_,_), URI, Shape) :-
 	get_uri_shape(H, URI, Shape) ;
 	get_uri_shape(folder(T), URI, Shape).
-get_uri_shape(placemark(Shape,[geom_attributes(GA)],_), URI, Shape) :-
-	memberchk(id=URI, GA) ;
-	memberchk('ID'=URI, GA).
+get_uri_shape(placemark(Shape,Attributes,_),URI,Shape) :-
+	member(geom_attributes(GA),Attributes),
+	(   memberchk(id=URI, GA) ;
+	    memberchk('ID'=URI, GA)
+	), !.
 
 kml_ns(kml, 'http://www.opengis.net/kml/2.2/', _).
 
@@ -300,10 +300,11 @@ transform_kml(Elts, PM, Attributes, Content) :-
 	get_extras(Elts, Attributes, Content),
 	member(PM,PMs).
 
-transform_kml(Elts, PMs, Attributes, Content) :-
+transform_kml(Elts, PM, Attributes, Content) :-
 	member(element(_:'Document',_,PMElts), Elts),
-	transform_kml(PMElts, PMs, _, _),
-	get_extras(Elts, Attributes, Content).
+	get_geometry(PMElts, PMs),
+	get_extras(Elts, Attributes, Content),
+	member(PM,PMs).
 
 transform_kml(Elts, Doc, Attributes, Content) :-
 	member(element(_:'kml',_,PMElts), Elts),
@@ -355,12 +356,12 @@ controlled_kml_term('Folder').
 
 get_extras(Elts, Attributes, Cont) :-
 	get_extras(Elts, IDs, Rests, Cont),
-	append(IDs, Rests, Attributes).
+	append(IDs, Rests, Attributes), !.
 get_extras(Elts, IDAttr, RestAttr, Content) :-
 	member(element(_,_,C), Elts),
 	filter_controlled(C, Content),
 	member(element(_,A,_), Elts),
-	filter_id(A, IDAttr, RestAttr).
+	filter_id(A, IDAttr, RestAttr), !.
 
 filter_controlled([],[]).
 filter_controlled([element(_:H,_A,C)|T], List) :-
