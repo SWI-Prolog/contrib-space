@@ -119,10 +119,12 @@ space_unload_url(URL, IndexName) :-
 
 :- multifile prolog:message//1.
 
+prolog:message(space_load_url(0,_)) -->	[], !.
 prolog:message(space_load_url(C,IndexName)) -->
 	[ 'Added ~w URI-Shape ~w to ~w'-[C, P, IndexName] ],
 	{ plural(C,P) }.
 
+prolog:message(space_unload_url(0,_)) --> [], !.
 prolog:message(space_unload_url(C,IndexName)) -->
 	[ 'Removed ~w URI-Shape ~w from ~w'-[C, P, IndexName] ],
 	{ plural(C,P) }.
@@ -137,45 +139,88 @@ prolog:message(space_uncrawl_url(C)) -->
 	[ 'Uncrawling ~w'-[C] ].
 
 
+%%	link_property(+Property) is det.
+%
+%	RDF properties declared a link_property will be traversed by
+%	space_crawl_url. link_property is a dynamic property.
+%	By default owl:sameAs and skos:exactMatch are link properties.
+
+:- dynamic link_property/1.
+link_property('http://www.w3.org/2002/07/owl#sameAs').
+link_property('http://www.w3.org/2004/02/skos/core#exactMatch').
+link_property('http://www.w3.org/2004/02/skos/core#closeMatch').
+
+%%	space_crawl_url(+URL) is det.
+%
+%	Retrieve RDF over HTTP from a URL, load it in the rdf_db and
+%	index all URI-Shape pairs that can be found in it into the
+%	default index.
+%	Also attempt to resolve all URIs that appear as object in a
+%	link_property statement downloaded from the URL. Retrieve
+%	these URIs and process them in the same way. Iterate this
+%	process until there are no new links that have not already
+%	been crawled.
+
 space_crawl_url(URL) :-
 	with_mutex(message,print_message(informational,space_crawl_url(URL))),
 	space_load_url(URL),
-	findall( NewLink, new_sameas_link(URL:_,NewLink), NewLinks ),
+	findall( NewLink, new_link(URL:_,NewLink,_Type), NewLinks ),
 	forall( member(NL,NewLinks),
 	        thread_create(space_crawl_url(NL),_,[])
 	      ).
 
+%%	space_crawl_url(+URL,+IndexName) is det.
+%
+%	Crawl using space_crawl_url/1, but index the URI-Shape pairs
+%	into index named IndexName.
+
 space_crawl_url(URL,IndexName) :-
 	with_mutex(message,print_message(informational,space_crawl_url(URL))),
 	space_load_url(URL,IndexName),
-	findall( NewLink, new_sameas_link(URL:_,NewLink), NewLinks ),
+	findall( NewLink, new_link(URL:_,NewLink,_Type), NewLinks ),
 	forall( member(NL, NewLinks),
 	        thread_create(space_crawl_url(NL,IndexName),_,[])
 	      ).
 
+%%	space_uncrawl_url(+URL) is det.
+%
+%	Unload the RDF that was fetched from URL and remove all
+%	URI-Shape pairs that are contained in it from the default index.
+%	Also unload all data that were crawled by iteratively resolving
+%	the URIs linked to with a link_property.
+
 space_uncrawl_url(URL) :-
 	with_mutex(message,print_message(informational,space_uncrawl_url(URL))),
-	findall( Link, old_sameas_link(URL:_,Link), Links ),
+	findall( Link, old_link(URL:_,Link,_Type), Links ),
 	space_unload_url(URL),
 	forall( member(L, Links),
 		space_uncrawl_url(L)
 	      ).
 
+%%	space_uncrawl_url(+URL,+IndexName) is det.
+%
+%	Unload using space_uncrawl_url/1, but remove the URI-Shape pairs
+%	from the index named IndexName.
+
 space_uncrawl_url(URL,IndexName) :-
 	with_mutex(message,print_message(informational,space_uncrawl_url(URL))),
-	findall( Link, old_sameas_link(URL:_,Link), Links ),
+	findall( Link, old_link(URL:_,Link,_Type), Links ),
 	space_unload_url(URL,IndexName),
 	forall( member(L, Links),
 		space_uncrawl_url(L,IndexName)
 	      ).
 
-new_sameas_link(FromSource,NewLink) :-
-	rdf(_,owl:sameAs,NewLink,FromSource),
+new_link(FromSource,NewLink,P) :-
+	link_property(P),
+	rdf(_,P,NewLink,FromSource),
 	\+once(rdf(_,_,_,NewLink:_)).
 
-old_sameas_link(FromSource,Link) :-
-	rdf(_,owl:sameAs,Link,FromSource),
+old_link(FromSource,Link,P) :-
+	link_property(P),
+	rdf(_,P,Link,FromSource),
 	once(rdf(_,_,_,Link:_)).
+
+
 
 
 
