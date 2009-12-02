@@ -143,7 +143,8 @@ prolog:message(space_uncrawl_url(C)) -->
 %
 %	RDF properties declared a link_property will be traversed by
 %	space_crawl_url. link_property is a dynamic property.
-%	By default owl:sameAs and skos:exactMatch are link properties.
+%	By default owl:sameAs, skos:exactMatch, and skos:closeMatch are
+%	link properties.
 
 :- dynamic link_property/1.
 link_property('http://www.w3.org/2002/07/owl#sameAs').
