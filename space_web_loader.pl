@@ -31,7 +31,11 @@
           [ space_load_url/1,
 	    space_load_url/2,
             space_unload_url/1,
-            space_unload_url/2
+            space_unload_url/2,
+	    space_crawl_url/1,
+	    space_crawl_url/2,
+            space_uncrawl_url/1,
+            space_uncrawl_url/2
 	  ]).
 
 :- use_module(library(space/space)).
@@ -126,8 +130,52 @@ prolog:message(space_unload_url(C,IndexName)) -->
 plural(1,pair) :- !.
 plural(_,pairs).
 
+prolog:message(space_crawl_url(C)) -->
+	[ 'Crawling ~w'-[C] ].
+
+prolog:message(space_uncrawl_url(C)) -->
+	[ 'Uncrawling ~w'-[C] ].
 
 
+space_crawl_url(URL) :-
+	with_mutex(message,print_message(informational,space_crawl_url(URL))),
+	space_load_url(URL),
+	findall( NewLink, new_sameas_link(URL:_,NewLink), NewLinks ),
+	forall( member(NL,NewLinks),
+	        thread_create(space_crawl_url(NL),_,[])
+	      ).
+
+space_crawl_url(URL,IndexName) :-
+	with_mutex(message,print_message(informational,space_crawl_url(URL))),
+	space_load_url(URL,IndexName),
+	findall( NewLink, new_sameas_link(URL:_,NewLink), NewLinks ),
+	forall( member(NL, NewLinks),
+	        thread_create(space_crawl_url(NL,IndexName),_,[])
+	      ).
+
+space_uncrawl_url(URL) :-
+	with_mutex(message,print_message(informational,space_uncrawl_url(URL))),
+	findall( Link, old_sameas_link(URL:_,Link), Links ),
+	space_unload_url(URL),
+	forall( member(L, Links),
+		space_uncrawl_url(L)
+	      ).
+
+space_uncrawl_url(URL,IndexName) :-
+	with_mutex(message,print_message(informational,space_uncrawl_url(URL))),
+	findall( Link, old_sameas_link(URL:_,Link), Links ),
+	space_unload_url(URL,IndexName),
+	forall( member(L, Links),
+		space_uncrawl_url(L,IndexName)
+	      ).
+
+new_sameas_link(FromSource,NewLink) :-
+	rdf(_,owl:sameAs,NewLink,FromSource),
+	\+once(rdf(_,_,_,NewLink:_)).
+
+old_sameas_link(FromSource,Link) :-
+	rdf(_,owl:sameAs,Link,FromSource),
+	once(rdf(_,_,_,Link:_)).
 
 
 

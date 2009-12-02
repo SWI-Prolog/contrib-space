@@ -111,12 +111,15 @@ kml_file_shape(File, Geom, Attributes, Content) :-
 	atom_codes(KML, Codes), !,
 	kml_shape(KML, Geom, Attributes, Content).
 
+
+% FIXME: only returns one result
+
 %%	kml_file_uri_shape(+File,?URI,?Shape) is semidet.
 %
 %	Reads URI-shape pairs from File using kml_uri_shape/2.
 
 kml_file_uri_shape(File, URI, Shape) :-
-	kml_file_shape(File, Geom, _Attributes, _Content), !,
+	kml_file_shape(File, Geom, _Attributes, _Content),
 	get_uri_shape(Geom, URI, Shape).
 
 get_uri_shape(document([H|T]), URI, Shape) :-
