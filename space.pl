@@ -54,6 +54,8 @@
 	   space_intersects/2,        % uses default index
            space_nearest/3,           % +Shape, -URI, +IndexName
            space_nearest/2,           % uses default index
+	   space_within_range/4,
+	   space_within_range/3,
            space_nearest_bounded/4,   % +Shape, -URI, +WithinRange, +IndexName
            space_nearest_bounded/3,   % uses default index
 
@@ -286,6 +288,7 @@ space_nearest(Shape, Near, IndexName) :-
         space_index(IndexName),
 	rtree_incremental_nearest_neighbor_query(Shape, Near, IndexName).
 
+
 %%	space_nearest(+Shape,?Near,+WithinRange,+IndexName) is nondet.
 %%	space_nearest(+Shape,?Near,+WithinRange) is nondet.
 %
@@ -312,6 +315,9 @@ space_nearest_bounded(Shape, Near, WithinRange, IndexName) :-
 	->  !, fail
 	;   true
 	).
+% alias for OGC compatibility
+space_within_range(Shape,Near,WithinRange) :- space_nearest_bounded(Shape,Near,WithinRange).
+space_within_range(Shape,Near,WithinRange,IndexName) :- space_nearest_bounded(Shape,Near,WithinRange,IndexName).
 
 space_display(IndexName) :-
         rtree_display(IndexName).
