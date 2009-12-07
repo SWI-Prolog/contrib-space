@@ -28,14 +28,14 @@
 */
 
 :- module(space_web_loader,
-          [ space_load_url/1,
-	    space_load_url/2,
-            space_unload_url/1,
-            space_unload_url/2,
-	    space_crawl_url/1,
-	    space_crawl_url/2,
-            space_uncrawl_url/1,
-            space_uncrawl_url/2
+          [ space_load_url/1,      % +URL
+	    space_load_url/2,	   % +URL, +Options
+            space_unload_url/1,    % +URL
+            space_unload_url/2,    % +URL, +Options
+	    space_crawl_url/1,     % +URL
+	    space_crawl_url/2,     % +URL, +Options
+            space_uncrawl_url/1,   % +URL
+            space_uncrawl_url/2    % +URL, +Options
 	  ]).
 
 :- use_module(library(space/space)).
@@ -49,26 +49,26 @@
 %	index all URI-Shape pairs that can be found in it into the
 %	default index.
 
-space_load_url(URL) :-
-	rdf_load(URL),
-	Counter = counter(0),
-	forall(uri_shape(URI, Shape, URL),
-	       (   space_assert(URI, Shape),
-		   arg(1, Counter, N0),
-		   N is N0 + 1,
-		   nb_setarg(1, Counter, N)
-	       )),
-	arg(1, Counter, C),
-	space:space_setting(rtree_default_index(IndexName)),
-	print_message(informational,space_load_url(C,IndexName)).
+space_load_url(URL) :- space_load_url(URL,[]).
 
-%%	space_load_url(+URL,+IndexName) is det.
+%%	space_load_url(+URL,+Options) is det.
 %
-%	Load using space_load_url/1, but index the URI-Shape pairs into
-%	index named IndexName.
+%	Load using space_load_url/1, given extra options.
+%
+%	        * index(+IndexName)
+%	        Index the URI-Shape pairs into index named IndexName.
+%
+%		* graph(+Graph)
+%		Store the URI-Shape pairs in the named graph Graph.
+%		The pairs are recorded as uri_shape(URI,Shape,Graph).
 
-space_load_url(URL, IndexName) :-
-	rdf_load(URL),
+space_load_url(URL, Options) :-
+	space_setting(rtree_default_index(DefaultIndex)),
+	option(index(IndexName), Options, DefaultIndex),
+	(   option(graph(Graph), Options)
+	->  rdf_load(URL,Graph)
+	;   rdf_load(URL)
+	),
 	Counter = counter(0),
 	forall(uri_shape(URI, Shape, URL),
 	       (   space_assert(URI, Shape, IndexName),
@@ -84,26 +84,23 @@ space_load_url(URL, IndexName) :-
 %	Unload the RDF that was fetched from URL and remove all
 %	URI-Shape pairs that are contained in it from the default index.
 
-space_unload_url(URL) :-
-	Counter = counter(0),
-	forall(uri_shape(URI, Shape, URL),
-	       (   space_retract(URI, Shape),
-		   arg(1, Counter, N0),
-		   N is N0 + 1,
-		   nb_setarg(1, Counter, N)
-	       )),
-	arg(1, Counter, C),
-	space:space_setting(rtree_default_index(IndexName)),
-	print_message(informational,space_unload_url(C,IndexName)),
-	rdf_unload(URL).
+space_unload_url(URL) :- space_unload_url(URL,[]).
 
-%%	space_unload_url(+URL,+IndexName) is det.
+%%	space_unload_url(+URL,+Options) is det.
 %
 %	Unload the RDF that was fetched from URL and remove all
-%	URI-Shape pairs that are contained in it from the index named
-%	IndexName.
+%	URI-Shape pairs that are contained in it. Accepts extra options:
+%
+%		* index(+IndexName)
+%               Remove from the index named IndexName.
+%
+%		* graph(+Graph)
+%		Remove the URI-Shape pairs from the named graph Graph.
 
-space_unload_url(URL, IndexName) :-
+space_unload_url(URL, Options) :-
+	space_setting(rtree_default_index(DefaultIndex)),
+	option(index(IndexName), Options, DefaultIndex),
+	option(graph(Graph), Options, URL),
 	Counter = counter(0),
 	forall(uri_shape(URI, Shape, URL),
 	       (   space_retract(URI, Shape, IndexName),
@@ -113,9 +110,7 @@ space_unload_url(URL, IndexName) :-
 	       )),
 	arg(1, Counter, C),
 	print_message(informational,space_unload_url(C,IndexName)),
-	rdf_unload(URL).
-
-
+	rdf_unload(Graph).
 
 :- multifile prolog:message//1.
 
@@ -162,25 +157,25 @@ link_property('http://www.w3.org/2004/02/skos/core#closeMatch').
 %	process until there are no new links that have not already
 %	been crawled.
 
-space_crawl_url(URL) :-
-	with_mutex(message,print_message(informational,space_crawl_url(URL))),
-	space_load_url(URL),
-	findall( NewLink, new_link(URL:_,NewLink,_Type), NewLinks ),
-	forall( member(NL,NewLinks),
-	        thread_create(space_crawl_url(NL),_,[])
-	      ).
+space_crawl_url(URL) :-	space_crawl_url(URL,[]).
 
-%%	space_crawl_url(+URL,+IndexName) is det.
+%%	space_crawl_url(+URL,+Options) is det.
 %
-%	Crawl using space_crawl_url/1, but index the URI-Shape pairs
-%	into index named IndexName.
+%	Crawl using space_crawl_url/1, with additional options.
+%
+%               * index(+IndexName)
+%		Index the URI-Shape pairs into index named IndexName.
+%
+%		* graph(+Graph)
+%		Store the URI-Shape pairs in the named graph Graph.
+%		The pairs are recorded as uri_shape(URI,Shape,Graph).
 
-space_crawl_url(URL,IndexName) :-
+space_crawl_url(URL,Options) :-
 	with_mutex(message,print_message(informational,space_crawl_url(URL))),
-	space_load_url(URL,IndexName),
+	space_load_url(URL,Options),
 	findall( NewLink, new_link(URL:_,NewLink,_Type), NewLinks ),
 	forall( member(NL, NewLinks),
-	        thread_create(space_crawl_url(NL,IndexName),_,[])
+	        thread_create(space_crawl_url(NL,Options),_,[])
 	      ).
 
 %%	space_uncrawl_url(+URL) is det.
@@ -190,25 +185,25 @@ space_crawl_url(URL,IndexName) :-
 %	Also unload all data that were crawled by iteratively resolving
 %	the URIs linked to with a link_property.
 
-space_uncrawl_url(URL) :-
-	with_mutex(message,print_message(informational,space_uncrawl_url(URL))),
-	findall( Link, old_link(URL:_,Link,_Type), Links ),
-	space_unload_url(URL),
-	forall( member(L, Links),
-		space_uncrawl_url(L)
-	      ).
+space_uncrawl_url(URL) :- space_uncrawl_url(URL,[]).
 
 %%	space_uncrawl_url(+URL,+IndexName) is det.
 %
 %	Unload using space_uncrawl_url/1, but remove the URI-Shape pairs
 %	from the index named IndexName.
+%
+%               * index(+IndexName)
+%		Remove the URI-Shape pairs from index named IndexName.
+%
+%		* graph(+Graph)
+%		Remove the URI-Shape pairs from the named graph Graph.
 
-space_uncrawl_url(URL,IndexName) :-
+space_uncrawl_url(URL,Options) :-
 	with_mutex(message,print_message(informational,space_uncrawl_url(URL))),
 	findall( Link, old_link(URL:_,Link,_Type), Links ),
-	space_unload_url(URL,IndexName),
+	space_unload_url(URL,Options),
 	forall( member(L, Links),
-		space_uncrawl_url(L,IndexName)
+		space_uncrawl_url(L,Options)
 	      ).
 
 new_link(FromSource,NewLink,P) :-
@@ -220,6 +215,7 @@ old_link(FromSource,Link,P) :-
 	link_property(P),
 	rdf(_,P,Link,FromSource),
 	once(rdf(_,_,_,Link:_)).
+
 
 
 

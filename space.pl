@@ -31,6 +31,7 @@
           [
            set_space/1,               % +Option
            set_space/2,               % +IndexName, +Option
+	   space_setting/1,           % ?Option
 
 	   space_index_all/1,         % +IndexNames
 	   space_index_all/0,         % uses default index
@@ -48,27 +49,26 @@
            space_bulkload/1,          % +CandidatePred (uses default index and 'user' module)
            space_bulkload/0,          % also defaults to uri_shape
 
-           space_contains/3,          % +Shape, -URI, +IndexName
+           space_contains/3,          % +Query, -URI, +IndexName
            space_contains/2,          % uses default index
-	   space_intersects/3,        % +Shape, -URI, +IndexName
+	   space_intersects/3,        % +Query, -URI, +IndexName
 	   space_intersects/2,        % uses default index
-           space_nearest/3,           % +Shape, -URI, +IndexName
+           space_nearest/3,           % +Query, -URI, +IndexName
            space_nearest/2,           % uses default index
-	   space_within_range/4,
-	   space_within_range/3,
-           space_nearest_bounded/4,   % +Shape, -URI, +WithinRange, +IndexName
+	   space_within_range/4,      % +Query, -URI, +WithinRange, +IndexName
+	   space_within_range/3,      % uses default index
+           space_nearest_bounded/4,   % +Query, -URI, +WithinRange, +IndexName
            space_nearest_bounded/3,   % uses default index
 
 	   shape/1,                   % +Shape
 	   uri_shape/2,		      % ?URI, ?Shape
 	   uri_shape/3,		      % ?URI, ?Shape, +Source
-	   space_distance/3,           % +FromShape, +ToShape, -Distance
 
-	   space_distance/3,              % +Shape1, +Shape2, -Distance
-	   space_distance/4,              % +Shape1, +Shape2, -Distance, +IndexName
-	   space_distance_pythagorean/3,  % +Shape1, +Shape2, -Distance
-	   space_distance_greatcircle/4,  % +Shape1, +Shape2, -Distance, +Unit
-	   space_distance_greatcircle/3   % +Shape1, +Shape2, -Distance (km)
+	   space_distance/3,              % +Feature1, +Feature2, -Distance
+	   space_distance/4,              % +Feature1, +Feature2, -Distance, +IndexName
+	   space_distance_pythagorean/3,  % +Feature1, +Feature2, -Distance
+	   space_distance_greatcircle/4,  % +Feature1, +Feature2, -Distance, +Unit
+	   space_distance_greatcircle/3   % +Feature1, +Feature2, -Distance (nm)
 
           ]).
 
@@ -81,7 +81,9 @@
 :- use_module(library(shlib)).
 
 :- dynamic space_queue/4.
+:- dynamic shape/1. % allows you to adapt space_index_all.
 :- dynamic uri_shape/2. % allows you to adapt space_index_all.
+:- dynamic uri_shape/3. % allows you to adapt space_index_all.
 
 :- use_foreign_library(foreign(space)).
 
@@ -108,7 +110,6 @@ space_setting_aux(rtree_default_index(space_index)).
 %        only have effect after clearing or bulkloading.
 %        Others, take effect immediately on a running index.
 %        More documentation will be provided in the near future.
-
 set_space(Option) :-
         space_setting(rtree_default_index(I)),
         rtree_set_space(I, Option).
@@ -226,43 +227,70 @@ space_bulkload :-
 space_bulkload(Functor) :-
 	space_setting(rtree_default_index(I)),
         space_bulkload(Functor,I).
-space_bulkload(Functor,IndexName) :-
+space_bulkload(Functor, IndexName) :-
         once(call(Functor, _Uri, Shape)),
-        dimensionality(Shape,Dimensionality),
+        dimensionality(Shape, Dimensionality),
 	must_be(between(1,3), Dimensionality),
 %	space_clear(IndexName),  % FIXME: is this ok to skip?
-        rtree_bulkload(IndexName,Functor,Dimensionality).
+        rtree_bulkload(IndexName, Functor, Dimensionality).
 
-%%	space_contains(+Shape,?Cont,+IndexName) is nondet.
-%%	space_contains(+Shape,?Cont) is nondet.
+%%	space_contains(+Query,?Cont,+IndexName) is nondet.
+%%	space_contains(+Query,?Cont) is nondet.
 %
 %	Containment query. Unifies Cont with shapes contained in
-%	Shape according to index IndexName or the default index.
+%	Query Shape (or shape of Query URI) according to index
+%       IndexName or the default index.
 
-space_contains(Shape,Cont) :-
+space_contains(Q, Cont) :-
+	(   atom(Q)
+	->  uri_shape(Q, Shape),
+	    space_shape_contains(Shape, Cont)
+	;   space_shape_contains(Q, Cont)
+	).
+space_contains(Q, Cont, IndexName) :-
+	(   atom(Q)
+	->  uri_shape(Q, Shape),
+	    space_shape_contains(Shape, Cont, IndexName)
+	;   space_shape_contains(Q, Cont, IndexName)
+	).
+
+space_shape_contains(Shape, Cont) :-
 	space_setting(rtree_default_index(I)),
 	space_contains(Shape,Cont,I).
-space_contains(Shape,Cont,IndexName) :-
+space_shape_contains(Shape, Cont, IndexName) :-
 	shape(Shape),
         space_index(IndexName),
 	(   ground(Cont)
-	->  (   bagof(Con, rtree_incremental_containment_query(Shape,Con,IndexName), Cons),
+	->  (   bagof(Con, rtree_incremental_containment_query(Shape, Con, IndexName), Cons),
 	        member(Cont, Cons), !
 	    )
-	;   rtree_incremental_containment_query(Shape,Cont,IndexName)
+	;   rtree_incremental_containment_query(Shape, Cont, IndexName)
 	).
 
-%%	space_intersects(+Shape,?Inter,+IndexName) is nondet.
-%%	space_intersects(+Shape,?Inter) is nondet.
+%%	space_intersects(+Query,?Inter,+IndexName) is nondet.
+%%	space_intersects(+Query,?Inter) is nondet.
 %
 %	Intersection query. Unifies Inter with shapes intersecting with
-%	Shape according to index IndexName or the default index.
-%	(intersection subsumes containment)
+%	Query Shape (or Shape of Query URI) according to index IndexName
+%       or the default index. (intersection subsumes containment)
 
-space_intersects(Shape,Inter) :-
+space_intersects(Q, Inter) :-
+	(   atom(Q)
+	->  uri_shape(Q, Shape),
+	    space_shape_intersects(Shape, Inter)
+	;   space_shape_intersects(Q, Inter)
+	).
+space_intersects(Q, Inter, IndexName) :-
+	(   atom(Q)
+	->  uri_shape(Q, Shape),
+	    space_shape_intersects(Shape ,Inter, IndexName)
+	;   space_shape_intersects(Q, Inter, IndexName)
+	).
+
+space_shape_intersects(Shape, Inter) :-
 	space_setting(rtree_default_index(I)),
-	space_intersects(Shape,Inter,I).
-space_intersects(Shape,Inter,IndexName) :-
+	space_shape_intersects(Shape, Inter, I).
+space_shape_intersects(Shape, Inter, IndexName) :-
 	shape(Shape),
         space_index(IndexName),
 	(   ground(Inter)
@@ -273,40 +301,67 @@ space_intersects(Shape,Inter,IndexName) :-
 	).
 
 
-%%	space_nearest(+Shape,-Near,+IndexName) is nondet.
-%%	space_nearest(+Shape,-Near) is nondet.
+%%	space_nearest(+Query,-Near,+IndexName) is nondet.
+%%	space_nearest(+Query,-Near) is nondet.
 %
 %	Incremental Nearest-Neighbor query. Unifies Near with shapes
-%	in order of increasing distance to Shape according to index
-%	IndexName or the default index.
+%	in order of increasing distance to Query Shape (or Shape of Query URI)
+%       according to index IndexName or the default index.
 
-space_nearest(Shape, Near) :-
+space_nearest(Q, Near) :-
+	(   atom(Q)
+	->  uri_shape(Q, Shape),
+	    space_shape_nearest(Shape, Near)
+	;   space_shape_nearest(Q, Near)
+	).
+space_nearest(Q, Near, IndexName) :-
+	(   atom(Q)
+	->  uri_shape(Q, Shape),
+	    space_shape_nearest(Shape, Near, IndexName)
+	;   space_shape_nearest(Q, Near, IndexName)
+	).
+
+space_shape_nearest(Shape, Near) :-
 	space_setting(rtree_default_index(I)),
-	space_nearest(Shape,Near,I).
-space_nearest(Shape, Near, IndexName) :-
+	space_shape_nearest(Shape, Near, I).
+space_shape_nearest(Shape, Near, IndexName) :-
 	shape(Shape),
         space_index(IndexName),
 	rtree_incremental_nearest_neighbor_query(Shape, Near, IndexName).
 
 
-%%	space_nearest(+Shape,?Near,+WithinRange,+IndexName) is nondet.
-%%	space_nearest(+Shape,?Near,+WithinRange) is nondet.
+%%	space_nearest(+Query,?Near,+WithinRange,+IndexName) is nondet.
+%%	space_nearest(+Query,?Near,+WithinRange) is nondet.
 %
 %	Incremental Nearest-Neighbor query with a bounded distance
 %	scope. Unifies Near with shapes in order of increasing distance
-%	to Shape according to index IndexName or the default index.
+%	to Query Shape (or Shape of Query URI) according to index
+%       IndexName or the default index.
 %	Fails when no more objects are within the range WithinRange.
 
-space_nearest_bounded(Shape, Near, WithinRange) :-
+space_nearest_bounded(Q, Near, WithinRange) :-
+	(   atom(Q)
+	->  uri_shape(Q,Shape),
+	    space_shape_nearest_bounded(Shape, Near, WithinRange)
+	;   space_shape_nearest_bounded(Q, Near, WithinRange)
+	).
+space_nearest_bounded(Q, Near, WithinRange, IndexName) :-
+	(   atom(Q)
+	->  uri_shape(Q,Shape),
+	    space_shape_nearest_bounded(Shape, Near, WithinRange, IndexName)
+	;   space_shape_nearest_bounded(Q, Near, WithinRange, IndexName)
+	).
+
+space_shape_nearest_bounded(Shape, Near, WithinRange) :-
 	space_setting(rtree_default_index(I)),
 	space_nearest_bounded(Shape,Near,WithinRange,I).
-space_nearest_bounded(Shape, Near, WithinRange, _IndexName) :-
+space_shape_nearest_bounded(Shape, Near, WithinRange, _IndexName) :-
 	shape(Shape),
         ground(Near),
         uri_shape(Near,NearShape),
         space_distance(Shape,NearShape,Distance),
         Distance < WithinRange, !.
-space_nearest_bounded(Shape, Near, WithinRange, IndexName) :-
+space_shape_nearest_bounded(Shape, Near, WithinRange, IndexName) :-
         space_index(IndexName),
         rtree_incremental_nearest_neighbor_query(Shape, Near, IndexName),
         uri_shape(Near,NearShape),
@@ -315,9 +370,10 @@ space_nearest_bounded(Shape, Near, WithinRange, IndexName) :-
 	->  !, fail
 	;   true
 	).
+
 % alias for OGC compatibility
-space_within_range(Shape,Near,WithinRange) :- space_nearest_bounded(Shape,Near,WithinRange).
-space_within_range(Shape,Near,WithinRange,IndexName) :- space_nearest_bounded(Shape,Near,WithinRange,IndexName).
+space_within_range(Q,Near,WithinRange) :- space_nearest_bounded(Q,Near,WithinRange).
+space_within_range(Q,Near,WithinRange,IndexName) :- space_nearest_bounded(Q,Near,WithinRange,IndexName).
 
 space_display(IndexName) :-
         rtree_display(IndexName).
@@ -402,29 +458,54 @@ dimensionality(geometrycollection([Geom|_]),Dim) :- dimensionality(Geom,Dim).
 %
 %	@see space_distance_greatcircle/4 for great circle distance.
 
-space_distance(point(A1,A2), point(B1,B2), D) :-
+space_distance(A, B, D) :-
+	(   atom(A),
+	    atom(B)
+	->  uri_shape(A, As),
+	    uri_shape(B, Bs),
+	    space_shape_distance(As, Bs, D)
+	;   space_shape_distance(A, B, D)
+	).
+space_distance(A, B, D, IndexName) :-
+	(   atom(A),
+	    atom(B)
+	->  uri_shape(A, As),
+	    uri_shape(B, Bs),
+	    space_shape_distance(As, Bs, D, IndexName)
+	;   space_shape_distance(A, B, D, IndexName)
+	).
+
+space_shape_distance(point(A1,A2), point(B1,B2), D) :-
 	space_distance_pythagorean(point(A1,A2), point(B1,B2), D), !.
 
-space_distance(A, B, D) :-
+space_shape_distance(A, B, D) :-
       	space_setting(rtree_default_index(IndexName)),
         rtree_distance(IndexName, A, B, D1),
 	pythagorean_lat_long_to_kms(D1,D).
 
-space_distance(A, B, D, IndexName) :-
+space_shape_distance(A, B, D, IndexName) :-
         rtree_distance(IndexName, A, B, D1),
 	pythagorean_lat_long_to_kms(D1,D).
 
-space_distance_pythagorean(A,B,D) :-
-	space_distance_pythagorean_fastest(A,B,D1),
-	pythagorean_lat_long_to_kms(D1,D).
+% for speed, first assume A and B are shapes, not URIs
+% if this fails, proceed to interpret them as URIs.
+space_distance_pythagorean(A, B, D) :-
+	space_distance_pythagorean_fastest(A, B, D1),
+	pythagorean_lat_long_to_kms(D1, D).
+
+space_distance_pythagorean(A, B, D) :-
+	atom(A),
+	atom(B),
+	uri_shape(A, As),
+	uri_shape(B, Bs),
+	space_distance_pythagorean(As, Bs, D).
 
 space_distance_pythagorean_fastest(point(A, B), point(X, Y), D) :-
 	D2 is ((X - A) ** 2) + ((Y - B) ** 2),
 	D is sqrt(D2).
 
-pythagorean_lat_long_to_kms(D1,D) :-
+pythagorean_lat_long_to_kms(D1, D) :-
 	D is D1 * 111.195083724. % to kms
-
 
 
 %%	space_distance_greatcircle(+Point1,+Point2,-Dist) is det.
@@ -434,14 +515,32 @@ pythagorean_lat_long_to_kms(D1,D) :-
 %	in the specified Unit, which can take as a value km (kilometers)
 %	or nm (nautical miles). By default, nautical miles are used.
 
-space_distance_greatcircle(point(A1,A2), point(B1,B2), D) :-
-	space_distance_greatcircle(point(A1,A2), point(B1,B2), D, nm).
+space_distance_greatcircle(A, B, D) :-
+	(   atom(A),
+	    atom(B)
+	->  uri_shape(A, As),
+	    uri_shape(B, Bs),
+	    space_shape_distance_greatcircle(As, Bs, D)
+	;   space_shape_distance_greatcircle(A, B, D)
+	).
+space_distance_greatcircle(A, B, D, Unit) :-
+	(   atom(A),
+	    atom(B)
+	->  uri_shape(A, As),
+	    uri_shape(B, Bs),
+	    space_shape_distance_greatcircle(As, Bs, D, Unit)
+	;   space_shape_distance_greatcircle(A, B, D, Unit)
+	).
 
-space_distance_greatcircle(point(A1,A2), point(B1,B2), D, km) :-
+
+space_shape_distance_greatcircle(point(A1,A2), point(B1,B2), D) :-
+	space_shape_distance_greatcircle(point(A1,A2), point(B1,B2), D, nm).
+
+space_shape_distance_greatcircle(point(A1,A2), point(B1,B2), D, km) :-
 	R is 6371, % kilometers
 	space_distance_greatcircle_aux(point(A1,A2), point(B1,B2), D, R).
 
-space_distance_greatcircle(point(A1,A2), point(B1,B2), D, nm) :-
+space_shape_distance_greatcircle(point(A1,A2), point(B1,B2), D, nm) :-
 	R is 3440.06, % nautical miles
 	space_distance_greatcircle_aux(point(A1,A2), point(B1,B2), D, R).
 
