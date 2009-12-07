@@ -30,8 +30,7 @@
 
 
 /* TODO:
- * neat choice between memory-based and file-based indices
- * check if locking works...
+ * uri_shape(U,S,Source) which retrieves pairs from the index
  */
 
 #include "globals.h"
@@ -178,6 +177,78 @@ PREDICATE(rtree_clear,1)
 }
 
 
+
+// uri, shape, indexname
+PREDICATE_NONDET(rtree_uri_shape,3)
+{
+  try
+    {
+      RTreeIndex *idx = NULL;
+      IteratorState *state = NULL;
+
+      switch( PL_foreign_control((control_t)handle) ) 
+        {
+        case PL_FIRST_CALL: 
+          idx = dynamic_cast<RTreeIndex*>(assert_rtree_index(A3));
+          if (idx->tree == NULL) PL_fail;
+	  state = new IteratorState();
+	  if (PL_is_variable(A1.ref)) {
+            state->uri_id_range.first = idx->uri_id_multimap.begin();
+	    state->uri_id_range.second = idx->uri_id_multimap.end();
+            state->uri_id_iter = state->uri_id_range.first;
+	  } else {
+	    state->uri_id_range = idx->uri_id_multimap.equal_range(PlAtom(A1).handle);
+            state->uri_id_iter = state->uri_id_range.first;
+	  }
+          goto iterate;
+          
+        case PL_REDO: 
+          idx = dynamic_cast<RTreeIndex*>(assert_rtree_index(A3));
+          if (idx->tree == NULL) PL_fail;
+          state = (IteratorState*)PL_foreign_context_address((control_t)handle); 
+        iterate:
+	    cout << "trying to find something" << endl;
+          if (state->uri_id_iter == state->uri_id_range.second) {
+	    cout << "found nothing" << endl;
+            delete state;
+            PL_fail;
+          } else {
+	    cout << "found something" << endl;
+	    A1 = PlAtom(state->uri_id_iter->first);
+            map<id_type,pair<IShape*,PlTerm> >::iterator iter = idx->id_shape_map.find(state->uri_id_iter->second);
+	    if (iter != idx->id_shape_map.end()) {
+	      A2 = iter->second.second;
+	    } else {
+              delete state;
+              PL_fail;
+            } 
+            ++(state->uri_id_iter);
+            PL_retry_address(state); 
+	  }
+          
+        case PL_CUTTED: 
+          state = (IteratorState*)PL_foreign_context_address((control_t)handle); 
+          delete state;
+          PL_succeed; 
+        } 
+      
+      
+    }
+  catch (Tools::Exception& e)
+    {
+      cerr << "******ERROR******" << endl;
+      std::string s = e.what();
+      cerr << s << endl;
+      return -1;
+    }
+  catch (std::exception& e)
+    {
+      cerr << "******ERROR******" << endl;
+      cerr << "other exception" << endl;
+      cerr << e.what() << endl;
+      return -1;
+    }
+}
 
 // indexname, uri, shape
 PREDICATE(rtree_insert_object,3)

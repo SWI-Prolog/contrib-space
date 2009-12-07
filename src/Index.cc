@@ -28,8 +28,8 @@
 */
 
 /*
- * TODO: improve index initialization to support configuration for storage and distance
  * TODO: improve error message handling
+ * TODO: add uri_shape(U,S,Source) from index
  */
 
 #include "Index.h"
@@ -91,9 +91,10 @@ public:
       s->getMBR(r);
       PlTerm uri_term((term_t)cache0+1);
       PlAtom uri_atom(uri_term);
-      id_type id = index->get_uri_id(uri_term); // FIXME: PlAtom argument
-      if (id == -1) id = index->get_new_id(uri_term);
-      index->storeShape(id,s);
+//      id_type id = index->get_uri_id(uri_term); // FIXME: PlAtom argument
+//      if (id == -1) id = index->get_new_id(uri_term);
+      id_type id = index->get_new_id(uri_term);
+      index->storeShape(id,s,new PlTerm((term_t)cache0+2));
 #ifdef DEBUGGING
       cout << "uri " << (char*)uri_term << " atom " << uri_atom.handle << " shape " << r << " id " << id << endl;
 #endif
@@ -174,26 +175,26 @@ void RTreeIndex::clear_tree() {
     delete storage_manager;
     storage_manager = NULL;
   }
-  uri_id_map.clear();
-  map<id_type,IShape*>::iterator id_shape_iter;
+  uri_id_multimap.clear();
+  map<id_type,pair<IShape*,PlTerm> >::iterator id_shape_iter;
   for( id_shape_iter = id_shape_map.begin(); id_shape_iter != id_shape_map.end(); ++id_shape_iter ) {
-    GEOSShape *s = dynamic_cast<GEOSShape*>(id_shape_iter->second);
+    GEOSShape *s = dynamic_cast<GEOSShape*>(id_shape_iter->second.first);
     if (s != NULL) {
       global_factory->destroyGeometry(s->g);
       s->g = NULL;
     }    
-    delete id_shape_iter->second;
+    delete id_shape_iter->second.first;
   }
   id_shape_map.clear();
   WRUNLOCK(&lock);
 }
 
-void RTreeIndex::storeShape(id_type id,IShape *s) {
+void RTreeIndex::storeShape(id_type id,IShape *s,PlTerm t) {
   if ( !WRLOCK(&lock,FALSE) ) {
     cerr << __FUNCTION__ << " could not acquire write lock" << endl;
     return;
   }
-  id_shape_map[id] = s;
+  id_shape_map[id] = pair<IShape*,PlTerm>(s,t);
   WRUNLOCK(&lock);
 }
 IShape* RTreeIndex::getShape(id_type id) {
@@ -202,11 +203,11 @@ IShape* RTreeIndex::getShape(id_type id) {
     cerr << __FUNCTION__ << " could not acquire read lock" << endl;
     return NULL;
   }
-  map<id_type,IShape*>::iterator iter = id_shape_map.find(id);
+  map<id_type,pair<IShape*,PlTerm> >::iterator iter = id_shape_map.find(id);
   if (iter == id_shape_map.end()) {
     rv = NULL;
   } else {
-    rv = iter->second;
+    rv = iter->second.first;
   }
   RDUNLOCK(&lock);
   return rv;
@@ -222,7 +223,7 @@ id_type  RTreeIndex::get_new_id(PlTerm uri) {
   PL_register_atom(uri_atom.handle); // FIXME: unregister somewhere...
   if (bulkload_tmp_id_cnt != -1) { // we're bulkloading
     id = bulkload_tmp_id_cnt++;
-    uri_id_map[uri_atom.handle] = id;
+    uri_id_multimap.insert(pair<atom_t,id_type>(uri_atom.handle,id));
   } else {
     if (tree == NULL) {
       id = -1;
@@ -230,7 +231,7 @@ id_type  RTreeIndex::get_new_id(PlTerm uri) {
       IStatistics* stats;
       tree->getStatistics(&stats);
       id = stats->getNumberOfData();
-      uri_id_map[uri_atom.handle] = id;
+      uri_id_multimap.insert(pair<atom_t,id_type>(uri_atom.handle,id));
       delete stats;
     }
   }
@@ -238,6 +239,7 @@ id_type  RTreeIndex::get_new_id(PlTerm uri) {
   return id;
 }
 
+/*
 id_type   RTreeIndex::get_uri_id(PlTerm uri) {
   id_type rv = -1;
   if ( !RDLOCK(&lock) ) {
@@ -254,6 +256,7 @@ id_type   RTreeIndex::get_uri_id(PlTerm uri) {
   RDUNLOCK(&lock);
   return rv;
 }
+*/
   
 
 void RTreeIndex::create_tree(uint32_t dimensionality) {
@@ -324,7 +327,6 @@ RTreeIndex::bulk_load(PlTerm goal,uint32_t dimensionality) {
   RDUNLOCK(&lock);
   return rv;
 }
-
 
 IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
   // only supports points and boxes now
@@ -528,7 +530,7 @@ bool RTreeIndex::insert_single_object(PlTerm uri,PlTerm shape_term) {
     WRUNLOCK(&lock);
     return FALSE;
   }
-  storeShape(id,shape);
+  storeShape(id,shape,&shape_term);
   WRUNLOCK(&lock);
   return TRUE;
 }
@@ -550,7 +552,7 @@ bool RTreeIndex::delete_single_object(PlTerm uri,PlTerm shape_term) {
     clear_tree();
     RTreeIndex::create_tree(dimensionality,utilization,nodesize);
   }
-  if ((id = get_uri_id(uri)) == -1) {
+  if (uri_id_multimap.find(uri) == uri_id_multimap.end()) {
     PlTerm bnt(baseName);
     cerr << "could not find ID for " << (char*)uri << " in " << (char*)bnt << endl;
     delete shape;

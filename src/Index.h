@@ -46,6 +46,13 @@ typedef enum {
   DISK
 } storage_t;
 
+class IteratorState {
+  public:
+    pair<multimap<atom_t,id_type>::iterator,
+         multimap<atom_t,id_type>::iterator> uri_id_range;
+    multimap<atom_t,id_type>::iterator uri_id_iter;
+};
+
 using namespace std;
 using namespace SpatialIndex;
 
@@ -59,8 +66,8 @@ class Index
   virtual ~Index() {};
 
   virtual id_type get_new_id(PlTerm uri) = 0;
-  virtual id_type get_uri_id(PlTerm uri) = 0;
-  virtual void storeShape(id_type id,IShape *s) = 0;
+//  virtual id_type get_uri_id(PlTerm uri) = 0;
+  virtual void storeShape(id_type id,IShape *s,PlTerm shape_term) = 0;
   virtual IShape* getShape(id_type id) = 0;
 
   virtual IShape* interpret_shape(PlTerm shape_term) = 0;
@@ -89,16 +96,16 @@ class RTreeIndex : public Index
   StorageManager::IBuffer* buffer;
   ISpatialIndex* tree;
   id_type indexIdentifier;
-  map<atom_t,id_type> uri_id_map;
-  map<id_type,IShape*> id_shape_map;
+  multimap<atom_t,id_type> uri_id_multimap;
+  map<id_type,pair<IShape*,PlTerm> > id_shape_map;
 
   RTreeIndex(PlTerm indexname);
   RTreeIndex(PlTerm indexname, double util, int nodesz);
   virtual ~RTreeIndex();
 
   virtual id_type get_new_id(PlTerm uri);
-  virtual id_type get_uri_id(PlTerm uri);
-  virtual void storeShape(id_type id,IShape *s);
+//  virtual id_type get_uri_id(PlTerm uri);
+  virtual void storeShape(id_type id,IShape *s,PlTerm t);
   virtual IShape* getShape(id_type id);
 
   virtual IShape* interpret_shape(PlTerm shape_term);

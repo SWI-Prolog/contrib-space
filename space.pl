@@ -366,9 +366,12 @@ space_shape_nearest_bounded(Shape, Near, WithinRange, IndexName) :-
         rtree_incremental_nearest_neighbor_query(Shape, Near, IndexName),
         uri_shape(Near,NearShape),
         space_distance(Shape,NearShape,Distance),
-	(   Distance > WithinRange
-	->  !, fail
-	;   true
+	(   ground(WithinRange)
+	->  (	Distance > WithinRange
+	    ->	!, fail
+	    ;	true
+	    )
+	;   WithinRange = Distance
 	).
 
 % alias for OGC compatibility
@@ -458,31 +461,36 @@ dimensionality(geometrycollection([Geom|_]),Dim) :- dimensionality(Geom,Dim).
 %
 %	@see space_distance_greatcircle/4 for great circle distance.
 
+space_distance(X, X, 0).
 space_distance(A, B, D) :-
-	(   atom(A),
-	    atom(B)
-	->  uri_shape(A, As),
-	    uri_shape(B, Bs),
-	    space_shape_distance(As, Bs, D)
-	;   space_shape_distance(A, B, D)
-	).
+	(   atom(A)
+	->  uri_shape(A, As)
+	;   As = A
+	),
+	(   atom(B)
+	->  uri_shape(B, Bs)
+	;   Bs = B
+	),
+	space_shape_distance(As, Bs, D).
+
+space_distance(X, X, 0, _).
 space_distance(A, B, D, IndexName) :-
-	(   atom(A),
-	    atom(B)
-	->  uri_shape(A, As),
-	    uri_shape(B, Bs),
-	    space_shape_distance(As, Bs, D, IndexName)
-	;   space_shape_distance(A, B, D, IndexName)
-	).
+	(   atom(A)
+	->  uri_shape(A, As)
+	;   As = A
+	),
+	(   atom(B)
+	->  uri_shape(B, Bs)
+	;   Bs = B
+	),
+	space_shape_distance(As, Bs, D, IndexName).
 
 space_shape_distance(point(A1,A2), point(B1,B2), D) :-
 	space_distance_pythagorean(point(A1,A2), point(B1,B2), D), !.
-
 space_shape_distance(A, B, D) :-
       	space_setting(rtree_default_index(IndexName)),
         rtree_distance(IndexName, A, B, D1),
 	pythagorean_lat_long_to_kms(D1,D).
-
 space_shape_distance(A, B, D, IndexName) :-
         rtree_distance(IndexName, A, B, D1),
 	pythagorean_lat_long_to_kms(D1,D).
@@ -492,12 +500,15 @@ space_shape_distance(A, B, D, IndexName) :-
 space_distance_pythagorean(A, B, D) :-
 	space_distance_pythagorean_fastest(A, B, D1),
 	pythagorean_lat_long_to_kms(D1, D).
-
 space_distance_pythagorean(A, B, D) :-
-	atom(A),
-	atom(B),
-	uri_shape(A, As),
-	uri_shape(B, Bs),
+	(   atom(A)
+	->  uri_shape(A, As)
+	;   As = A
+	),
+	(   atom(B)
+	->  uri_shape(B, Bs)
+	;   Bs = B
+	),
 	space_distance_pythagorean(As, Bs, D).
 
 space_distance_pythagorean_fastest(point(A, B), point(X, Y), D) :-
@@ -516,21 +527,26 @@ pythagorean_lat_long_to_kms(D1, D) :-
 %	or nm (nautical miles). By default, nautical miles are used.
 
 space_distance_greatcircle(A, B, D) :-
-	(   atom(A),
-	    atom(B)
-	->  uri_shape(A, As),
-	    uri_shape(B, Bs),
-	    space_shape_distance_greatcircle(As, Bs, D)
-	;   space_shape_distance_greatcircle(A, B, D)
-	).
+	(   atom(A)
+	->  uri_shape(A, As)
+	;   As = A
+	),
+	(   atom(B)
+	->  uri_shape(B, Bs)
+	;   Bs = B
+	),
+	space_shape_distance_greatcircle(As, Bs, D).
+
 space_distance_greatcircle(A, B, D, Unit) :-
-	(   atom(A),
-	    atom(B)
-	->  uri_shape(A, As),
-	    uri_shape(B, Bs),
-	    space_shape_distance_greatcircle(As, Bs, D, Unit)
-	;   space_shape_distance_greatcircle(A, B, D, Unit)
-	).
+	(   atom(A)
+	->  uri_shape(A, As)
+	;   As = A
+	),
+	(   atom(B)
+	->  uri_shape(B, Bs)
+	;   Bs = B
+	),
+	space_shape_distance_greatcircle(As, Bs, D, Unit).
 
 
 space_shape_distance_greatcircle(point(A1,A2), point(B1,B2), D) :-
@@ -539,7 +555,6 @@ space_shape_distance_greatcircle(point(A1,A2), point(B1,B2), D) :-
 space_shape_distance_greatcircle(point(A1,A2), point(B1,B2), D, km) :-
 	R is 6371, % kilometers
 	space_distance_greatcircle_aux(point(A1,A2), point(B1,B2), D, R).
-
 space_shape_distance_greatcircle(point(A1,A2), point(B1,B2), D, nm) :-
 	R is 3440.06, % nautical miles
 	space_distance_greatcircle_aux(point(A1,A2), point(B1,B2), D, R).
