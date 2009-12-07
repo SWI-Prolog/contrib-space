@@ -86,7 +86,10 @@ public:
       rv = NULL;
     } else {
       cached = false;
-      IShape *s = index->interpret_shape((term_t)(cache0+2));
+      term_t shape_term = PL_new_term_ref();
+      shape_term = (term_t)(cache0+2);
+      cout << "loaded " << (char*)PlTerm(shape_term) << endl;
+      IShape *s = index->interpret_shape(shape_term);
       Region r;
       s->getMBR(r);
       PlTerm uri_term((term_t)cache0+1);
@@ -94,7 +97,7 @@ public:
 //      id_type id = index->get_uri_id(uri_term); // FIXME: PlAtom argument
 //      if (id == -1) id = index->get_new_id(uri_term);
       id_type id = index->get_new_id(uri_term);
-      index->storeShape(id,s,new PlTerm((term_t)cache0+2));
+      index->storeShape(id,s,PlTerm(shape_term));
 #ifdef DEBUGGING
       cout << "uri " << (char*)uri_term << " atom " << uri_atom.handle << " shape " << r << " id " << id << endl;
 #endif

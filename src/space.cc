@@ -213,12 +213,16 @@ PREDICATE_NONDET(rtree_uri_shape,3)
             delete state;
             PL_fail;
           } else {
-	    cout << "found something" << endl;
 	    A1 = PlAtom(state->uri_id_iter->first);
+	    cout << "found a shape for URI " << (char*)A1 << endl;
             map<id_type,pair<IShape*,PlTerm> >::iterator iter = idx->id_shape_map.find(state->uri_id_iter->second);
 	    if (iter != idx->id_shape_map.end()) {
+              cout << "there should be a shape for this URI, trying to unify it" << endl;
+              cout << "candidate Shape term is " << (char*)(iter->second.second) << endl;
 	      A2 = iter->second.second;
+              cout << "succeeded unification of " << (char*)A2 << endl;
 	    } else {
+	      cout << "oops, no shapes anyway" << endl;
               delete state;
               PL_fail;
             } 
