@@ -29,10 +29,6 @@
 
 
 
-/* TODO:
- * uri_shape(U,S,Source) which retrieves pairs from the index
- */
-
 #include "globals.h"
 #include "Shapes.h"
 #include "Index.h"
@@ -215,7 +211,7 @@ PREDICATE_NONDET(rtree_uri_shape,3)
             term_t shape_term = PL_new_term_ref();
             if (idx->getShapeTerm(state->uri_id_iter->second,shape_term)) {
 	      A2 = PlTerm(shape_term);
-              cout << "found id " << state->uri_id_iter->second << endl;
+//              cout << "found id " << state->uri_id_iter->second << endl;
 	    } else {
               delete state;
               PL_fail;
