@@ -114,12 +114,16 @@ georss.tex:	georss.pl
 		$(PLTOTEX) --out=$@ --subsection 'library(space/georss)'
 wgs84.tex:	wgs84.pl
 		$(PLTOTEX) --out=$@ --subsection 'library(space/wgs84)'
+freebase.tex:	freebase.pl
+		$(PLTOTEX) --out=$@ --subsection 'library(space/freebase)'
 wkt.tex:	wkt.pl
 		$(PLTOTEX) --out=$@ --subsection 'library(space/wkt)'
 kml.tex:	kml.pl
 		$(PLTOTEX) --out=$@ --subsection 'library(space/kml)'
 gml.tex:	gml.pl
 		$(PLTOTEX) --out=$@ --subsection 'library(space/gml)'
+space_web_loader.tex:	space_web_loader.pl
+		$(PLTOTEX) --out=$@ --subsection 'library(space/space_web_loader)'
 
 .doc.tex:
 		$(DOCTOTEX) $*.doc > $*.tex
