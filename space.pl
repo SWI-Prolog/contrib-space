@@ -181,12 +181,16 @@ space_index :-
 	space_index(I).
 space_index(IndexName) :-
 	(   space_queue(IndexName,assert,_,_)
-	->  (   findall(object(URI,Shape), space_queue(IndexName,assert,URI,Shape), List),
+	->  (   findall(object(URI,Shape),
+			space_queue(IndexName,assert,URI,Shape),
+			List),
 	        rtree_insert_list(IndexName,List),
 	        retractall(space_queue(IndexName,assert,_,_))
 	    )
 	;   (   space_queue(IndexName,retract,_,_)
-	    ->  (   findall(object(URI,Shape), space_queue(IndexName,retract,URI,Shape), List),
+	    ->  (   findall(object(URI,Shape),
+			    space_queue(IndexName,retract,URI,Shape),
+			    List),
 		    rtree_delete_list(IndexName,List),
 	            retractall(space_queue(IndexName,retract,_,_))
 	        )

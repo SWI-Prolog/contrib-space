@@ -74,7 +74,6 @@ public:
   }
   ~RTreePrologStream() {
     PL_cut_query(q);
-    //    index->bulkload_tmp_id_cnt = -1;
   }
   virtual IData* getNext() {
     RTree::Data* rv = NULL;
@@ -88,14 +87,11 @@ public:
       cached = false;
       term_t shape_term = PL_new_term_ref();
       shape_term = (term_t)(cache0+2);
-      cout << "loaded " << (char*)PlTerm(shape_term) << endl;
       IShape *s = index->interpret_shape(shape_term);
       Region r;
       s->getMBR(r);
       PlTerm uri_term((term_t)cache0+1);
       PlAtom uri_atom(uri_term);
-//      id_type id = index->get_uri_id(uri_term); // FIXME: PlAtom argument
-//      if (id == -1) id = index->get_new_id(uri_term);
       id_type id = index->get_new_id(uri_term);
       index->storeShape(id,s,PlTerm(shape_term));
 #ifdef DEBUGGING
@@ -126,7 +122,6 @@ public:
   virtual void rewind() throw (Tools::NotSupportedException)  
   {
     cerr << "rewinding a RTreePrologStream does nothing" << endl;
-    //    throw NotSupportedException("Operation not supported.");
   }
 };
 
@@ -179,7 +174,7 @@ void RTreeIndex::clear_tree() {
     storage_manager = NULL;
   }
   uri_id_multimap.clear();
-  map<id_type,pair<IShape*,PlTerm> >::iterator id_shape_iter;
+  map<id_type,pair<IShape*,record_t> >::iterator id_shape_iter;
   for( id_shape_iter = id_shape_map.begin(); id_shape_iter != id_shape_map.end(); ++id_shape_iter ) {
     GEOSShape *s = dynamic_cast<GEOSShape*>(id_shape_iter->second.first);
     if (s != NULL) {
@@ -187,6 +182,7 @@ void RTreeIndex::clear_tree() {
       s->g = NULL;
     }    
     delete id_shape_iter->second.first;
+    PL_erase(id_shape_iter->second.second);
   }
   id_shape_map.clear();
   WRUNLOCK(&lock);
@@ -197,20 +193,56 @@ void RTreeIndex::storeShape(id_type id,IShape *s,PlTerm t) {
     cerr << __FUNCTION__ << " could not acquire write lock" << endl;
     return;
   }
-  id_shape_map[id] = pair<IShape*,PlTerm>(s,t);
+  id_shape_map[id] = pair<IShape*,record_t>(s,PL_record(t));
   WRUNLOCK(&lock);
 }
+
 IShape* RTreeIndex::getShape(id_type id) {
   IShape *rv = NULL;
   if ( !RDLOCK(&lock) ) {
     cerr << __FUNCTION__ << " could not acquire read lock" << endl;
     return NULL;
   }
-  map<id_type,pair<IShape*,PlTerm> >::iterator iter = id_shape_map.find(id);
+  map<id_type,pair<IShape*,record_t> >::iterator iter = id_shape_map.find(id);
   if (iter == id_shape_map.end()) {
     rv = NULL;
   } else {
     rv = iter->second.first;
+  }
+  RDUNLOCK(&lock);
+  return rv;
+}
+
+void RTreeIndex::deleteShape(id_type id) {
+  if ( !WRLOCK(&lock,FALSE) ) {
+    cerr << __FUNCTION__ << " could not acquire read lock" << endl;
+    return;
+  }
+  map<id_type,pair<IShape*,record_t> >::iterator shape_iter = id_shape_map.find(id);
+  if (shape_iter != id_shape_map.end()) {
+    GEOSShape *s = dynamic_cast<GEOSShape*>(shape_iter->second.first);
+    if (s != NULL) {
+      global_factory->destroyGeometry(s->g);
+      s->g = NULL;
+    }    
+    delete shape_iter->second.first;
+    PL_erase(shape_iter->second.second);    
+  }
+  id_shape_map.erase(id);
+  WRUNLOCK(&lock);
+}
+
+bool RTreeIndex::getShapeTerm(id_type id, term_t t) {
+  bool rv = false;
+  if ( !RDLOCK(&lock) ) {
+    cerr << __FUNCTION__ << " could not acquire read lock" << endl;
+    rv = false;
+  }
+  map<id_type,pair<IShape*,record_t> >::iterator iter = id_shape_map.find(id);
+  if (iter == id_shape_map.end()) {
+    rv = false;
+  } else {
+    rv = PL_recorded(iter->second.second,t);
   }
   RDUNLOCK(&lock);
   return rv;
@@ -241,27 +273,7 @@ id_type  RTreeIndex::get_new_id(PlTerm uri) {
   WRUNLOCK(&lock);
   return id;
 }
-
-/*
-id_type   RTreeIndex::get_uri_id(PlTerm uri) {
-  id_type rv = -1;
-  if ( !RDLOCK(&lock) ) {
-    cerr << __FUNCTION__ << " could not acquire read lock" << endl;
-    return -1;
-  }
-  PlAtom uri_atom(uri);
-  map<atom_t,id_type>::iterator iter = uri_id_map.find(uri_atom.handle);
-  if (iter == uri_id_map.end()) {
-    rv = -1;
-  } else {
-    rv = iter->second;
-  }
-  RDUNLOCK(&lock);
-  return rv;
-}
-*/
-  
-
+ 
 void RTreeIndex::create_tree(uint32_t dimensionality) {
   if ( !WRLOCK(&lock,FALSE) ) {
     cerr << __FUNCTION__ << " could not acquire write lock" << endl;
@@ -302,8 +314,6 @@ RTreeIndex::bulk_load(PlTerm goal,uint32_t dimensionality) {
   }
   RTreePrologStream stream(goal,this); // assuming goal of the form 'somepred(URI,Shape)'
 
-  // FIXME: add a nice customization interface that allows you to choose between disk and memory storage
-  // and to set the parameters of the disk store and buffer
   if ( !WRLOCK(&lock,FALSE) ) {
     cerr << __FUNCTION__ << " could not acquire write lock" << endl;
     return false;
@@ -332,14 +342,12 @@ RTreeIndex::bulk_load(PlTerm goal,uint32_t dimensionality) {
 }
 
 IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
-  // only supports points and boxes now
   if (shape_term.name() == ATOM_point) {
 
     double point[shape_term.arity()];
     for (int i = 1; i <= shape_term.arity(); i++) {
       point[i-1] = (double)shape_term[i];
     }
-    //  return new Point(point,shape_term.arity());
     GEOSPoint *p = new GEOSPoint(point,shape_term.arity()); // testing GEOS points
     #ifdef DEBUGGING
     cout << "made point " << p << endl;
@@ -533,37 +541,43 @@ bool RTreeIndex::insert_single_object(PlTerm uri,PlTerm shape_term) {
     WRUNLOCK(&lock);
     return FALSE;
   }
-  storeShape(id,shape,&shape_term);
+  storeShape(id,shape,shape_term);
   WRUNLOCK(&lock);
   return TRUE;
 }
 
 bool RTreeIndex::delete_single_object(PlTerm uri,PlTerm shape_term) {
-  IShape *shape;
-  id_type id;
+  bool rv = TRUE;
+  if (tree == NULL) {
+    return TRUE;
+  }
   if ( !WRLOCK(&lock,FALSE) ) {
     cerr << __FUNCTION__ << " could not acquire write lock" << endl;
     return FALSE;
   }
-  if ((shape = RTreeIndex::interpret_shape(shape_term)) == NULL) {
-    cerr << "could not interpret shape" << endl;
-    WRUNLOCK(&lock);
-    return FALSE;
+  IteratorState *state = new IteratorState();
+  state->uri_id_range = uri_id_multimap.equal_range(PlAtom(uri).handle);
+  for ( state->uri_id_iter = state->uri_id_range.first;
+        state->uri_id_iter != state->uri_id_range.second;
+        ++(state->uri_id_iter)) {
+    map<id_type,pair<IShape*,record_t> >::iterator id_shape_iter = id_shape_map.find(state->uri_id_iter->second);
+    if (id_shape_iter == id_shape_map.end()) {
+    } else {
+      term_t t = PL_new_term_ref();
+      if (!PL_recorded(id_shape_iter->second.second,t)) {
+        cerr << __FUNCTION__ << " couldn't resolve shape term record" << endl;
+        return FALSE;
+      }
+      PlTerm st = PlTerm(t);
+      if (st = shape_term) {
+        // FIXME: improve error handling. rv should be dependent on all frees
+        rv = tree->deleteData(*(id_shape_iter->second.first), state->uri_id_iter->second);
+        deleteShape(state->uri_id_iter->second);
+        uri_id_multimap.erase(state->uri_id_iter);        
+      }
+    }
   }
-  if (tree == NULL) {
-    uint32_t dimensionality = shape->getDimension();
-    clear_tree();
-    RTreeIndex::create_tree(dimensionality,utilization,nodesize);
-  }
-  if (uri_id_multimap.find(uri) == uri_id_multimap.end()) {
-    PlTerm bnt(baseName);
-    cerr << "could not find ID for " << (char*)uri << " in " << (char*)bnt << endl;
-    delete shape;
-    WRUNLOCK(&lock);
-    return FALSE;
-  }
-  bool rv = tree->deleteData(*shape, id);
-  delete shape;
+  delete state;
   WRUNLOCK(&lock);
   return rv;
 }
