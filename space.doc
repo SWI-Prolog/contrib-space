@@ -201,9 +201,11 @@ An alternative implementation would be to take the exact IncNearest algorithm de
 \input{spacepl}
 \input{georss}
 \input{wgs84}
+\input{freebase}
 \input{wkt}
 \input{kml}
 \input{gml}
+\input{space_web_loader}
 
 \printindex
 
