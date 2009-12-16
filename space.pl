@@ -80,6 +80,23 @@
 :- use_module(library(error)).
 :- use_module(library(shlib)).
 
+:- rdf_meta(space_nearest(t,?)).
+:- rdf_meta(space_nearest(t,?,?)).
+:- rdf_meta(space_intersects(t,?)).
+:- rdf_meta(space_intersects(t,?,?)).
+:- rdf_meta(space_contains(t,?)).
+:- rdf_meta(space_contains(t,?,?)).
+:- rdf_meta(space_nearest_bounded(t,?,?)).
+:- rdf_meta(space_nearest_bounded(t,?,?,?)).
+:- rdf_meta(space_within_range(t,?,?)).
+:- rdf_meta(space_within_range(t,?,?,?)).
+:- rdf_meta(space_assert(r,?)).
+:- rdf_meta(space_assert(r,?,?)).
+:- rdf_meta(space_retract(r,?)).
+:- rdf_meta(space_retract(r,?,?)).
+:- rdf_meta(uri_shape(r,?)).
+:- rdf_meta(uri_shape(r,?,?)).
+
 :- dynamic space_queue/4.
 :- dynamic shape/1. % allows you to adapt space_index_all.
 :- dynamic uri_shape/2. % allows you to adapt space_index_all.
@@ -246,16 +263,16 @@ space_bulkload(Functor, IndexName) :-
 %       IndexName or the default index.
 
 space_contains(Q, Cont) :-
-	(   atom(Q)
-	->  uri_shape(Q, Shape),
+	(   shape(Q)
+	->  space_shape_contains(Q, Cont)
+	;   uri_shape(Q, Shape),
 	    space_shape_contains(Shape, Cont)
-	;   space_shape_contains(Q, Cont)
 	).
 space_contains(Q, Cont, IndexName) :-
-	(   atom(Q)
-	->  uri_shape(Q, Shape),
+	(   shape(Q)
+	->  space_shape_contains(Q, Cont, IndexName)
+	;   uri_shape(Q, Shape),
 	    space_shape_contains(Shape, Cont, IndexName)
-	;   space_shape_contains(Q, Cont, IndexName)
 	).
 
 space_shape_contains(Shape, Cont) :-
@@ -279,16 +296,16 @@ space_shape_contains(Shape, Cont, IndexName) :-
 %       or the default index. (intersection subsumes containment)
 
 space_intersects(Q, Inter) :-
-	(   atom(Q)
-	->  uri_shape(Q, Shape),
+	(   shape(Q)
+	->  space_shape_intersects(Q, Inter)
+	;   uri_shape(Q, Shape),
 	    space_shape_intersects(Shape, Inter)
-	;   space_shape_intersects(Q, Inter)
 	).
 space_intersects(Q, Inter, IndexName) :-
-	(   atom(Q)
-	->  uri_shape(Q, Shape),
+	(   shape(Q)
+	->  space_shape_intersects(Q, Inter, IndexName)
+	;   uri_shape(Q, Shape),
 	    space_shape_intersects(Shape ,Inter, IndexName)
-	;   space_shape_intersects(Q, Inter, IndexName)
 	).
 
 space_shape_intersects(Shape, Inter) :-
@@ -313,16 +330,16 @@ space_shape_intersects(Shape, Inter, IndexName) :-
 %       according to index IndexName or the default index.
 
 space_nearest(Q, Near) :-
-	(   atom(Q)
-	->  uri_shape(Q, Shape),
+	(   shape(Q)
+	->  space_shape_nearest(Q, Near)
+	;   uri_shape(Q, Shape),
 	    space_shape_nearest(Shape, Near)
-	;   space_shape_nearest(Q, Near)
 	).
 space_nearest(Q, Near, IndexName) :-
-	(   atom(Q)
-	->  uri_shape(Q, Shape),
+	(   shape(Q)
+	->  space_shape_nearest(Q, Near, IndexName)
+	;   uri_shape(Q, Shape),
 	    space_shape_nearest(Shape, Near, IndexName)
-	;   space_shape_nearest(Q, Near, IndexName)
 	).
 
 space_shape_nearest(Shape, Near) :-
@@ -344,16 +361,16 @@ space_shape_nearest(Shape, Near, IndexName) :-
 %	Fails when no more objects are within the range WithinRange.
 
 space_nearest_bounded(Q, Near, WithinRange) :-
-	(   atom(Q)
-	->  uri_shape(Q,Shape),
+	(   shape(Q)
+	->  space_shape_nearest_bounded(Q, Near, WithinRange)
+	;   uri_shape(Q,Shape),
 	    space_shape_nearest_bounded(Shape, Near, WithinRange)
-	;   space_shape_nearest_bounded(Q, Near, WithinRange)
 	).
 space_nearest_bounded(Q, Near, WithinRange, IndexName) :-
-	(   atom(Q)
-	->  uri_shape(Q,Shape),
+	(   shape(Q)
+	->  space_shape_nearest_bounded(Q, Near, WithinRange, IndexName)
+	;   uri_shape(Q,Shape),
 	    space_shape_nearest_bounded(Shape, Near, WithinRange, IndexName)
-	;   space_shape_nearest_bounded(Q, Near, WithinRange, IndexName)
 	).
 
 space_shape_nearest_bounded(Shape, Near, WithinRange) :-
@@ -405,6 +422,9 @@ uri_shape(URI,Shape) :-
 	wgs84_candidate(URI,Shape).
 uri_shape(URI,Shape) :-
 	freebase_candidate(URI,Shape).
+uri_shape(URI,Shape) :-
+	space_setting(rtree_default_index(Index)), !,
+	rtree_uri_shape(URI, Shape, Index).
 
 %%	uri_shape(?URI,?Shape,+Source) is nondet.
 %
@@ -417,9 +437,16 @@ uri_shape(URI,Shape,Source) :-
 	wgs84_candidate(URI,Shape,Source).
 uri_shape(URI,Shape,Source) :-
 	freebase_candidate(URI,Shape,Source).
+uri_shape(URI,Shape,Source) :-
+	var(Source),
+	space_setting(rtree_default_index(Index)),
+	Source = Index, !,
+	rtree_uri_shape(URI, Shape, Index).
+uri_shape(URI,Shape,Source) :-
+	atom(Source),
+	rtree_uri_shape(URI, Shape, Source).
 
-% allows you to use namespaces in the URI argument when using it to find pairs.
-:- rdf_meta(uri_shape(r,?)).
+
 
 %%	space_index_all(+IndexName) is det.
 %%	space_index_all is det.

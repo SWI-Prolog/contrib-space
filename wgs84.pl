@@ -40,6 +40,9 @@
 :- use_module(library(semweb/rdf_db)).
 :- rdf_register_ns(wgs84, 'http://www.w3.org/2003/01/geo/wgs84_pos#').
 
+:- rdf_meta(wgs84_candidate(r,?)).
+:- rdf_meta(wgs84_candidate(r,?,?)).
+
 %%	wgs84_candidate(?URI,?Point) is nondet.
 %
 %	Finds URI-Shape pairs of RDF resources that are place-tagged

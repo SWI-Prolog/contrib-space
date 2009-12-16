@@ -35,6 +35,9 @@
 :- use_module(library(semweb/rdf_db)).
 :- rdf_register_ns(fb, 'http://rdf.freebase.com/ns/').
 
+:- rdf_meta(freebase_candidate(r,?)).
+:- rdf_meta(freebase_candidate(r,?,?)).
+
 %%	freebase_candidate(?URI,?Point) is nondet.
 %
 %	Finds URI-Shape pairs of RDF resource that are place-tagged with

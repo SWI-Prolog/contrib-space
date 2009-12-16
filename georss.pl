@@ -39,6 +39,8 @@
 :- use_module(library(http/dcg_basics)).
 :- use_module(gml).
 
+:- rdf_meta(georss_simple_candidate(r,?,?)).
+
 :- rdf_register_ns(georss,'http://www.georss.org/georss/').
 :- rdf_register_ns(foaf,'http://xmlns.com/foaf/0.1/').
 
