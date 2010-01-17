@@ -88,7 +88,7 @@ AC_CHECK_LIB(spatialindex, main)
 
 AC_CHECK_HEADERS(spatialindex/SpatialIndex.h,[si=1],[si=0])
 #AC_TRY_LINK([#include <spatialindex/SpatialIndex.h>],[SpatialIndex::Point *p=new SpatialIndex::Point();],[si=1],[si=0])
-if test $si == 0; then
+if test "$si" = 0; then
    AC_ERROR("Cannot find spatialindex. Spatialindex must be installed first (http://trac.gispython.org/spatialindex/)")
 fi
 
