@@ -1,0 +1,3 @@
+To install GEOS 3.2.0 you need a fixed source/Makefile.vc, which can be downloaded at http://n2.nabble.com/attachment/4171436/0/Makefile.vc
+
+To install spatialindex you have to adapt the $(SPATIALINDEX_HOME) directory to ...

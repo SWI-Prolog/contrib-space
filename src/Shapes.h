@@ -104,7 +104,7 @@ namespace SpatialIndex
     bool intersectsShape(const IShape& in) const;
     bool containsShape(const IShape& in) const;
     bool touchesShape(const IShape& in) const;
-    void getCenter(Point& out) const;
+    void getCenter(SpatialIndex::Point& out) const;
     uint32_t getDimension() const;
     void getMBR(Region& out) const;
     double getArea() const;
@@ -116,7 +116,7 @@ namespace SpatialIndex
     void makeInfinite(uint32_t dimension);
     void makeDimension(uint32_t dimension);
 
-    Point* toPoint() const;
+    SpatialIndex::Point* toPoint() const;
     uint32_t m_dimension;
 
     friend class Region;
@@ -160,13 +160,13 @@ namespace SpatialIndex
     bool containsShape(const GEOSShape& in) const;
     bool containsShape(const IShape& in) const;
     bool containsRegion(const Region& r) const;
-    bool containsPoint(const Point& r) const;
+    bool containsPoint(const SpatialIndex::Point& r) const;
     bool touchesShape(const GEOSShape& in) const;
     bool touchesShape(const IShape& in) const;
     bool touchesRegion(const Region& r) const;
-    bool touchesPoint(const Point& r) const;
+    bool touchesPoint(const SpatialIndex::Point& r) const;
 
-    void getCenter(Point& out) const;
+    void getCenter(SpatialIndex::Point& out) const;
     uint32_t getDimension() const;
     void getMBR(Region& out) const;
     double getArea() const;
@@ -232,13 +232,13 @@ namespace SpatialIndex
     bool containsShape(const GEOSShape& in) const;
     bool containsShape(const IShape& in) const;
     bool containsRegion(const Region& r) const;
-    bool containsPoint(const Point& r) const;
+    bool containsPoint(const SpatialIndex::Point& r) const;
     bool touchesShape(const GEOSShape& in) const;
     bool touchesShape(const IShape& in) const;
     bool touchesRegion(const Region& r) const;
-    bool touchesPoint(const Point& r) const;
+    bool touchesPoint(const SpatialIndex::Point& r) const;
 
-    void getCenter(Point& out) const;
+    void getCenter(SpatialIndex::Point& out) const;
     uint32_t getDimension() const;
     void getMBR(Region& out) const;
     double getArea() const;

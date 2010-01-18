@@ -380,7 +380,7 @@ init_lock(rwlock *lock)
   lock->lock_level      = 0;
 
   lock->thread_max = 4;
-  if ( !(lock->read_by_thread = malloc(lock->thread_max*sizeof(int))) )
+  if ( !(lock->read_by_thread = (int*)malloc(lock->thread_max*sizeof(int))) )
     return FALSE;
   memset(lock->read_by_thread, 0, lock->thread_max*sizeof(int));
 
