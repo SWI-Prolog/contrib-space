@@ -12,6 +12,12 @@ PLHOME=..\..
 !include $(PLHOME)\src\rules.mk
 CFLAGS=$(CFLAGS) /D__SWI_PROLOG__ -I $(PLHOME)\packages\cpp
 
+LIBS=$(PLHOME)\lib\spatialindex_i.lib $(PLHOME)\lib\geos.lib user32.lib
+
+LIBDIR=$(PLBASE)\library\space
+{src}.cc{src}.obj:
+		@$(CC) -I. -Irc -I $(PLHOME)\include $(CFLAGS) /Fo$@ $<
+
 OBJ=		src/space.obj src/globals.obj src/Index.obj src/Search.obj src/Shapes.obj src/lock.obj src/debug.obj
 
 all:		space.dll
@@ -37,17 +43,22 @@ check::
 
 idll::
 		copy space.dll "$(BINDIR)"
+		copy $(PLHOME)\lib\spatialindex1.dll "$(BINDIR)"
+		copy $(PLHOME)\lib\geos.dll "$(BINDIR)"
 !IF "$(PDB)" == "true"
 		copy space.pdb "$(BINDIR)"
 !ENDIF
 
 ilib::
-		copy *.pl "$(PLBASE)\library"
+		if not exist "$(LIBDIR)\$(NULL)" $(MKDIR) "$(LIBDIR)"
+		copy *.pl "$(LIBDIR)"
 		$(MAKEINDEX)
 
 uninstall::
+		deltree "$(LIBDIR)"
 		del "$(BINDIR)\space.dll"
-		del "$(PLBASE)\library\*.pl"
+		del "$(BINDIR)\spatialindex1.dll"
+		del "$(BINDIR)\geos.dll"
 		$(MAKEINDEX)
 
 html-install::
