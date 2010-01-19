@@ -74,13 +74,13 @@ void cleanup_geos() {
 }
 
 
-uint32_t 
+uint32_t
 GEOSShape::getByteArraySize() {
 #ifdef DEBUGGING
   cout << "entering GEOSPoint::getByteArraySize() " << endl;
 #endif
   cerr << __FUNCTION__ << " not efficiently implemented yet" << endl;
-  byte** data;
+  byte** data = NULL;
   uint32_t length;
   this->storeToByteArray(data, length);
   delete data;
@@ -118,7 +118,12 @@ GEOSShape::storeToByteArray(byte** data, uint32_t& length) {
     return;
   }
   stringstream s(ios_base::binary|ios_base::in|ios_base::out);
+  #ifdef BYTE_ORDER
   geos::io::WKBWriter *wkbWriter = new geos::io::WKBWriter(this->m_dimension,BYTE_ORDER==LITTLE_ENDIAN,true);
+  #endif
+  #ifdef WIN32
+  geos::io::WKBWriter *wkbWriter = new geos::io::WKBWriter(this->m_dimension,true,true);
+  #endif
   wkbWriter->write(*(this->g), s);
   length = ((uint32_t)(s.tellp()))+sizeof(uint32_t);
   s.seekp(0, ios::beg); // rewind writer pointer
@@ -433,13 +438,14 @@ GEOSPoint::getMBR(Region& out) const {
   cout << "entering GEOSPoint::getMBR(Region& out) const " << endl;
 #endif
   //Envelope e = this->g->getEnvelope();
-  double p[m_dimension];
+  double *p = new double[m_dimension];
   const Coordinate *c = this->g->getCoordinate();
   if (m_dimension >= 1) p[0] = c->x;
   if (m_dimension >= 2) p[1] = c->y;
   if (m_dimension == 3) p[2] = 0; // no true 3d, just 2d plus z
   Region *r = new Region(p,p,m_dimension);
   out = *r;
+  free(p);
   delete r;
 }
 
@@ -692,7 +698,7 @@ GEOSLineString::containsPoint(const SpatialIndex::Point& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSLineString::containsPoint(const SpatialIndex::Point& in) const " << endl;
 #endif
- const GEOSPoint *p = new GEOSPoint(in.m_pCoords,in.m_dimension);
+ const GEOSPoint *p = new GEOSPoint(in.m_pCoords,(uint32_t)in.m_dimension);
  bool rv = this->g->contains(p->g);
  delete p;
  return rv;
@@ -757,7 +763,7 @@ GEOSLineString::touchesPoint(const SpatialIndex::Point& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSLineString::touchesPoint(const SpatialIndex::Point& in) const " << endl;
 #endif
-  const GEOSPoint *p = new GEOSPoint(in.m_pCoords,in.m_dimension);
+  const GEOSPoint *p = new GEOSPoint(in.m_pCoords,(uint32_t)in.m_dimension);
   bool rv = this->g->touches(p->g);
   delete p;
   return rv;
@@ -1200,7 +1206,7 @@ GEOSPolygon::containsPoint(const SpatialIndex::Point& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSPolygon::containsPoint(const SpatialIndex::Point& in) const " << endl;
 #endif
- const GEOSPoint *p = new GEOSPoint(in.m_pCoords,in.m_dimension);
+ const GEOSPoint *p = new GEOSPoint(in.m_pCoords,(uint32_t)in.m_dimension);
  bool rv = this->g->contains(p->g);
  delete p;
  return rv;
@@ -1265,7 +1271,7 @@ GEOSPolygon::touchesPoint(const SpatialIndex::Point& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSPolygon::touchesPoint(const SpatialIndex::Point& in) const " << endl;
 #endif
-  const GEOSPoint *p = new GEOSPoint(in.m_pCoords,in.m_dimension);
+  const GEOSPoint *p = new GEOSPoint(in.m_pCoords,(uint32_t)in.m_dimension);
   bool rv = this->g->touches(p->g);
   delete p;
   return rv;

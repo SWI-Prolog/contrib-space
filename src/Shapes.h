@@ -60,7 +60,7 @@ namespace SpatialIndex
 {
   class GEOSShape : public IShape {
   public:
-    virtual ~GEOSShape() {};
+    ~GEOSShape() {};
 
     //
     // ISerializable interface
@@ -81,11 +81,12 @@ namespace SpatialIndex
 
   class GEOSPoint : public GEOSShape {
   public:
+
     GEOSPoint();
     GEOSPoint(const double* pCoords, uint32_t dimension);
     GEOSPoint(const GEOSPoint& p);
     GEOSPoint(const geos::geom::Coordinate &coordinate);
-    virtual ~GEOSPoint();
+    ~GEOSPoint();
 
     GEOSPoint& operator=(const GEOSPoint& p);
     bool operator==(const GEOSPoint& p) const;
@@ -141,7 +142,7 @@ namespace SpatialIndex
     GEOSLineString(const GEOSLineString& poly);
     GEOSLineString(const geos::geom::LineString& poly);
 
-    virtual ~GEOSLineString();
+    ~GEOSLineString();
 
     GEOSLineString& operator=(const GEOSLineString& p);
     bool operator==(const GEOSLineString&) const;
@@ -213,7 +214,7 @@ namespace SpatialIndex
     GEOSPolygon(const GEOSPolygon& poly);
     GEOSPolygon(const geos::geom::Polygon& poly);
 
-    virtual ~GEOSPolygon();
+    ~GEOSPolygon();
 
     GEOSPolygon& operator=(const GEOSPolygon& p);
     bool operator==(const GEOSPolygon&) const;

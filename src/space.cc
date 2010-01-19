@@ -468,7 +468,7 @@ create_square_linearring(double xoffset, double yoffset, double side) {
   return lr;
 }
 
-Polygon*
+geos::geom::Polygon*
 create_square_polygon(double xoffset, double yoffset, double side) {
   LinearRing *outer = create_square_linearring(xoffset,yoffset,side);
   LinearRing *inner = create_square_linearring(xoffset+(side/3),
@@ -477,7 +477,7 @@ create_square_polygon(double xoffset, double yoffset, double side) {
   holes->push_back((Geometry*)inner);
   PrecisionModel *pm = new PrecisionModel(geos::geom::PrecisionModel::FLOATING);
   GeometryFactory *global_factory = new GeometryFactory(pm, -1);
-  Polygon *poly = global_factory->createPolygon(outer, holes);
+  geos::geom::Polygon *poly = global_factory->createPolygon(outer, holes);
   return poly;
 }
 
@@ -511,12 +511,12 @@ PREDICATE(geos_test,0) {
   if (p->intersectsShape(r))
     cout << "intersects Region!" << endl;
   
-  Polygon *cp = create_square_polygon(3.5,1.5,5.0);
+  geos::geom::Polygon *cp = create_square_polygon(3.5,1.5,5.0);
   GEOSPolygon *gcp = new GEOSPolygon(*cp);
   cout << "GEOSPolygon containment test with Region 1=" << gcp->containsShape(r) << endl;
 
 
-  Polygon *poly = create_square_polygon(4.0,2.0,3.0);
+  geos::geom::Polygon *poly = create_square_polygon(4.0,2.0,3.0);
   GEOSPolygon *gpoly = new GEOSPolygon(*poly);
   cout << "created polygon" << endl;
   if (gpoly->intersectsShape(*p))
