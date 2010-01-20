@@ -424,7 +424,8 @@ uri_shape(URI,Shape) :-
 	freebase_candidate(URI,Shape).
 uri_shape(URI,Shape) :-
 	space_setting(rtree_default_index(Index)), !,
-	rtree_uri_shape(URI, Shape, Index).
+	rtree_uri_shape(URI, S, Index),
+	Shape = S. % FIXME: fix in C++, also fix duplicates.
 
 %%	uri_shape(?URI,?Shape,+Source) is nondet.
 %
@@ -441,7 +442,8 @@ uri_shape(URI,Shape,Source) :-
 	var(Source),
 	space_setting(rtree_default_index(Index)),
 	Source = Index, !,
-	rtree_uri_shape(URI, Shape, Index).
+	rtree_uri_shape(URI, S, Index),
+	Shape = S. % FIXME: fix in C++
 uri_shape(URI,Shape,Source) :-
 	atom(Source),
 	rtree_uri_shape(URI, Shape, Source).
