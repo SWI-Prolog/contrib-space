@@ -233,15 +233,17 @@ PREDICATE_NONDET(rtree_uri_shape,3)
       cerr << "******ERROR******" << endl;
       std::string s = e.what();
       cerr << s << endl;
-      return -1;
+      return FALSE;		// JW: TBD: map exception!
     }
   catch (std::exception& e)
     {
       cerr << "******ERROR******" << endl;
       cerr << "other exception" << endl;
       cerr << e.what() << endl;
-      return -1;
+      return FALSE;
     }
+
+  return FALSE;
 }
 
 // indexname, uri, shape
