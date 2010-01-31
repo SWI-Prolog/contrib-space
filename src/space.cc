@@ -79,6 +79,7 @@ static void index_clear(PlTerm indexname) {
   WRUNLOCK(&index_map_lock);
 }
 
+#if 0 /* not used! */
 static RTreeIndex* assert_rtree_index(PlTerm indexname, double util, int nodesz) {
   if ( index_map_lock.writer != -1 ) INIT_LOCK(&index_map_lock);
   PlAtom idx_atom(indexname);
@@ -103,6 +104,7 @@ static RTreeIndex* assert_rtree_index(PlTerm indexname, double util, int nodesz)
   WRUNLOCK(&index_map_lock);
   return rv;
 }
+#endif
 
 static RTreeIndex* assert_rtree_index(PlTerm indexname) {
   if ( index_map_lock.writer != -1 ) INIT_LOCK(&index_map_lock);
