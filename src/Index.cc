@@ -213,6 +213,7 @@ IShape* RTreeIndex::getShape(id_type id) {
   return rv;
 }
 
+// FIXME: obsolete function, replaced by code in delete_single_object
 void RTreeIndex::deleteShape(id_type id) {
   if ( !WRLOCK(&lock,FALSE) ) {
     cerr << __FUNCTION__ << " could not acquire read lock" << endl;
@@ -561,20 +562,30 @@ bool RTreeIndex::delete_single_object(PlTerm uri,PlTerm shape_term) {
   for ( state->uri_id_iter = state->uri_id_range.first;
         state->uri_id_iter != state->uri_id_range.second;
         ++(state->uri_id_iter)) {
-    map<id_type,pair<IShape*,record_t> >::iterator id_shape_iter = id_shape_map.find(state->uri_id_iter->second);
-    if (id_shape_iter == id_shape_map.end()) {
-    } else {
+    id_type id = state->uri_id_iter->second;
+    map<id_type,pair<IShape*,record_t> >::iterator id_shape_iter = id_shape_map.find(id);
+    if (id_shape_iter != id_shape_map.end()) {
       term_t t = PL_new_term_ref();
       if (!PL_recorded(id_shape_iter->second.second,t)) {
         cerr << __FUNCTION__ << " couldn't resolve shape term record" << endl;
         return FALSE;
       }
       PlTerm st = PlTerm(t);
-      if (st = shape_term) {
+      if (st == shape_term) {
         // FIXME: improve error handling. rv should be dependent on all frees
-        rv = tree->deleteData(*(id_shape_iter->second.first), state->uri_id_iter->second);
-        deleteShape(state->uri_id_iter->second);
         uri_id_multimap.erase(state->uri_id_iter);        
+	IShape *shape = (*id_shape_iter).second.first;
+	rv = tree->deleteData(*shape, id);
+        //deleteShape(id);
+        GEOSShape *s = dynamic_cast<GEOSShape*>(shape);
+        if (s != NULL) {
+          global_factory->destroyGeometry(s->g);
+          s->g = NULL;
+        }    
+        delete shape;
+        PL_erase(id_shape_iter->second.second);    
+        id_shape_map.erase(id);
+        break;
       }
     }
   }

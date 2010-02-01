@@ -352,7 +352,8 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
           continuation = true; // If we want to find more results we should not start from the root node
           delete e;
           queue.pop();
-          nextEntry = queue.top()->m_id;
+	  if (!queue.empty())
+	          nextEntry = queue.top()->m_id;
           return; // Stop looking for more matches.
         } else { // leaf node
 #ifdef DEBUGGING
@@ -424,16 +425,18 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
   
   // This takes care that the nextEntry is never data,
   // to circumvent the readNode call in the queryStrategy method.
-  if (queue.top()->m_pEntry != NULL) {
+  if (!queue.empty() && queue.top()->m_pEntry != NULL) {
 #ifdef DEBUGGING
     cout << "next is data, setting entry to NULL" << endl;
 #endif
     nextEntry = 0; // really? FIXME
   } else {
+    if (!queue.empty()) {
 #ifdef DEBUGGING
-    cout << "next is " << queue.top()->m_id << endl;
+      cout << "next is " << queue.top()->m_id << endl;
 #endif
-    nextEntry = queue.top()->m_id;
+      nextEntry = queue.top()->m_id;
+    }
   }
 }
 
