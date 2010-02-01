@@ -77,6 +77,7 @@
 :- use_module(georss). % also GML support
 :- use_module(wgs84).
 :- use_module(freebase).
+:- use_module(dbpedia).
 :- use_module(library(error)).
 :- use_module(library(shlib)).
 
@@ -423,6 +424,8 @@ uri_shape(URI,Shape) :-
 uri_shape(URI,Shape) :-
 	freebase_candidate(URI,Shape).
 uri_shape(URI,Shape) :-
+	dbpedia_candidate(URI,Shape).
+uri_shape(URI,Shape) :-
 	space_setting(rtree_default_index(Index)), !,
 	rtree_uri_shape(URI, S, Index),
 	Shape = S. % FIXME: fix in C++, also fix duplicates.
@@ -438,6 +441,8 @@ uri_shape(URI,Shape,Source) :-
 	wgs84_candidate(URI,Shape,Source).
 uri_shape(URI,Shape,Source) :-
 	freebase_candidate(URI,Shape,Source).
+uri_shape(URI,Shape,Source) :-
+	dbpedia_candidate(URI,Shape,Source).
 uri_shape(URI,Shape,Source) :-
 	var(Source),
 	space_setting(rtree_default_index(Index)),

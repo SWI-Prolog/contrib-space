@@ -202,6 +202,7 @@ An alternative implementation would be to take the exact IncNearest algorithm de
 \input{georss}
 \input{wgs84}
 \input{freebase}
+\input{dbpedia}
 \input{wkt}
 \input{kml}
 \input{gml}
