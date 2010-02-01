@@ -68,7 +68,7 @@ permission_error(const char *op, const char *type, const char *obj,
 
 static void
 register_reader(rwlock *lock, int tid)
-{ while ( tid >= lock->thread_max )
+{ while ( (size_t)tid >= lock->thread_max )
   { size_t osize = lock->thread_max*sizeof(lock->read_by_thread[0]);
 
     lock->read_by_thread = (int*)realloc(lock->read_by_thread, osize*2);
@@ -487,7 +487,7 @@ wrlock(rwlock *lock, int allow_readers)
     return TRUE;
   }
 
-  if ( self < lock->thread_max && lock->read_by_thread[self] > 0 )
+  if ( (size_t)self < lock->thread_max && lock->read_by_thread[self] > 0 )
   { DEBUG(1, Sdprintf("SELF(%d) has %d readers\n",
 		      self, lock->read_by_thread[self]));
     pthread_mutex_unlock(&lock->mutex);

@@ -124,7 +124,7 @@ kml.tex:	kml.pl
 		$(PLTOTEX) --out=$@ --subsection 'library(space/kml)'
 gml.tex:	gml.pl
 		$(PLTOTEX) --out=$@ --subsection 'library(space/gml)'
-space_web_loader.tex:	space_web_loader.pl
+spacewebloader.tex:	space_web_loader.pl
 		$(PLTOTEX) --out=$@ --subsection 'library(space/space_web_loader)'
 
 .doc.tex:

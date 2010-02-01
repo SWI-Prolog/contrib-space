@@ -80,11 +80,15 @@ GEOSShape::getByteArraySize() {
   cout << "entering GEOSPoint::getByteArraySize() " << endl;
 #endif
   cerr << __FUNCTION__ << " not efficiently implemented yet" << endl;
+#if 0
   byte** data;
   uint32_t length;
   this->storeToByteArray(data, length);
   delete data;
   return length;
+#else
+  return -1;
+#endif
 }
 
 void
