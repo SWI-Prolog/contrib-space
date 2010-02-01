@@ -30,7 +30,7 @@ LIBS=@LIBS@
 CC=@CC@ $(CFLAGS)
 CXX=@CXX@ $(CFLAGS)
 
-PUBLICPL=pl
+PUBLICPL=swipl
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
 DOC=space

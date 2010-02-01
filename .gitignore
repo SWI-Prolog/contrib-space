@@ -15,6 +15,9 @@ Makefile
 configure
 config.h
 config.status
+config.h.in
+.pl-history
 autom4te.cache
 space.html
 space.pdf
+src/TAGS
