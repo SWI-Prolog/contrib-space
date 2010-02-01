@@ -344,7 +344,7 @@ RTreeIndex::bulk_load(PlTerm goal,uint32_t dimensionality) {
 IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
   if (shape_term.name() == ATOM_point) {
 
-    double point[shape_term.arity()];
+    double *point = new double[shape_term.arity()];
     for (int i = 1; i <= shape_term.arity(); i++) {
       point[i-1] = (double)shape_term[i];
     }
@@ -465,7 +465,8 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
       return NULL;
     }
     int dim = shape_term.arity();
-    double low_point[dim], high_point[dim];
+    double *low_point = new double[dim];
+    double *high_point = new double[dim];
     if (shape_term[1].name() != ATOM_point) return NULL;
     for (int i = 1; i <= dim; i++) {
       low_point[i-1] = (double)shape_term[1][i];

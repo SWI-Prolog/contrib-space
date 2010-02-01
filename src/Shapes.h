@@ -60,7 +60,7 @@ namespace SpatialIndex
 {
   class GEOSShape : public IShape {
   public:
-    virtual ~GEOSShape() {};
+    ~GEOSShape() {};
 
     //
     // ISerializable interface
@@ -81,11 +81,12 @@ namespace SpatialIndex
 
   class GEOSPoint : public GEOSShape {
   public:
+
     GEOSPoint();
     GEOSPoint(const double* pCoords, uint32_t dimension);
     GEOSPoint(const GEOSPoint& p);
     GEOSPoint(const geos::geom::Coordinate &coordinate);
-    virtual ~GEOSPoint();
+    ~GEOSPoint();
 
     GEOSPoint& operator=(const GEOSPoint& p);
     bool operator==(const GEOSPoint& p) const;
@@ -104,7 +105,7 @@ namespace SpatialIndex
     bool intersectsShape(const IShape& in) const;
     bool containsShape(const IShape& in) const;
     bool touchesShape(const IShape& in) const;
-    void getCenter(Point& out) const;
+    void getCenter(SpatialIndex::Point& out) const;
     uint32_t getDimension() const;
     void getMBR(Region& out) const;
     double getArea() const;
@@ -116,7 +117,7 @@ namespace SpatialIndex
     void makeInfinite(uint32_t dimension);
     void makeDimension(uint32_t dimension);
 
-    Point* toPoint() const;
+    SpatialIndex::Point* toPoint() const;
     uint32_t m_dimension;
 
     friend class Region;
@@ -141,7 +142,7 @@ namespace SpatialIndex
     GEOSLineString(const GEOSLineString& poly);
     GEOSLineString(const geos::geom::LineString& poly);
 
-    virtual ~GEOSLineString();
+    ~GEOSLineString();
 
     GEOSLineString& operator=(const GEOSLineString& p);
     bool operator==(const GEOSLineString&) const;
@@ -160,13 +161,13 @@ namespace SpatialIndex
     bool containsShape(const GEOSShape& in) const;
     bool containsShape(const IShape& in) const;
     bool containsRegion(const Region& r) const;
-    bool containsPoint(const Point& r) const;
+    bool containsPoint(const SpatialIndex::Point& r) const;
     bool touchesShape(const GEOSShape& in) const;
     bool touchesShape(const IShape& in) const;
     bool touchesRegion(const Region& r) const;
-    bool touchesPoint(const Point& r) const;
+    bool touchesPoint(const SpatialIndex::Point& r) const;
 
-    void getCenter(Point& out) const;
+    void getCenter(SpatialIndex::Point& out) const;
     uint32_t getDimension() const;
     void getMBR(Region& out) const;
     double getArea() const;
@@ -213,7 +214,7 @@ namespace SpatialIndex
     GEOSPolygon(const GEOSPolygon& poly);
     GEOSPolygon(const geos::geom::Polygon& poly);
 
-    virtual ~GEOSPolygon();
+    ~GEOSPolygon();
 
     GEOSPolygon& operator=(const GEOSPolygon& p);
     bool operator==(const GEOSPolygon&) const;
@@ -232,13 +233,13 @@ namespace SpatialIndex
     bool containsShape(const GEOSShape& in) const;
     bool containsShape(const IShape& in) const;
     bool containsRegion(const Region& r) const;
-    bool containsPoint(const Point& r) const;
+    bool containsPoint(const SpatialIndex::Point& r) const;
     bool touchesShape(const GEOSShape& in) const;
     bool touchesShape(const IShape& in) const;
     bool touchesRegion(const Region& r) const;
-    bool touchesPoint(const Point& r) const;
+    bool touchesPoint(const SpatialIndex::Point& r) const;
 
-    void getCenter(Point& out) const;
+    void getCenter(SpatialIndex::Point& out) const;
     uint32_t getDimension() const;
     void getMBR(Region& out) const;
     double getArea() const;

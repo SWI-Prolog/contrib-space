@@ -35,7 +35,7 @@ extern "C"
 #ifdef __WINDOWS__
 #include <windows.h>
 #if defined(_REENTRANT) && defined(__WINDOWS__)
-enum
+static enum
 { SIGNAL     = 0,
   MAX_EVENTS = 1
 } win32_event_t;
