@@ -10,7 +10,7 @@
 
 PLHOME=..\..
 !include $(PLHOME)\src\rules.mk
-CFLAGS=$(CFLAGS) /D__SWI_PROLOG__ /DDEBUGGING -I $(PLHOME)\packages\cpp
+CFLAGS=$(CFLAGS) /D__SWI_PROLOG__ -I $(PLHOME)\packages\cpp
 
 LIBS=$(PLHOME)\lib\spatialindex_i.lib $(PLHOME)\lib\geos.lib user32.lib
 
