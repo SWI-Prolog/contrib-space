@@ -324,7 +324,10 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
 #endif
         queue.pop();
 #ifdef DEBUGGING
-        cout << queue.top()->m_id << endl;
+        if (!queue.empty())
+          cout << queue.top()->m_id << endl;
+	else
+ 	  cout << "queue empty" << endl;
 #endif
       }
 
@@ -370,8 +373,8 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
             byte* data;
             n->getChildData(cChild,length,&data);
             id_type childIdentifier = n->getChildIdentifier(cChild);
-            RTree::Data* e = new RTree::Data(length, data, childMBR ,childIdentifier);
-            if (dist > queue.top()->m_minDist) {
+            RTree::Data* de = new RTree::Data(length, data, childMBR ,childIdentifier);
+            if (dist > e->m_minDist) {
 #ifdef DEBUGGING
               cout << "dist > mindist (Shape)\n";
 #endif
@@ -379,7 +382,7 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
               // because there are already objects in the queue that are closer than the MBR.
               double shapeDist = nnc.getMinimumDistance(*query,*childShape);
               // FIXME: insert Haversine support
-              queue.push(new NNEntry(childId, e, shapeDist));
+              queue.push(new NNEntry(childId, de, shapeDist));
 #ifdef DEBUGGING
               cout << "push " << childIdentifier << " with shape" << endl;
 #endif
@@ -388,7 +391,7 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
               cout << "dist <= mindist (MBR)\n";
 #endif
               // we push the MBR on the queue
-              queue.push(new NNEntry(childId, e, dist));
+              queue.push(new NNEntry(childId, de, dist));
 #ifdef DEBUGGING
               cout << "push " << childId << " with MBR" << endl;
 #endif

@@ -1,7 +1,7 @@
 ################################################################
-# Build the SWI-Prolog nlp package for MS-Windows
+# Build the SWI-Prolog space package for MS-Windows
 #
-# Author: Jan Wielemaker
+# Author: Willem Robert van Hage
 # 
 # Use:
 #	nmake /f Makefile.mak
@@ -10,7 +10,7 @@
 
 PLHOME=..\..
 !include $(PLHOME)\src\rules.mk
-CFLAGS=$(CFLAGS) /D__SWI_PROLOG__ -I $(PLHOME)\packages\cpp
+CFLAGS=$(CFLAGS) /D__SWI_PROLOG__ /DDEBUGGING -I $(PLHOME)\packages\cpp
 
 LIBS=$(PLHOME)\lib\spatialindex_i.lib $(PLHOME)\lib\geos.lib user32.lib
 
@@ -67,7 +67,7 @@ html-install::
 xpce-install::
 
 clean::
-		if exist *.obj del *.obj
+		if exist src\*.obj del src\*.obj
 		if exist *~ del *~
 
 distclean:	clean
