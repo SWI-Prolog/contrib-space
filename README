@@ -84,6 +84,10 @@ addition to what you need to build SWI-Prolog in the first place):
 
 Fetch and install spatialindex using the instructions above.
 
+---++ Windows
+
+To compile the space package as part of SWI-Prolog by running "/pl-devel/src/make.cmd" you need to put "space" in the list of packages in the PKGS variable in "/pl-devel/src/rules.mk".
+
 ---++ Problems with local installations of GEOS and spatialindex
 
 If you install spatialindex or geos in a local directory, for example
