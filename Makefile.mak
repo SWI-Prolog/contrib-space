@@ -2,7 +2,7 @@
 # Build the SWI-Prolog space package for MS-Windows
 #
 # Author: Willem Robert van Hage
-# 
+#
 # Use:
 #	nmake /f Makefile.mak
 #	nmake /f Makefile.mak install
@@ -12,7 +12,9 @@ PLHOME=..\..
 !include $(PLHOME)\src\rules.mk
 CFLAGS=$(CFLAGS) /D__SWI_PROLOG__ -I $(PLHOME)\packages\cpp
 
-LIBS=$(PLHOME)\lib\spatialindex_i.lib $(PLHOME)\lib\geos.lib user32.lib
+LIBS=	$(PLHOME)\lib\spatialindex_i.lib $(PLHOME)\lib\geos.lib user32.lib
+LIBPL=	dbpedia.pl demo_space.pl freebase.pl georss.pl gml.pl kml.pl \
+	space.pl space_web_loader.pl wgs84.pl wkt.pl
 
 LIBDIR=$(PLBASE)\library\space
 {src}.cc{src}.obj:
@@ -51,7 +53,7 @@ idll::
 
 ilib::
 		if not exist "$(LIBDIR)\$(NULL)" $(MKDIR) "$(LIBDIR)"
-		copy *.pl "$(LIBDIR)"
+		@for %f in ($(LIBPL)) do @copy %f "$(LIBDIR)"
 		$(MAKEINDEX)
 
 uninstall::
@@ -65,6 +67,9 @@ html-install::
 		copy space.html "$(PKGDOC)"
 
 xpce-install::
+
+installer::
+		"$(NSIS)" $(NSISDEFS) "$(PLBASE)\..\space.nsi"
 
 clean::
 		if exist src\*.obj del src\*.obj
