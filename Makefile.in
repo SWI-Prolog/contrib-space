@@ -19,7 +19,6 @@ PKGDOC=$(PLBASE)/doc/packages
 PCEHOME=../xpce
 LIBDIR=$(PLBASE)/library/space
 EXDIR=$(PKGDOC)/examples/space
-DESTDIR=
 
 COFLAGS=@COFLAGS@
 CWFLAGS=@CWFLAGS@
