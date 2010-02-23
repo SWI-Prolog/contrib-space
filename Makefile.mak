@@ -69,6 +69,7 @@ html-install::
 xpce-install::
 
 installer::
+		copy space.nsi "$(PLBASE)\..\space.nsi"
 		"$(NSIS)" $(NSISDEFS) "$(PLBASE)\..\space.nsi"
 
 clean::
