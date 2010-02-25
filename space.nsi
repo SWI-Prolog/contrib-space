@@ -72,8 +72,8 @@ SectionEnd
 Section "Create uninstaller"
   ; Write uninstaller
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\SWI-Prolog-space" "DisplayName" "SWI-Prolog space package (remove only)"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\SWI-Prolog-space" "UninstallString" '"$INSTDIR\uninstall.exe"'
-  WriteUninstaller "uninstall.exe"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\SWI-Prolog-space" "UninstallString" '"$INSTDIR\uninstall-space.exe"'
+  WriteUninstaller "uninstall-space.exe"
 SectionEnd
 
 ################################################################
