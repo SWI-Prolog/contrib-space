@@ -97,7 +97,7 @@ lat(URI,Lat) :-
 lat(URI,Lat,Source) :-
 	rdf(URI,wgs84:lat,literal(LatAtom),Source),
 	(   LatAtom = type(_,LatVal)
-	->  atom_number(LatVal,Lat)
+	->  LatVal = Lat
 	;   atom_number(LatAtom,Lat)
 	).
 
@@ -111,7 +111,7 @@ long(URI,Long) :-
 long(URI,Long,Source) :-
 	rdf(URI,wgs84:long,literal(LongAtom),Source),
 	(   LongAtom = type(_,LongVal)
-	->  atom_number(LongVal,Long)
+	->  LongVal = Long
 	;   atom_number(LongAtom,Long)
 	).
 
@@ -125,7 +125,7 @@ alt(URI,Alt) :-
 alt(URI,Alt,Source) :-
 	rdf(URI,wgs84:alt,literal(AltAtom),Source),
 	(   AltAtom = type(_,AltVal)
-	->  atom_number(AltVal,Alt)
+	->  AltVal = Alt
 	;   atom_number(AltAtom,Alt)
 	).
 
