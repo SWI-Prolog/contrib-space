@@ -1,4 +1,10 @@
 *.o
+*.obj
+*.exp
+*.ilk
+*.lib
+*.pdb
+*.manifest
 *.dylib
 *.so
 *.dll
