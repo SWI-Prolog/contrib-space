@@ -63,6 +63,7 @@
 	   shape/1,                   % +Shape
 	   uri_shape/2,		      % ?URI, ?Shape
 	   uri_shape/3,		      % ?URI, ?Shape, +Source
+	   uri_shape_graph/3,	      % +Graph, ?URI, ?Shape
 
 	   space_distance/3,              % +Feature1, +Feature2, -Distance
 	   space_distance/4,              % +Feature1, +Feature2, -Distance, +IndexName
@@ -453,6 +454,7 @@ uri_shape(URI,Shape,Source) :-
 	atom(Source),
 	rtree_uri_shape(URI, Shape, Source).
 
+uri_shape_graph(G,U,S) :- uri_shape(U,S,G).
 
 
 %%	space_index_all(+IndexName) is det.
