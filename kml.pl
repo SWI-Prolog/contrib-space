@@ -134,6 +134,24 @@ get_uri_shape(placemark(Shape,Attributes,_),URI,Shape) :-
 	(   memberchk(id=URI, GA) ;
 	    memberchk('ID'=URI, GA)
 	), !.
+get_uri_shape(placemark(Shape,[],E), URI, Shape) :-
+	member(description([D]), E),
+	once(atom_codes(D, DC)),
+	phrase(uri(URIcodes),DC,_),
+	atom_codes(URI,URIcodes).
+
+uri(URI) --> string(_), string("http://"), nonuri(Rest), { append("http://", Rest, URI) }.
+
+nonuri([H|T]) -->
+	[H],
+	{ code_type(H, graph),
+	  [H] \= "<",
+	  [H] \= ")" % FIXME: make this a bit more subtle
+	}, !,
+	nonuri(T).
+nonuri([]) -->
+	[].
+
 
 kml_ns(kml, 'http://www.opengis.net/kml/2.2/', _).
 
