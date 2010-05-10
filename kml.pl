@@ -47,6 +47,8 @@
 :- use_module(library(xpath)).
 :- use_module(library(semweb/rdf_db)).
 
+:- rdf_register_ns(kml,'http://www.opengis.net/kml/2.2#').
+:- rdf_meta store_element(r,r,?,t).
 
 %%	kml_shape(?Stream,?Shape) is semidet.
 %%	kml_shape(?Stream,?Shape,?Attributes,?Content) is semidet.
@@ -109,7 +111,7 @@ kml_file_shape(File, Geom) :- kml_file_shape(File, Geom, _A, _C).
 kml_file_shape(File, Geom, Attributes, Content) :-
 	load_structure(File, XML,
 		       [ dialect(xmlns),
-			 xmlns('http://www.opengis.net/kml/2.2'),
+%			 xmlns('http://www.opengis.net/kml/2.2'),
 			 xmlns(kml, 'http://www.opengis.net/kml/2.2')
 		       ]), !,
 	transform_kml(XML, Geom, Attributes, Content).
@@ -139,19 +141,49 @@ get_uri_shape(placemark(Shape,Attributes,_),URI,Shape, _) :-
 	(   memberchk(id=URI, GA) ;
 	    memberchk('ID'=URI, GA)
 	), !.
-get_uri_shape(placemark(Shape,[],E), URI, Shape, _) :- % check whether empty list is correct
-	member(description([D]), E),
-	once(atom_codes(D, DC)),
-	phrase(uri(URIcodes),DC,_),
-	atom_codes(URI,URIcodes), !.
-get_uri_shape(placemark(Shape,_,E), URI, Shape, File) :-
-	member(name([D]), E),
-	rdf_bnode(URI),
-	(   nonvar(File)
-	->  rdf_assert(URI,rdfs:label,D,File)
-	;   rdf_assert(URI,rdfs:label,D)
-	).
+get_uri_shape(placemark(Shape,_,E), URI, Shape, _File) :-
+	(   member(description([D]), E)
+	->  (   atom(D),
+	        once(atom_codes(D, DC)),
+		phrase(uri(URIcodes),DC,_)
+	    ->  atom_codes(URI,URIcodes)
+	    ;	rdf_bnode(URI)
+	    )
+%	    , store_element(URI, kml:description, E, File)
+	;   rdf_bnode(URI)
+	)
+%	, store_element(URI, kml:name, E, File)
+	.
 
+store_element(URI, Prop, Element, Graph) :-
+	(   E =.. [Prop,[D]]
+	;   rdf_global_id(_NS:ID,Prop),
+	    E =.. [ID,[D]]
+	),
+	member(E, Element),
+	atom(D),
+	(   atom_to_memory_file(D, Memfile),
+	    open_memory_file(Memfile, read, Stream),
+	    call_cleanup(load_structure(Stream, XML,
+					[ dialect(xmlns),
+					  syntax_errors(quiet) ]),
+			 free_data(Stream, Memfile)),
+	    memberchk(XML,element(_,_,_))
+	->  Literal = XML,
+	    Plain = false
+	;   Literal = D,
+	    Plain = true
+	),
+	(   Plain == true
+	->  (   nonvar(Graph)
+	    ->  rdf_assert(URI, Prop, literal(Literal), Graph)
+	    ;   rdf_assert(URI, Prop, literal(Literal))
+	    )
+	;   (   nonvar(Graph)
+	    ->  rdf_assert(URI, Prop, literal(type(rdf:'XMLLiteral',XML)), Graph)
+	    ;   rdf_assert(URI, Prop, literal(type(rdf:'XMLLiteral',XML)))
+	    )
+	).
 
 uri(URI) --> string(_), string("http://"), nonuri(Rest), { append("http://", Rest, URI) }.
 
