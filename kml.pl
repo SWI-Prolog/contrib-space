@@ -45,6 +45,7 @@
 :- use_module(library(option)).
 :- use_module(library(lists)).
 :- use_module(library(xpath)).
+:- use_module(library(semweb/rdf_db)).
 
 
 %%	kml_shape(?Stream,?Shape) is semidet.
@@ -118,27 +119,37 @@ kml_file_shape(File, Geom, Attributes, Content) :-
 
 kml_file_uri_shape(File, URI, Shape) :-
 	kml_file_shape(File, Geom, _Attributes, _Content),
-	get_uri_shape(Geom, URI, Shape).
+	get_uri_shape(Geom, URI, Shape, File).
 
-get_uri_shape(document([H|T]), URI, Shape) :-
-	get_uri_shape(H, URI, Shape) ;
-	get_uri_shape(document(T), URI, Shape).
-get_uri_shape(folder([H|T]), URI, Shape) :-
-	get_uri_shape(H, URI, Shape) ;
-	get_uri_shape(folder(T), URI, Shape).
-get_uri_shape(folder([H|T],_,_), URI, Shape) :-
-	get_uri_shape(H, URI, Shape) ;
-	get_uri_shape(folder(T), URI, Shape).
-get_uri_shape(placemark(Shape,Attributes,_),URI,Shape) :-
+get_uri_shape(E,U,S) :-
+	get_uri_shape(E,U,S,_).
+get_uri_shape(document([H|T]), URI, Shape, _) :-
+	get_uri_shape(H, URI, Shape, _) ;
+	get_uri_shape(document(T), URI, Shape, _).
+get_uri_shape(folder([H|T]), URI, Shape, _) :-
+	get_uri_shape(H, URI, Shape, _) ;
+	get_uri_shape(folder(T), URI, Shape, _).
+get_uri_shape(folder([H|T],_,_), URI, Shape, _) :-
+	get_uri_shape(H, URI, Shape, _) ;
+	get_uri_shape(folder(T), URI, Shape, _).
+get_uri_shape(placemark(Shape,Attributes,_),URI,Shape, _) :-
 	member(geom_attributes(GA),Attributes),
 	(   memberchk(id=URI, GA) ;
 	    memberchk('ID'=URI, GA)
 	), !.
-get_uri_shape(placemark(Shape,[],E), URI, Shape) :-
+get_uri_shape(placemark(Shape,[],E), URI, Shape, _) :- % check whether empty list is correct
 	member(description([D]), E),
 	once(atom_codes(D, DC)),
 	phrase(uri(URIcodes),DC,_),
-	atom_codes(URI,URIcodes).
+	atom_codes(URI,URIcodes), !.
+get_uri_shape(placemark(Shape,_,E), URI, Shape, File) :-
+	member(name([D]), E),
+	rdf_bnode(URI),
+	(   nonvar(File)
+	->  rdf_assert(URI,rdfs:label,D,File)
+	;   rdf_assert(URI,rdfs:label,D)
+	).
+
 
 uri(URI) --> string(_), string("http://"), nonuri(Rest), { append("http://", Rest, URI) }.
 
