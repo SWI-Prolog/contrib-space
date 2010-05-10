@@ -107,10 +107,12 @@ kml_uri_shape(KML, URI, Shape) :-
 
 kml_file_shape(File, Geom) :- kml_file_shape(File, Geom, _A, _C).
 kml_file_shape(File, Geom, Attributes, Content) :-
-	open(File, read, Stream, []),
-	read_stream_to_codes(Stream, Codes),
-	atom_codes(KML, Codes), !,
-	kml_shape(KML, Geom, Attributes, Content).
+	load_structure(File, XML,
+		       [ dialect(xmlns),
+			 xmlns('http://www.opengis.net/kml/2.2'),
+			 xmlns(kml, 'http://www.opengis.net/kml/2.2')
+		       ]), !,
+	transform_kml(XML, Geom, Attributes, Content).
 
 
 %%	kml_file_uri_shape(+File,?URI,?Shape) is semidet.
