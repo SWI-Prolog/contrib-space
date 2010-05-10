@@ -123,7 +123,12 @@ kml_file_shape(File, Geom, Attributes, Content) :-
 
 kml_file_uri_shape(File, URI, Shape) :-
 	kml_file_shape(File, Geom, _Attributes, _Content),
-	get_uri_shape(Geom, URI, Shape, File).
+	% work-around hack until the index implements geometry collections
+	(   Geom = placemark(geometrycollection(Gs),_,_)
+	->  get_uri_shape(Geom, URI, _Shape2, File), !,
+	    member(Shape,Gs)
+	;   get_uri_shape(Geom, URI, Shape, File)
+	).
 
 get_uri_shape(E,U,S) :-
 	get_uri_shape(E,U,S,_).
@@ -141,19 +146,16 @@ get_uri_shape(placemark(Shape,Attributes,_),URI,Shape, _) :-
 	(   memberchk(id=URI, GA) ;
 	    memberchk('ID'=URI, GA)
 	), !.
-get_uri_shape(placemark(Shape,_,E), URI, Shape, _File) :-
+get_uri_shape(placemark(Shape,_,E), URI, Shape, File) :-
 	(   member(description([D]), E)
 	->  (   atom(D),
 	        once(atom_codes(D, DC)),
 		phrase(uri(URIcodes),DC,_)
 	    ->  atom_codes(URI,URIcodes)
 	    ;	rdf_bnode(URI)
-	    )
-%	    , store_element(URI, kml:description, E, File)
+	    ), store_element(URI, kml:description, E, File)
 	;   rdf_bnode(URI)
-	)
-%	, store_element(URI, kml:name, E, File)
-	.
+	), store_element(URI, kml:name, E, File).
 
 store_element(URI, Prop, Element, Graph) :-
 	(   E =.. [Prop,[D]]
@@ -338,7 +340,13 @@ transform_kml(Elts, geometrycollection(Geoms), Attributes, Content) :-
 	member(element(_:'MultiGeometry',_,GeomElts), Elts),
 	get_geometry(GeomElts, Geoms),
 	get_extras(Elts, Attributes, Content).
-
+/*
+transform_kml(Elts, Geom, Attributes, Content) :-
+	member(element(_:'MultiGeometry',_,GeomElts), Elts),
+	get_geometry(GeomElts, Geoms),
+	member(Geom, Geoms),
+	get_extras(Elts, Attributes, Content).
+*/
 transform_kml(Elts, placemark(Geom, Attributes, Content), _A, _C) :-
 	member(element(_:'Placemark',_,GeomElts), Elts),
 	transform_kml(GeomElts, Geom, GeomAttr, GeomCont),
