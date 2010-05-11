@@ -37,7 +37,11 @@
 	    kml_file_uri_shape/3,
 	    kml_save_header/2,
 	    kml_save_shape/3,
-	    kml_save_footer/1
+	    kml_save_footer/1,
+	    kml_file_to_georss/1,
+	    kml_file_to_georss/2,
+	    georss_to_kml_file/1,
+	    georss_to_kml_file/2
 	  ]).
 
 :- use_module(library(http/html_write)).
@@ -46,9 +50,91 @@
 :- use_module(library(lists)).
 :- use_module(library(xpath)).
 :- use_module(library(semweb/rdf_db)).
+:- use_module(library(space/georss)).
 
 :- rdf_register_ns(kml,'http://www.opengis.net/kml/2.2#').
 :- rdf_meta store_element(r,r,?,t).
+
+%%	kml_file_to_georss(+KMLfile) is det.
+%%	kml_file_to_georss(+KMLfile,+RDFfile) is det.
+%
+%	Converts the contents of an KML file into GeoRSS RDF in
+%	the RDF database of Prolog.
+%       The Geometries are converted to GeoRSS properties and values.
+%       Documents, Folders, etc. are ignored.
+%	MultiGeometry objects are expanded into separate simple
+%	Geometries.
+%	Geometries with an XML ID are assigned that ID as URI,
+%	other Geometries are assigned a RDF blank node.
+%	The kml:name and kml:description are translated to RDF
+%	properties.
+
+kml_file_to_georss(KMLfile) :-
+	findall(uri_shape(U,S), kml_file_uri_shape(KMLfile,U,S), US),
+	forall(member(uri_shape(U,S), US),
+	       (   georss_uri_shape_triple(U,S,Sub,Pred,Obj),
+		   rdf_assert(Sub,Pred,Obj,KMLfile)
+	       )).
+kml_file_to_georss(KMLfile,RDFfile) :-
+	kml_file_to_georss(KMLfile),
+	rdf_save(RDFfile,[graph(KMLfile)]).
+
+
+%%	georss_to_kml_file(+KMLfile) is det.
+%%	georss_to_kml_file(+KMLfile,+Options) is det.
+%
+%	Converts the contents of the RDF database of Prolog
+%	into a KML file without style information and without
+%       Folders.
+%	kml:name and kml:description properties in the RDF database are
+%	converted to their KML counterparts.
+%       Options can be used to pass Document level options,
+%       for example, the name of the dataset. Options can also include
+%       a graph(Graph) option to specify which RDF named graph should
+%       be converted to KML.
+
+georss_to_kml_file(KMLfile) :-
+	georss_to_kml_file(KMLfile, []).
+georss_to_kml_file(KMLfile, Options) :-
+	option(graph(Graph),Options,-),
+	open(KMLfile, write, Stream, Options),
+	kml_save_header(Stream, Options),
+	forall((   Graph \= -
+	       ->  georss:georss_candidate(U,S,Graph)
+	       ;   georss:georss_candidate(U,S)
+	       ),
+	       (   (   (   Graph \= -
+		       ->  rdf(U,kml:name,literal(N),Graph)
+		       ;   rdf(U,kml:name,literal(N))
+		       )
+		   ->  Name = [name(N)]
+		   ;   Name = []
+		   ),
+	           (   (   Graph \= -
+		       ->  (   rdf(U,kml:description,literal(type(rdf:'XMLLiteral',D)),Graph)
+			   ->  true
+			   ;   rdf(U,kml:description,literal(D),Graph)
+			   )
+		       ;   (   rdf(U,kml:description,literal(type(rdf:'XMLLiteral',D)))
+			   ->  true
+			   ;   rdf(U,kml:description,literal(D))
+			   )
+		       )
+		   ->  Desc = [description(D)]
+		   ;   Desc = []
+		   ),
+		   append([Name,Desc],Cont),
+		   (   rdf_is_bnode(U)
+		   ->  kml_save_shape(Stream,
+				      placemark(S,[],Cont),
+				      Options)
+		   ;   kml_save_shape(Stream,
+				      placemark(S,[geom_attributes([id(U)])],Cont),
+				      Options)
+		   )
+	      )),
+	kml_save_footer(Stream),
+	close(Stream).
 
 %%	kml_shape(?Stream,?Shape) is semidet.
 %%	kml_shape(?Stream,?Shape,?Attributes,?Content) is semidet.
@@ -123,30 +209,42 @@ kml_file_shape(File, Geom, Attributes, Content) :-
 
 kml_file_uri_shape(File, URI, Shape) :-
 	kml_file_shape(File, Geom, _Attributes, _Content),
-	% work-around hack until the index implements geometry collections
-	(   Geom = placemark(geometrycollection(Gs),_,_)
-	->  get_uri_shape(Geom, URI, _Shape2, File), !,
-	    member(Shape,Gs)
-	;   get_uri_shape(Geom, URI, Shape, File)
+	get_uri_shape(Geom, URI, Shape, File).
+
+% work-around hack to avoid implementing geometry collections in C++
+non_geometrycollection_member(Shape, Geoms) :-
+	member(Member,Geoms),
+	(   Member = geometrycollection(Content)
+	->  non_geometrycollection_member(Shape,Content)
+	;   Shape = Member
+	).
+get_shape(Shape,Shape2) :-
+	(   Shape = geometrycollection(Content)
+	->  non_geometrycollection_member(Shape2,Content)
+	;   Shape2 = Shape
 	).
 
 get_uri_shape(E,U,S) :-
 	get_uri_shape(E,U,S,_).
-get_uri_shape(document([H|T]), URI, Shape, _) :-
-	get_uri_shape(H, URI, Shape, _) ;
-	get_uri_shape(document(T), URI, Shape, _).
-get_uri_shape(folder([H|T]), URI, Shape, _) :-
-	get_uri_shape(H, URI, Shape, _) ;
-	get_uri_shape(folder(T), URI, Shape, _).
-get_uri_shape(folder([H|T],_,_), URI, Shape, _) :-
-	get_uri_shape(H, URI, Shape, _) ;
-	get_uri_shape(folder(T), URI, Shape, _).
-get_uri_shape(placemark(Shape,Attributes,_),URI,Shape, _) :-
+get_uri_shape(geometrycollection(Content), URI, Shape, File) :-
+	non_geometrycollection_member(Member, Content),
+	get_uri_shape(Member, URI, Shape, File).
+get_uri_shape(document([H|T]), URI, Shape, File) :-
+	get_uri_shape(H, URI, Shape, File) ;
+	get_uri_shape(document(T), URI, Shape, File).
+get_uri_shape(folder([H|T]), URI, Shape, File) :-
+	get_uri_shape(H, URI, Shape, File) ;
+	get_uri_shape(folder(T), URI, Shape, File).
+get_uri_shape(folder([H|T],_,_), URI, Shape, File) :-
+	get_uri_shape(H, URI, Shape, File) ;
+	get_uri_shape(folder(T), URI, Shape, File).
+get_uri_shape(placemark(Shape,Attributes,_),URI,Shape2, _File) :-
 	member(geom_attributes(GA),Attributes),
 	(   memberchk(id=URI, GA) ;
 	    memberchk('ID'=URI, GA)
-	), !.
-get_uri_shape(placemark(Shape,_,E), URI, Shape, File) :-
+	), !,
+	get_shape(Shape,Shape2).
+get_uri_shape(placemark(Shape,_,E), URI, Shape2, File) :-
 	(   member(description([D]), E)
 	->  (   atom(D),
 	        once(atom_codes(D, DC)),
@@ -155,7 +253,8 @@ get_uri_shape(placemark(Shape,_,E), URI, Shape, File) :-
 	    ;	rdf_bnode(URI)
 	    ), store_element(URI, kml:description, E, File)
 	;   rdf_bnode(URI)
-	), store_element(URI, kml:name, E, File).
+	), store_element(URI, kml:name, E, File),
+	get_shape(Shape,Shape2).
 
 store_element(URI, Prop, Element, Graph) :-
 	(   E =.. [Prop,[D]]
@@ -170,7 +269,7 @@ store_element(URI, Prop, Element, Graph) :-
 					[ dialect(xmlns),
 					  syntax_errors(quiet) ]),
 			 free_data(Stream, Memfile)),
-	    memberchk(XML,element(_,_,_))
+	    memberchk(element(_,_,_),XML)
 	->  Literal = XML,
 	    Plain = false
 	;   Literal = D,
@@ -232,12 +331,24 @@ interior_tags([PosList|PosLists],
 	      ['LinearRing'('coordinates'(PosList))|ILRS]) :-
 	interior_tags(PosLists, ILRS).
 
+expand_nl([],[]).
+expand_nl([nl|T],['\n'|T2]) :-
+	expand_nl(T,T2).
+expand_nl([nl(0)|T],[''|T2]) :-
+	expand_nl(T,T2).
+expand_nl([nl(N)|T],['\n'|T2]) :-
+	M is N - 1,
+	expand_nl([nl(M)|T],T2).
+expand_nl([H|T],[H|T2]) :-
+	expand_nl(T,T2).
+
 construct_kml(KML, Geom) :- construct_kml(KML, Geom, [], []).
 
 construct_kml(KML, Geom, Attributes, Content) :-
 	construct_term(Geom, Attributes, Content, T),
 	phrase(html(T), Atoms),
-	atomic_list_concat(Atoms, KML).
+	expand_nl(Atoms,Atoms2),
+	atomic_list_concat(Atoms2, KML).
 
 construct_term(Geom, Attributes, Content, T) :-
 	(   folder_term(Geom, Attributes, Content, T)
