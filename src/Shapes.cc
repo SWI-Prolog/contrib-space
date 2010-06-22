@@ -4,7 +4,7 @@
     E-mail:        wrvhage@few.vu.nl
     WWW:           http://www.few.vu.nl/~wrvhage
     Copyright (C): 2009, Vrije Universiteit Amsterdam
-    
+
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
     as published by the Free Software Foundation; either version 2
@@ -30,16 +30,16 @@
 /*
  * TODO: haversine distance for GEOS geometries
  * TODO: switch between pythagorean and haversine based on index configuration
- */ 
+ */
 
 #include "Shapes.h"
 
-template< typename T >inline 
+template< typename T >inline
 const std::type_info& get_type( T& object )
 {
   return typeid(object) ;
 }
-template< typename T >inline 
+template< typename T >inline
 const std::type_info& get_type( const T& object )
 {
   return typeid(object) ;
@@ -50,16 +50,16 @@ using namespace geos;
 using namespace geos::geom;
 using namespace SpatialIndex;
 
-void init_geos() { 
+void init_geos() {
   if (global_factory != NULL) return;
 
   // define a precision model that just uses double precision floating points.
   PrecisionModel *pm = new PrecisionModel(geos::geom::PrecisionModel::FLOATING);
-  
+
   // Initialize global factory with defined PrecisionModel
   // and a SRID of -1 (undefined).
   global_factory = new GeometryFactory(pm, -1);
-  
+
   // We do not need PrecisionMode object anymore, it has
   // been copied to global_factory private storage
   delete pm;
@@ -158,7 +158,7 @@ regionToBox(const Region& r) {
       geos::geom::LinearRing *lr = global_factory->createLinearRing(cl);
       box = global_factory->createPolygon(lr, NULL);
       box->normalize();
-    } 
+    }
   } else if (r.m_dimension == 1) {
     geos::geom::CoordinateSequence *cl = new geos::geom::CoordinateArraySequence();
     cl->add(Coordinate(r.m_pLow[0]));
@@ -183,7 +183,7 @@ regionToBox(const Region& r) {
 GEOSPoint::GEOSPoint() {
 #ifdef DEBUGGING
   cout << "entering GEOSPoint::GEOSPoint() " << endl;
-#endif 
+#endif
   this->g = global_factory->createPoint();
 }
 
@@ -255,7 +255,7 @@ cout << "entering GEOSPoint::~GEOSPoint() " << endl;
  g = NULL;
 }
 
-GEOSPoint* 
+GEOSPoint*
 GEOSPoint::clone() {
 #ifdef DEBUGGING
   cout << "entering GEOSPoint::clone() " << endl;
@@ -272,7 +272,7 @@ GEOSPoint::intersectsShape(const GEOSShape& in) const {
   return this->g->intersects(in.g);
 }
 
-bool 
+bool
 GEOSPoint::intersectsShape(const IShape& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSPoint::intersectsShape(const IShape& in) const " << endl;
@@ -287,7 +287,7 @@ GEOSPoint::intersectsShape(const IShape& in) const {
     cout << "yes" << endl;
 #endif
     return this->g->intersects(s.g);
-  } catch (std::bad_cast &e) {
+  } catch (std::bad_cast) {
 #ifdef DEBUGGING
     cout << "no" << endl;
 #endif
@@ -295,7 +295,7 @@ GEOSPoint::intersectsShape(const IShape& in) const {
     try {
       const Region& pr = dynamic_cast<const Region&>(in);
       rv = pr.intersectsShape(*p);
-    } catch (std::bad_cast &e) {
+    } catch (std::bad_cast) {
       try {
         const SpatialIndex::Point& ppt = dynamic_cast<const SpatialIndex::Point&>(in);
         rv = p->intersectsShape(ppt);
@@ -316,7 +316,7 @@ GEOSPoint::containsShape(const GEOSShape& in) const {
   return this->g->contains(in.g);
 }
 
-bool 
+bool
 GEOSPoint::containsShape(const IShape& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSPoint::containsShape(const IShape& in) const " << endl;
@@ -325,12 +325,12 @@ GEOSPoint::containsShape(const IShape& in) const {
   try {
     const GEOSShape &s = dynamic_cast<const GEOSShape&>(in);
     return this->g->contains(s.g);
-  } catch (std::bad_cast &e) {
+  } catch (std::bad_cast) {
     SpatialIndex::Point *p = toPoint();
     try {
       const Region& pr = dynamic_cast<const Region&>(in);
       rv = pr.containsShape(*p);
-    } catch (std::bad_cast &e) {
+    } catch (std::bad_cast) {
       try {
         const SpatialIndex::Point& ppt = dynamic_cast<const SpatialIndex::Point&>(in);
         rv = p->containsShape(ppt);
@@ -351,7 +351,7 @@ GEOSPoint::touchesShape(const GEOSShape& in) const {
   return this->g->touches(in.g);
 }
 
-bool 
+bool
 GEOSPoint::touchesShape(const IShape& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSPoint::touchesShape(const IShape& in) const " << endl;
@@ -360,12 +360,12 @@ GEOSPoint::touchesShape(const IShape& in) const {
   try {
     const GEOSShape &s = dynamic_cast<const GEOSShape&>(in);
     return this->g->touches(s.g);
-  } catch (std::bad_cast &e) {
+  } catch (std::bad_cast) {
     SpatialIndex::Point *p = toPoint();
     try {
       const Region& pr = dynamic_cast<const Region&>(in);
       rv = pr.touchesShape(*p);
-    } catch (std::bad_cast &e) {
+    } catch (std::bad_cast) {
       try {
         const SpatialIndex::Point& ppt = dynamic_cast<const SpatialIndex::Point&>(in);
         rv = p->touchesShape(ppt);
@@ -424,7 +424,7 @@ GEOSPoint::getCenter(SpatialIndex::Point& out) const {
   out = *(toPoint());
 }
 
-uint32_t 
+uint32_t
 GEOSPoint::getDimension() const {
 #ifdef DEBUGGING
   cout << "entering GEOSPoint::getDimension() const " << endl;
@@ -449,14 +449,14 @@ GEOSPoint::getMBR(Region& out) const {
   delete r;
 }
 
-double 
+double
 GEOSPoint::getArea() const {
 #ifdef DEBUGGING
   cout << "entering GEOSPoint::getArea() const " << endl;
 #endif
   return 0.0;
 }
-double 
+double
 GEOSPoint::getMinimumDistance(const GEOSShape& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSPoint::getMinimumDistance(const GEOSShape& in) const " << endl;
@@ -464,7 +464,7 @@ GEOSPoint::getMinimumDistance(const GEOSShape& in) const {
   return this->g->distance(in.g);
 }
 
-double 
+double
 GEOSPoint::getMinimumDistance(const IShape& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSPoint::getMinimumDistance(const IShape& in) const " << endl;
@@ -472,13 +472,13 @@ GEOSPoint::getMinimumDistance(const IShape& in) const {
   try {
     const GEOSShape &s = dynamic_cast<const GEOSShape&>(in);
     return this->g->distance(s.g);
-  } catch (std::bad_cast &e) {
+  } catch (std::bad_cast) {
     double rv = 0.0;
     SpatialIndex::Point *p = toPoint();
     try {
       const Region& pr = dynamic_cast<const Region&>(in);
       rv = pr.getMinimumDistance(*p);
-    } catch (std::bad_cast &e) {
+    } catch (std::bad_cast) {
       try {
         const SpatialIndex::Point& ppt = dynamic_cast<const SpatialIndex::Point&>(in);
         rv = p->getMinimumDistance(ppt);
@@ -491,7 +491,7 @@ GEOSPoint::getMinimumDistance(const IShape& in) const {
   }
 }
 
-double 
+double
 GEOSPoint::getCoordinate(uint32_t index) const {
 #ifdef DEBUGGING
   cout << "entering GEOSPoint::getCoordinate(uint32_t index) const " << endl;
@@ -600,7 +600,7 @@ GEOSLineString::~GEOSLineString() {
   global_factory->destroyGeometry(g);
 }
 
-GEOSLineString* 
+GEOSLineString*
 GEOSLineString::clone() {
 #ifdef DEBUGGING
   cout << "entering GEOSLineString::clone() " << endl;
@@ -611,7 +611,7 @@ GEOSLineString::clone() {
   return p;
 }
 
-bool 
+bool
 GEOSLineString::intersectsShape(const GEOSShape& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSLineString::intersectsShape(const GEOSShape& in) const " << endl;
@@ -619,7 +619,7 @@ GEOSLineString::intersectsShape(const GEOSShape& in) const {
   return this->g->intersects(in.g);
 }
 
-bool 
+bool
 GEOSLineString::intersectsShape(const IShape& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSLineString::intersectsShape(const IShape& in) const " << endl;
@@ -627,11 +627,11 @@ GEOSLineString::intersectsShape(const IShape& in) const {
   try {
     const GEOSShape &s = dynamic_cast<const GEOSShape&>(in);
     return this->g->intersects(s.g);
-  } catch (std::bad_cast &e) {
+  } catch (std::bad_cast) {
     try {
       const Region& pr = dynamic_cast<const Region&>(in);
       return intersectsRegion(pr);
-    } catch (std::bad_cast &e) {
+    } catch (std::bad_cast) {
       try {
         const SpatialIndex::Point& ppt = dynamic_cast<const SpatialIndex::Point&>(in);
         return containsPoint(ppt); // happens to be the same for points
@@ -661,7 +661,7 @@ GEOSLineString::intersectsRegion(const Region& r) const {
   return rv;
 }
 
-bool 
+bool
 GEOSLineString::containsShape(const GEOSShape& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSLineString::containsShape(const GEOSShape& in) const " << endl;
@@ -669,7 +669,7 @@ GEOSLineString::containsShape(const GEOSShape& in) const {
   return this->g->contains(in.g);
 }
 
-bool 
+bool
 GEOSLineString::containsShape(const IShape& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSLineString::containsShape(const IShape& in) const " << endl;
@@ -677,11 +677,11 @@ GEOSLineString::containsShape(const IShape& in) const {
   try {
     const GEOSShape &s = dynamic_cast<const GEOSShape&>(in);
     return this->g->contains(s.g);
-  } catch (std::bad_cast &e) {
+  } catch (std::bad_cast) {
     try {
       const Region& pr = dynamic_cast<const Region&>(in);
       return containsRegion(pr);
-    } catch (std::bad_cast &e) {
+    } catch (std::bad_cast) {
       try {
         const SpatialIndex::Point& ppt = dynamic_cast<const SpatialIndex::Point&>(in);
         return containsPoint(ppt);
@@ -693,7 +693,7 @@ GEOSLineString::containsShape(const IShape& in) const {
   return false;
 }
 
-bool 
+bool
 GEOSLineString::containsPoint(const SpatialIndex::Point& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSLineString::containsPoint(const SpatialIndex::Point& in) const " << endl;
@@ -726,7 +726,7 @@ GEOSLineString::containsRegion(const Region& r) const {
   return rv;
 }
 
-bool 
+bool
 GEOSLineString::touchesShape(const GEOSShape& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSLineString::touchesShape(const GEOSShape& in) const " << endl;
@@ -734,7 +734,7 @@ GEOSLineString::touchesShape(const GEOSShape& in) const {
   return this->g->touches(in.g);
 }
 
-bool 
+bool
 GEOSLineString::touchesShape(const IShape& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSLineString::touchesShape(const IShape& in) const " << endl;
@@ -742,11 +742,11 @@ GEOSLineString::touchesShape(const IShape& in) const {
   try {
     const GEOSShape &s = dynamic_cast<const GEOSShape&>(in);
     return this->g->touches(s.g);
-  } catch (std::bad_cast &e) {
+  } catch (std::bad_cast) {
     try {
       const Region& pr = dynamic_cast<const Region&>(in);
       return touchesRegion(pr);
-    } catch (std::bad_cast &e) {
+    } catch (std::bad_cast) {
       try {
         const SpatialIndex::Point& ppt = dynamic_cast<const SpatialIndex::Point&>(in);
         return touchesPoint(ppt);
@@ -758,7 +758,7 @@ GEOSLineString::touchesShape(const IShape& in) const {
   return false;
 }
 
-bool 
+bool
 GEOSLineString::touchesPoint(const SpatialIndex::Point& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSLineString::touchesPoint(const SpatialIndex::Point& in) const " << endl;
@@ -803,7 +803,7 @@ GEOSLineString::getCenter(SpatialIndex::Point& out) const {
   delete gp;
 }
 
-uint32_t 
+uint32_t
 GEOSLineString::getDimension() const {
 #ifdef DEBUGGING
   cout << "entering GEOSLineString::getDimension() const " << endl;
@@ -851,7 +851,7 @@ GEOSLineString::getMBR(Region& out) const {
   delete r;
 }
 
-double 
+double
 GEOSLineString::getArea() const {
 #ifdef DEBUGGING
   cout << "entering GEOSLineString::getArea() const " << endl;
@@ -859,7 +859,7 @@ GEOSLineString::getArea() const {
   return 0.0;
 }
 
-double 
+double
 GEOSLineString::getMinimumDistance(const GEOSShape& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSLineString::getMinimumDistance(const GEOSShape& in) const " << endl;
@@ -867,7 +867,7 @@ GEOSLineString::getMinimumDistance(const GEOSShape& in) const {
   return this->g->distance(in.g);
 }
 
-double 
+double
 GEOSLineString::getMinimumDistance(const IShape& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSLineString::getMinimumDistance(const IShape& in) const " << endl;
@@ -875,7 +875,7 @@ GEOSLineString::getMinimumDistance(const IShape& in) const {
   try {
     const GEOSShape &s = dynamic_cast<const GEOSShape&>(in);
     return this->g->distance(s.g);
-  } catch (std::bad_cast &e) {
+  } catch (std::bad_cast) {
     try {
       double dist = 0.0;
       const Region& pr = dynamic_cast<const Region&>(in);
@@ -888,7 +888,7 @@ GEOSLineString::getMinimumDistance(const IShape& in) const {
         cl->add(geos::geom::Coordinate(pr.m_pHigh[0], pr.m_pLow[1]));
         cl->add(geos::geom::Coordinate(pr.m_pLow[0], pr.m_pLow[1]));
         geos::geom::LinearRing *lr = global_factory->createLinearRing(cl);
-        box = global_factory->createPolygon(lr, NULL); 
+        box = global_factory->createPolygon(lr, NULL);
         box->normalize();
       } else if (pr.m_dimension == 1) {
         geos::geom::CoordinateSequence *cl = new geos::geom::CoordinateArraySequence();
@@ -907,7 +907,7 @@ GEOSLineString::getMinimumDistance(const IShape& in) const {
       dist = this->g->distance(box);
       global_factory->destroyGeometry(box);
       return dist;
-    } catch (std::bad_cast &e) {
+    } catch (std::bad_cast) {
       try {
         double dist = 0.0;
         const SpatialIndex::Point& ppt = dynamic_cast<const SpatialIndex::Point&>(in);
@@ -932,7 +932,7 @@ GEOSLineString::getMinimumDistance(const IShape& in) const {
   return 0.0;
 }
 
-GEOSLineString* 
+GEOSLineString*
 GEOSLineString::getIntersectingGEOSLineString(const GEOSLineString& r) const {
 #ifdef DEBUGGING
   cout << "entering GEOSLineString::getIntersectingGEOSLineString(const GEOSLineString& r) const " << endl;
@@ -941,7 +941,7 @@ GEOSLineString::getIntersectingGEOSLineString(const GEOSLineString& r) const {
   return NULL;
 }
 
-double 
+double
 GEOSLineString::getIntersectingArea(const GEOSLineString& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSLineString::getIntersectingArea(const GEOSLineString& in) const " << endl;
@@ -950,7 +950,7 @@ GEOSLineString::getIntersectingArea(const GEOSLineString& in) const {
   return 0.0;
 }
 
-double 
+double
 GEOSLineString::getMargin() const {
 #ifdef DEBUGGING
   cout << "entering GEOSLineString::getMargin() const " << endl;
@@ -983,7 +983,7 @@ GEOSLineString::getCombinedGEOSLineString(GEOSLineString& out, const GEOSLineStr
   cerr << __FUNCTION__ << " not supported yet" << endl;
 }
 
-GEOSPoint* 
+GEOSPoint*
 GEOSLineString::getVertex(uint32_t vert) const {
 #ifdef DEBUGGING
   cout << "entering GEOSLineString::getVertex(uint32_t vert) const " << endl;
@@ -992,7 +992,7 @@ GEOSLineString::getVertex(uint32_t vert) const {
   return NULL;
 }
 
-double 
+double
 GEOSLineString::getCoordinate(uint32_t vert, uint32_t index) const {
 #ifdef DEBUGGING
   cout << "entering GEOSLineString::getCoordinate(uint32_t vert, uint32_t index) const " << endl;
@@ -1108,7 +1108,7 @@ GEOSPolygon::~GEOSPolygon() {
   global_factory->destroyGeometry(g);
 }
 
-GEOSPolygon* 
+GEOSPolygon*
 GEOSPolygon::clone() {
 #ifdef DEBUGGING
   cout << "entering GEOSPolygon::clone() " << endl;
@@ -1119,7 +1119,7 @@ GEOSPolygon::clone() {
   return p;
 }
 
-bool 
+bool
 GEOSPolygon::intersectsShape(const GEOSShape& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSPolygon::intersectsShape(const GEOSShape& in) const " << endl;
@@ -1127,7 +1127,7 @@ GEOSPolygon::intersectsShape(const GEOSShape& in) const {
   return this->g->intersects(in.g);
 }
 
-bool 
+bool
 GEOSPolygon::intersectsShape(const IShape& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSPolygon::intersectsShape(const IShape& in) const " << endl;
@@ -1135,11 +1135,11 @@ GEOSPolygon::intersectsShape(const IShape& in) const {
   try {
     const GEOSShape &s = dynamic_cast<const GEOSShape&>(in);
     return this->g->intersects(s.g);
-  } catch (std::bad_cast &e) {
+  } catch (std::bad_cast) {
     try {
       const Region& pr = dynamic_cast<const Region&>(in);
       return intersectsRegion(pr);
-    } catch (std::bad_cast &e) {
+    } catch (std::bad_cast) {
       try {
         const SpatialIndex::Point& ppt = dynamic_cast<const SpatialIndex::Point&>(in);
         return containsPoint(ppt); // happens to be the same for points
@@ -1169,7 +1169,7 @@ GEOSPolygon::intersectsRegion(const Region& r) const {
   return rv;
 }
 
-bool 
+bool
 GEOSPolygon::containsShape(const GEOSShape& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSPolygon::containsShape(const GEOSShape& in) const " << endl;
@@ -1177,7 +1177,7 @@ GEOSPolygon::containsShape(const GEOSShape& in) const {
   return this->g->contains(in.g);
 }
 
-bool 
+bool
 GEOSPolygon::containsShape(const IShape& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSPolygon::containsShape(const IShape& in) const " << endl;
@@ -1185,11 +1185,11 @@ GEOSPolygon::containsShape(const IShape& in) const {
   try {
     const GEOSShape &s = dynamic_cast<const GEOSShape&>(in);
     return this->g->contains(s.g);
-  } catch (std::bad_cast &e) {
+  } catch (std::bad_cast) {
     try {
       const Region& pr = dynamic_cast<const Region&>(in);
       return containsRegion(pr);
-    } catch (std::bad_cast &e) {
+    } catch (std::bad_cast) {
       try {
         const SpatialIndex::Point& ppt = dynamic_cast<const SpatialIndex::Point&>(in);
         return containsPoint(ppt);
@@ -1201,7 +1201,7 @@ GEOSPolygon::containsShape(const IShape& in) const {
   return false;
 }
 
-bool 
+bool
 GEOSPolygon::containsPoint(const SpatialIndex::Point& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSPolygon::containsPoint(const SpatialIndex::Point& in) const " << endl;
@@ -1234,7 +1234,7 @@ GEOSPolygon::containsRegion(const Region& r) const {
   return rv;
 }
 
-bool 
+bool
 GEOSPolygon::touchesShape(const GEOSShape& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSPolygon::touchesShape(const GEOSShape& in) const " << endl;
@@ -1242,7 +1242,7 @@ GEOSPolygon::touchesShape(const GEOSShape& in) const {
   return this->g->touches(in.g);
 }
 
-bool 
+bool
 GEOSPolygon::touchesShape(const IShape& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSPolygon::touchesShape(const IShape& in) const " << endl;
@@ -1250,11 +1250,11 @@ GEOSPolygon::touchesShape(const IShape& in) const {
   try {
     const GEOSShape &s = dynamic_cast<const GEOSShape&>(in);
     return this->g->touches(s.g);
-  } catch (std::bad_cast &e) {
+  } catch (std::bad_cast) {
     try {
       const Region& pr = dynamic_cast<const Region&>(in);
       return touchesRegion(pr);
-    } catch (std::bad_cast &e) {
+    } catch (std::bad_cast) {
       try {
         const SpatialIndex::Point& ppt = dynamic_cast<const SpatialIndex::Point&>(in);
         return touchesPoint(ppt);
@@ -1266,7 +1266,7 @@ GEOSPolygon::touchesShape(const IShape& in) const {
   return false;
 }
 
-bool 
+bool
 GEOSPolygon::touchesPoint(const SpatialIndex::Point& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSPolygon::touchesPoint(const SpatialIndex::Point& in) const " << endl;
@@ -1311,7 +1311,7 @@ GEOSPolygon::getCenter(SpatialIndex::Point& out) const {
   delete gp;
 }
 
-uint32_t 
+uint32_t
 GEOSPolygon::getDimension() const {
 #ifdef DEBUGGING
   cout << "entering GEOSPolygon::getDimension() const " << endl;
@@ -1359,7 +1359,7 @@ GEOSPolygon::getMBR(Region& out) const {
   delete r;
 }
 
-double 
+double
 GEOSPolygon::getArea() const {
 #ifdef DEBUGGING
   cout << "entering GEOSPolygon::getArea() const " << endl;
@@ -1367,7 +1367,7 @@ GEOSPolygon::getArea() const {
   return 0.0;
 }
 
-double 
+double
 GEOSPolygon::getMinimumDistance(const GEOSShape& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSPolygon::getMinimumDistance(const GEOSShape& in) const " << endl;
@@ -1375,7 +1375,7 @@ GEOSPolygon::getMinimumDistance(const GEOSShape& in) const {
   return this->g->distance(in.g);
 }
 
-double 
+double
 GEOSPolygon::getMinimumDistance(const IShape& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSPolygon::getMinimumDistance(const IShape& in) const " << endl;
@@ -1383,7 +1383,7 @@ GEOSPolygon::getMinimumDistance(const IShape& in) const {
   try {
     const GEOSShape &s = dynamic_cast<const GEOSShape&>(in);
     return this->g->distance(s.g);
-  } catch (std::bad_cast &e) {
+  } catch (std::bad_cast) {
     try {
       double dist = 0.0;
       const Region& pr = dynamic_cast<const Region&>(in);
@@ -1396,7 +1396,7 @@ GEOSPolygon::getMinimumDistance(const IShape& in) const {
         cl->add(geos::geom::Coordinate(pr.m_pHigh[0], pr.m_pLow[1]));
         cl->add(geos::geom::Coordinate(pr.m_pLow[0], pr.m_pLow[1]));
         geos::geom::LinearRing *lr = global_factory->createLinearRing(cl);
-        box = global_factory->createPolygon(lr, NULL); 
+        box = global_factory->createPolygon(lr, NULL);
         box->normalize();
       } else if (pr.m_dimension == 1) {
         geos::geom::CoordinateSequence *cl = new geos::geom::CoordinateArraySequence();
@@ -1415,7 +1415,7 @@ GEOSPolygon::getMinimumDistance(const IShape& in) const {
       dist = this->g->distance(box);
       global_factory->destroyGeometry(box);
       return dist;
-    } catch (std::bad_cast &e) {
+    } catch (std::bad_cast) {
       try {
         double dist = 0.0;
         const SpatialIndex::Point& ppt = dynamic_cast<const SpatialIndex::Point&>(in);
@@ -1440,7 +1440,7 @@ GEOSPolygon::getMinimumDistance(const IShape& in) const {
   return 0.0;
 }
 
-GEOSPolygon* 
+GEOSPolygon*
 GEOSPolygon::getIntersectingGEOSPolygon(const GEOSPolygon& r) const {
 #ifdef DEBUGGING
   cout << "entering GEOSPolygon::getIntersectingGEOSPolygon(const GEOSPolygon& r) const " << endl;
@@ -1449,7 +1449,7 @@ GEOSPolygon::getIntersectingGEOSPolygon(const GEOSPolygon& r) const {
   return NULL;
 }
 
-double 
+double
 GEOSPolygon::getIntersectingArea(const GEOSPolygon& in) const {
 #ifdef DEBUGGING
   cout << "entering GEOSPolygon::getIntersectingArea(const GEOSPolygon& in) const " << endl;
@@ -1458,7 +1458,7 @@ GEOSPolygon::getIntersectingArea(const GEOSPolygon& in) const {
   return 0.0;
 }
 
-double 
+double
 GEOSPolygon::getMargin() const {
 #ifdef DEBUGGING
   cout << "entering GEOSPolygon::getMargin() const " << endl;
@@ -1491,7 +1491,7 @@ GEOSPolygon::getCombinedGEOSPolygon(GEOSPolygon& out, const GEOSPolygon& in) con
   cerr << __FUNCTION__ << " not supported yet" << endl;
 }
 
-GEOSPoint* 
+GEOSPoint*
 GEOSPolygon::getVertex(uint32_t vert) const {
 #ifdef DEBUGGING
   cout << "entering GEOSPolygon::getVertex(uint32_t vert) const " << endl;
@@ -1500,7 +1500,7 @@ GEOSPolygon::getVertex(uint32_t vert) const {
   return NULL;
 }
 
-double 
+double
 GEOSPolygon::getCoordinate(uint32_t vert, uint32_t index) const {
 #ifdef DEBUGGING
   cout << "entering GEOSPolygon::getCoordinate(uint32_t vert, uint32_t index) const " << endl;
