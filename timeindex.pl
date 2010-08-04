@@ -61,6 +61,12 @@
 
 :- dynamic time_indices/4.
 
+%%	time_new(+IndexName) is det.
+%%	time_new(+IndexName,+Offset) is det.
+%
+%	Creates a new temporal index.
+%       Offset is the epoch used internally by the index.
+%
 time_new(Index) :- time_new(Index, 0).
 time_new(Index, EpochOffset) :-
 	rdf_new_literal_map(B),
@@ -69,7 +75,11 @@ time_new(Index, EpochOffset) :-
 
 :- time_new(default).
 
-
+%%	time_assert(+URI,+Begin,+End) is det.
+%%	time_assert(+URI,+Begin,+End,+IndexName) is det.
+%
+%	Inserts a new URI-TimeInterval pair into the index.
+%
 time_assert(URI, TB, TE) :- time_assert(URI, TB, TE, default).
 time_assert(URI, TB, TE, Index) :-
 	time_indices(Index, IdxB, IdxE, EpochOffset),
@@ -78,6 +88,11 @@ time_assert(URI, TB, TE, Index) :-
 	rdf_insert_literal_map(IdxB, TBE, URI),
 	rdf_insert_literal_map(IdxE, TEE, URI).
 
+%%	time_retract(+URI,+Begin,+End) is det.
+%%	time_retract(+URI,+Begin,+End,+IndexName) is det.
+%
+%	Removes a URI-TimeInterval pair from the index.
+%
 time_retract(URI, TB, TE) :- time_retract(URI, TB, TE, default).
 time_retract(URI, TB, TE, Index) :-
 	time_indices(Index, IdxB, IdxE, EpochOffset),
@@ -86,6 +101,13 @@ time_retract(URI, TB, TE, Index) :-
 	rdf_delete_literal_map(IdxB, TBE, URI),
 	rdf_delete_literal_map(IdxE, TEE, URI).
 
+%%	time_clear(+IndexName,+NewOffset) is det.
+%%	time_clear(+IndexName) is det.
+%%	time_clear is det.
+%
+%	Clears an index. Optionally sets a new epoch for the index
+%	that will be used for all future asserts into the index.
+%
 time_clear :- time_clear(default).
 time_clear(Index) :-
 	time_indices(Index, IdxB, IdxE, OldEpochOffset),
@@ -100,11 +122,23 @@ time_clear(Index, NewEpochOffset) :-
 	rdf_destroy_literal_map(IdxE),
 	time_new(Index, NewEpochOffset).
 
+%%	time_index_all(+IndexName) is det.
+%%	time_index_all is det.
+%
+%	Adds all URI-TimeInterval pairs found by the uri_time predicate
+%	into the index.
+%
 time_index_all :- time_index_all(default).
 time_index_all(Index) :-
 	forall(uri_time(URI, Begin, End),
 	       time_assert(URI, Begin, End, Index)).
 
+%%	time_intersects(+Begin,+End,-URI,+Index) is nondet.
+%%	time_intersects(+Begin,+End,-URI) is nondet.
+%
+%	Finds all URIs that have an indexed time interval
+%	that intersects with the interval [Begin,End].
+%
 time_intersects(TB, TE, URI) :- time_intersects(TB, TE, URI, default).
 time_intersects(TB, TE, URI, Index) :-
 	time_indices(Index, IdxB, IdxE, EO),
@@ -124,6 +158,12 @@ time_intersects(TB, TE, URI, Index) :-
 	list_to_set(Values, ValueSet),
 	member(URI, ValueSet).
 
+%%	time_contains(+Begin,+End,-URI,+Index) is nondet.
+%%	time_contains(+Begin,+End,-URI) is nondet.
+%
+%	Finds all URIs that have an indexed time interval
+%	that are contained by the interval [Begin,End].
+%
 time_contains(TB, TE, URI) :- time_contains(TB, TE, URI, default).
 time_contains(TB, TE, URI, Index) :-
 	time_indices(Index, IdxB, IdxE, EO),
@@ -144,6 +184,13 @@ time_contains(TB, TE, URI, Index) :-
 	ord_intersection(BSValues, ESValues, Matches), !,
 	member(URI, Matches).
 
+%%	time_previous_end(+Time,-URI,+Index) is nondet.
+%%	time_previous_end(+Time,-URI) is nondet.
+%
+%	Finds all URIs that have an indexed time interval
+%	that ends before time point Time in order of increasing
+%	duration.
+%
 time_previous_end(T, URI) :- time_previous_end(T, URI, default).
 time_previous_end(T, URI, Index) :-
 	time_indices(Index, _, IdxE, EO),
@@ -156,6 +203,13 @@ time_previous_end(T, URI, Index) :-
 	member(le(_,T1)-URI, ES),
 	T1 =< TE.
 
+%%	time_previous_end(+Time,-URI,+Index) is nondet.
+%%	time_previous_end(+Time,-URI) is nondet.
+%
+%	Finds all URIs that have an indexed time interval
+%	that begins after time point Time in order of increasing
+%	duration.
+%
 time_next_begin(T, URI) :- time_next_begin(T, URI, default).
 time_next_begin(T, URI, Index) :-
 	time_indices(Index, IdxB, _, EO),
@@ -203,7 +257,15 @@ rev(>, le(_,A)-_, le(_,B)-_) :- A < B.
 rev(>, le(_,A)-_, le(_,B)-_) :- A > B.
 rev(=, _, _).
 
-
+%%	uri_time(?URI,?Begin,?End,?Source,+Offset) is semidet.
+%%	uri_time(?URI,?Begin,?End,?Source) is semidet.
+%%	uri_time(?URI,?Begin,?End) is semidet.
+%
+%	Finds all URI-TimeInterval pairs described in the RDF database.
+%	Source matches the graphs in which the pair is described.
+%	Optionally, the Begin and End of the time interval are
+%	returned with respect to a given Offset.
+%
 uri_time(URI, Begin, End) :- uri_time(URI, Begin, End, _Source, 0).
 uri_time(URI, Begin, End, Source) :- uri_time(URI, Begin, End, Source, 0).
 uri_time(URI, Begin, End, Source, EpochOffset) :-
