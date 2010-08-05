@@ -27,6 +27,20 @@
     the GNU General Public License.
 */
 
+/*
+    Internally, all time objects are stored as intervals.
+    point(T) is translated to interval(T,T).
+    If fuzzy time intervals,
+    interval(EarlyBegin,LateBegin,EarlyEnd,LateEnd),
+    should ever be implemented, this could be done by postprocessing
+    over operations on an index containing interval(EarlyBegin,LateEnd).
+
+    Per handle there are two indices, one containing the begin points
+    and the other containing the end points of the intervals.
+    The index containing the end points actually contains negative time
+    points to inverse the order of the index.
+*/
+
 % TODO: Make version of atom_map that allows double type datums and
 %	that has nondet search functions.
 %	This would remove the need for the explicit EpochOffset and
@@ -46,13 +60,15 @@
 	     time_intersects/2,	  % (uses default index)
 	     time_contains/3,	  % +Time, -URI, +Index
 	     time_contains/2,	  % (uses default index)
-	     time_previous_end/3, % +Time, -URI, +Index
-	     time_previous_end/2, % (uses default index)
+	     time_prev_end/3,	  % +Time, -URI, +Index
+	     time_prev_end/2,     % (uses default index)
 	     time_next_begin/3,   % +Time, -URI, +Index
 	     time_next_begin/2,   % (uses default index)
 	     uri_time/4,          % ?URI, ?Time, ?Source, +EpochOffset
 	     uri_time/3,          % ?URI, ?Time, ?Source (uses offset 0)
-	     uri_time/2           % ?URI, ?Time (uses offset 0)
+	     uri_time/2,          % ?URI, ?Time (uses offset 0)
+	     parse_timestamp/3,   % +TimeStamp, -Epoch, +EpochOffset
+	     parse_timestamp/2    % ?TimeStamp, ?Epoch (uses offset 0)
 	  ]).
 
 :- use_module(library(semweb/rdf_db)).
@@ -85,7 +101,7 @@ time_assert(URI, T) :- time_assert(URI, T, default).
 time_assert(URI, interval(TB, TE), Index) :-
 	time_indices(Index, IdxB, IdxE, EpochOffset),
 	TBE is TB - EpochOffset,
-	TEE is TE - EpochOffset,
+	TEE is -1 * (TE - EpochOffset),
 	rdf_insert_literal_map(IdxB, TBE, URI),
 	rdf_insert_literal_map(IdxE, TEE, URI).
 
@@ -98,7 +114,7 @@ time_retract(URI, T) :- time_retract(URI, T, default).
 time_retract(URI, interval(TB, TE), Index) :-
 	time_indices(Index, IdxB, IdxE, EpochOffset),
 	TBE is TB - EpochOffset,
-	TEE is TE - EpochOffset,
+	TEE is -1 * (TE - EpochOffset),
 	rdf_delete_literal_map(IdxB, TBE, URI),
 	rdf_delete_literal_map(IdxE, TEE, URI).
 
@@ -117,6 +133,7 @@ time_clear(Index) :-
 	rdf_destroy_literal_map(IdxE),
 	time_new(Index, OldEpochOffset).
 time_clear(Index, NewEpochOffset) :-
+	number(NewEpochOffset),
 	time_indices(Index, IdxB, IdxE, _OldEpochOffset),
 	retractall(time_indices(Index, _, _, _)),
 	rdf_destroy_literal_map(IdxB),
@@ -149,13 +166,15 @@ time_intersects(interval(TB, TE), URI, Index) :-
 	rdf_litindex:list_to_or(BeginMatch, between(TBE, TEE), BeginOr),
 	rdf_litindex:lookup(BeginOr, IdxB, B2, B3),
 	match_results(B2, B3, B4),
-	rdf_keys_in_literal_map(IdxE, between(TBE, TEE), EndMatch),
-	rdf_litindex:list_to_or(EndMatch, between(TBE, TEE), EndOr),
+	TBR is -1 * TBE,
+	TER is -1 * TEE,
+	rdf_keys_in_literal_map(IdxE, between(TER, TBR), EndMatch),
+	rdf_litindex:list_to_or(EndMatch, between(TER, TBR), EndOr),
 	rdf_litindex:lookup(EndOr, IdxE, E2, E3),
 	match_results(E2, E3, E4),
-	append(B4, E4, BE),
-	predsort(ord, BE, Matches), !,
-	pairs_values(Matches, Values),
+	append(E4, B4, Matches),
+	% predsort(ord, E4B4, Matches), !,
+	pairs_values(Matches, Values), !,
 	list_to_set(Values, ValueSet),
 	member(URI, ValueSet).
 
@@ -174,40 +193,40 @@ time_contains(interval(TB, TE), URI, Index) :-
 	rdf_litindex:list_to_or(BeginMatch, between(TBE, TEE), BeginOr),
 	rdf_litindex:lookup(BeginOr, IdxB, B2, B3),
 	match_results(B2, B3, B4),
-	rdf_keys_in_literal_map(IdxE, between(TBE, TEE), EndMatch),
-	rdf_litindex:list_to_or(EndMatch, between(TBE, TEE), EndOr),
+	TBR is -1 * TBE,
+	TER is -1 * TEE,
+	rdf_keys_in_literal_map(IdxE, between(TER, TBR), EndMatch),
+	rdf_litindex:list_to_or(EndMatch, between(TER, TBR), EndOr),
 	rdf_litindex:lookup(EndOr, IdxE, E2, E3),
 	match_results(E2, E3, E4),
 	predsort(ord, B4, BS),
-	predsort(ord, E4, ES),
+	predsort(rev, E4, ES),
 	pairs_values(BS, BSValues),
 	pairs_values(ES, ESValues),
 	ord_intersection(BSValues, ESValues, Matches), !,
 	member(URI, Matches).
 
-%%	time_previous_end(+Time,-URI,+Index) is nondet.
-%%	time_previous_end(+Time,-URI) is nondet.
+%%	time_prev_end(+Time,-URI,+Index) is nondet.
+%%	time_prev_end(+Time,-URI) is nondet.
 %
 %	Finds all URIs that have an indexed time interval
 %	that ends before time point or interval Time in
 %	order of increasing duration.
 %
-time_previous_end(point(T), URI) :- time_previous_end(interval(T,T), URI, default).
-time_previous_end(interval(T,T1), URI) :- time_previous_end(interval(T,T1), URI, default).
-time_previous_end(point(T), URI, Index) :- time_previous_end(interval(T,T), URI, Index).
-time_previous_end(interval(T,_), URI, Index) :-
+time_prev_end(point(T), URI) :- time_prev_end(interval(T,T), URI, default).
+time_prev_end(interval(T,T1), URI) :- time_prev_end(interval(T,T1), URI, default).
+time_prev_end(point(T), URI, Index) :- time_prev_end(interval(T,T), URI, Index).
+time_prev_end(interval(T,_), URI, Index) :-
 	time_indices(Index, _, IdxE, EO),
 	parse_timestamp(T, TE, EO),
-	rdf_keys_in_literal_map(IdxE, le(TE), EndMatch),
-	rdf_litindex:list_to_or(EndMatch, le(TE), EndOr),
+	TER is -1 * TE,
+	rdf_keys_in_literal_map(IdxE, ge(TER), EndMatch),
+	rdf_litindex:list_to_or(EndMatch, ge(TER), EndOr),
 	rdf_litindex:lookup(EndOr, IdxE, E2, E3),
-	match_results(E2, E3, E4),
-	predsort(rev, E4, ES), !,
-	member(le(_,T1)-URI, ES),
-	T1 =< TE.
+	match_result(E2, E3, _-URI).
 
-%%	time_previous_end(+Time,-URI,+Index) is nondet.
-%%	time_previous_end(+Time,-URI) is nondet.
+%%	time_next_begin(+Time,-URI,+Index) is nondet.
+%%	time_next_begin(+Time,-URI) is nondet.
 %
 %	Finds all URIs that have an indexed time interval
 %	that begins after time point or interval Time in order of
@@ -308,15 +327,36 @@ sem_time_candidate(URI, interval(T,T), Source) :-
 	;   TimeStamp = T
 	).
 
-
+%%	parse_timestamp(?TimeStampAtom, ?EpochTimeStamp) is det.
+%
+%	Converts in both directions between a literal time
+%	representation and a numerical time representation based on the
+%	epoch.
+%	The format of the generated atom is ISO 8601 in UTC.
+%
+parse_timestamp(TimeStamp, Epoch) :-
+	var(TimeStamp),
+	number(Epoch),
+	stamp_date_time(Epoch, Date, 'UTC'),
+	format_time(atom(TimeStamp), '%FT%T UTC', Date).
 parse_timestamp(TimeStamp, Epoch) :- parse_timestamp(TimeStamp, Epoch, 0).
+
+%%	parse_timestamp(+TimeStampAtom, -Epoch, +EpochOffset) is det.
+%
+%	Converts between a literal TimeStamp atom and a numerical
+%	time representation based on the epoch - EpochOffset.
+%	This allows for a more fine grained representation of time
+%	for time points far away from the epoch.
+%
 parse_timestamp(TimeStamp, Epoch, EpochOffset) :-
+	nonvar(TimeStamp),
 	(   number(TimeStamp)
 	->  E = TimeStamp
 	;   iso_timestamp_epoch(TimeStamp, E)
 	% extend here
 	),
 	Epoch is E - EpochOffset.
+
 
 iso_timestamp_epoch(TimeStamp, T) :-
 	parse_time(TimeStamp, T).
