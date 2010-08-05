@@ -149,7 +149,10 @@ time_clear(Index, NewEpochOffset) :-
 time_index_all :- time_index_all(default).
 time_index_all(Index) :-
 	forall(uri_time(URI, Time),
-	       time_assert(URI, Time, Index)).
+	       time_assert(URI, Time, Index)),
+	time_indices(Index,B,_,_),
+	rdf_statistics_literal_map(B,size(K,_)),
+	format('% Added ~w URI-Time pairs to ~w\n',[K,Index]).
 
 %%	time_intersects(+Time,-URI,+Index) is nondet.
 %%	time_intersects(+Time,-URI) is nondet.
@@ -352,7 +355,8 @@ parse_timestamp(TimeStamp, Epoch, EpochOffset) :-
 	nonvar(TimeStamp),
 	(   number(TimeStamp)
 	->  E = TimeStamp
-	;   iso_timestamp_epoch(TimeStamp, E)
+	;   iso_timestamp_epoch(TimeStamp, E), !
+	;   sic_timestamp_epoch(TimeStamp, E), !
 	% extend here
 	),
 	Epoch is E - EpochOffset.
@@ -361,7 +365,8 @@ parse_timestamp(TimeStamp, Epoch, EpochOffset) :-
 iso_timestamp_epoch(TimeStamp, T) :-
 	parse_time(TimeStamp, T).
 
-
+sic_timestamp_epoch(TimeStamp, T) :-
+	atom_number(TimeStamp, T).
 
 
 
