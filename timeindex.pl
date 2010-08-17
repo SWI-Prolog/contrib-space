@@ -47,7 +47,11 @@
 %	would speed up all search predicates.
 
 :- module(timeindex,
-	  [  time_assert/3,       % +URI, +Time, +Index
+	  [  time_index/1,        % ?Index
+	     time_index/4,        % +Index, ?BeginIndex, ?EndIndex, ?Epoch
+	     time_setting/2,	  % +Index ?Setting
+	     time_setting/1,	  % ?Setting  (uses default index)
+	     time_assert/3,       % +URI, +Time, +Index
 	     time_assert/2,	  % +URI, +Time  (uses default index)
 	     time_retract/3,      % +URI, +Time, +Index
 	     time_retract/2,      % +URI, +Time  (uses default index)
@@ -56,6 +60,8 @@
 	     time_clear/0,        % (uses default index)
 	     time_index_all/1,    % +Index
 	     time_index_all/0,    % (uses default index)
+	     time_bulkload/2,     % :CandidatePred, +Index
+	     time_bulkload/1,     % :CandidatePred
 	     time_intersects/3,	  % +Time, -URI, +Index
 	     time_intersects/2,	  % (uses default index)
 	     time_contains/3,	  % +Time, -URI, +Index
@@ -78,6 +84,40 @@
 
 :- dynamic time_indices/4.
 
+time_index(Index) :- time_indices(Index,_,_,_).
+
+time_index(Index, IdxB, IdxE, Epoch) :-
+	time_indices(Index, IdxB, IdxE, Epoch), !.
+time_index(Index, IdxB, IdxE, Epoch) :-
+	nonvar(Epoch),
+	time_new(Index, Epoch),
+	time_indices(Index, IdxB, IdxE, Epoch), !.
+time_index(Index, IdxB, IdxE, Epoch) :-
+	var(Epoch),
+	time_new(Index),
+	time_indices(Index, IdxB, IdxE, Epoch), !.
+
+%%	time_setting(?Option) is det.
+%
+%	Sets/retrieves settings and current values of an index.
+%	Supported Options are:
+%	size(-N), N is the number of URI-Time pairs in the index.
+%	epoch(+Epoch), sets a new Epoch for the index, clears the index.
+%       epoch(-Epoch), Epoch is the current Epoch of the index.
+%
+time_setting(Option) :- time_setting(default, Option).
+time_setting(Index, size(N)) :-
+	time_indices(Index,B,_,_), !,
+	rdf_statistics_literal_map(B,size(N,_)).
+time_setting(Index, epoch(E)) :-
+	var(E),
+	time_indices(Index,_,_,E), !.
+time_setting(Index, epoch(E)) :-
+	nonvar(E),
+	format('% Clearing index ~w, setting new Epoch to ~w\n', [Index,E]),
+	time_clear(Index, E).
+
+
 %%	time_new(+IndexName) is det.
 %%	time_new(+IndexName,+Offset) is det.
 %
@@ -90,7 +130,6 @@ time_new(Index, EpochOffset) :-
 	rdf_new_literal_map(E),
 	assert(time_indices(Index, B, E, EpochOffset)).
 
-:- time_new(default).
 
 %%	time_assert(+URI,+Time) is det.
 %%	time_assert(+URI,+Time,+IndexName) is det.
@@ -99,7 +138,7 @@ time_new(Index, EpochOffset) :-
 %
 time_assert(URI, T) :- time_assert(URI, T, default).
 time_assert(URI, interval(TB, TE), Index) :-
-	time_indices(Index, IdxB, IdxE, EpochOffset),
+	time_index(Index, IdxB, IdxE, EpochOffset),
 	TBE is TB - EpochOffset,
 	TEE is -1 * (TE - EpochOffset),
 	rdf_insert_literal_map(IdxB, TBE, URI),
@@ -127,14 +166,14 @@ time_retract(URI, interval(TB, TE), Index) :-
 %
 time_clear :- time_clear(default).
 time_clear(Index) :-
-	time_indices(Index, IdxB, IdxE, OldEpochOffset),
+	time_index(Index, IdxB, IdxE, OldEpochOffset),
 	retractall(time_indices(Index, _, _, _)),
 	rdf_destroy_literal_map(IdxB),
 	rdf_destroy_literal_map(IdxE),
 	time_new(Index, OldEpochOffset).
 time_clear(Index, NewEpochOffset) :-
 	number(NewEpochOffset),
-	time_indices(Index, IdxB, IdxE, _OldEpochOffset),
+	time_index(Index, IdxB, IdxE, _OldEpochOffset),
 	retractall(time_indices(Index, _, _, _)),
 	rdf_destroy_literal_map(IdxB),
 	rdf_destroy_literal_map(IdxE),
@@ -147,12 +186,25 @@ time_clear(Index, NewEpochOffset) :-
 %	into the index.
 %
 time_index_all :- time_index_all(default).
-time_index_all(Index) :-
-	forall(uri_time(URI, Time),
+time_index_all(Index) :- time_bulkload(uri_time, Index).
+
+:- meta_predicate time_bulkload(2), time_bulkload(2,+).
+
+%%	time_bulkload(:CandidatePred,+Index) is det.
+%%	time_bulkload(:CandidatePred) is det.
+%
+%	Like time_index_all, but indexes URI-Time pairs found by the
+%	custom predicate CandidatePred.
+%
+time_bulkload(CandidatePred) :- time_bulkload(CandidatePred, default).
+time_bulkload(CandidatePred, Index) :-
+	time_clear(Index),
+	forall(call(CandidatePred, URI, Time),
 	       time_assert(URI, Time, Index)),
-	time_indices(Index,B,_,_),
+	time_index(Index,B,_,_),
 	rdf_statistics_literal_map(B,size(K,_)),
 	format('% Added ~w URI-Time pairs to ~w\n',[K,Index]).
+
 
 %%	time_intersects(+Time,-URI,+Index) is nondet.
 %%	time_intersects(+Time,-URI) is nondet.
@@ -160,9 +212,22 @@ time_index_all(Index) :-
 %	Finds all URIs that have an indexed time interval
 %	that intersects with the interval Time = interval(Begin,End).
 %
+%       NB! The implementation currently does not return intervals
+%       that contain the query interval, hence the name time_intersects
+%       is currently a misnomer.
+%
 time_intersects(T, URI) :- time_intersects(T, URI, default).
+% FIXME: buggy implementation, does not find intervals that start
+% before the query interval and end after the query interval.
+% The obvious solution would be to compute the intersection of the
+% set of intervals ending after the begin of the query and the
+% set of intervals starting before the end of the query, but that
+% is a very expensive query.
+% As soon as there is a nondet version of rdf_keys_in_literal_map
+% this implementation could become viable if the hard solutions are
+% delayed until after all easy solutions have been found.
 time_intersects(interval(TB, TE), URI, Index) :-
-	time_indices(Index, IdxB, IdxE, EO),
+	time_index(Index, IdxB, IdxE, EO),
 	parse_timestamp(TB, TBE, EO),
 	parse_timestamp(TE, TEE, EO),
 	rdf_keys_in_literal_map(IdxB, between(TBE, TEE), BeginMatch),
@@ -189,7 +254,7 @@ time_intersects(interval(TB, TE), URI, Index) :-
 %
 time_contains(T, URI) :- time_contains(T, URI, default).
 time_contains(interval(TB, TE), URI, Index) :-
-	time_indices(Index, IdxB, IdxE, EO),
+	time_index(Index, IdxB, IdxE, EO),
 	parse_timestamp(TB, TBE, EO),
 	parse_timestamp(TE, TEE, EO),
 	rdf_keys_in_literal_map(IdxB, between(TBE, TEE), BeginMatch),
@@ -220,7 +285,7 @@ time_prev_end(point(T), URI) :- time_prev_end(interval(T,T), URI, default).
 time_prev_end(interval(T,T1), URI) :- time_prev_end(interval(T,T1), URI, default).
 time_prev_end(point(T), URI, Index) :- time_prev_end(interval(T,T), URI, Index).
 time_prev_end(interval(T,_), URI, Index) :-
-	time_indices(Index, _, IdxE, EO),
+	time_index(Index, _, IdxE, EO),
 	parse_timestamp(T, TE, EO),
 	TER is -1 * TE,
 	rdf_keys_in_literal_map(IdxE, ge(TER), EndMatch),
@@ -239,7 +304,7 @@ time_next_begin(point(T), URI) :- time_next_begin(interval(T,T), URI, default).
 time_next_begin(interval(T0,T), URI) :- time_next_begin(interval(T0,T), URI, default).
 time_next_begin(point(T), URI, Index) :- time_next_begin(interval(T,T), URI, Index).
 time_next_begin(interval(_,T), URI, Index) :-
-	time_indices(Index, IdxB, _, EO),
+	time_index(Index, IdxB, _, EO),
 	parse_timestamp(T, TE, EO),
 	rdf_keys_in_literal_map(IdxB, ge(TE), BeginMatch),
 	rdf_litindex:list_to_or(BeginMatch, ge(TE), BeginOr),
@@ -303,32 +368,50 @@ uri_time(URI, interval(Begin, End), Source, EpochOffset) :-
 	End is End0 - EpochOffset.
 
 :- rdf_register_ns(sem, 'http://semanticweb.cs.vu.nl/2009/11/sem/').
+:- rdf_register_ns(owltime, 'http://www.w3.org/2006/time#').
 
 time_candidate(URI, TimeStamp) :- time_candidate(URI, TimeStamp, _Source).
 time_candidate(URI, TimeStamp, Source) :-
 	sem_time_candidate(URI, TimeStamp, Source).
+time_candidate(URI, TimeStamp, Source) :-
+	owl_time_xsd_candidate(URI, TimeStamp, Source).
 
 sem_time_candidate(URI, TimeStamp) :- sem_time_candidate(URI, TimeStamp, _Source).
 sem_time_candidate(URI, interval(Begin,End), Source) :-
 	rdf_has(URI, sem:hasBeginTimeStamp, literal(TB), PredB),
 	rdf_has(URI, sem:hasEndTimeStamp, literal(TE), PredE),
-	rdf(URI, PredB, literal(TB), Source:_),
+	rdf(URI, PredB, literal(TB), Source2),
+	(   Source2 = Source:_ % work around
+	->  true
+	;   Source2 = Source
+	),
 	(   TB = type(_,Begin)
 	->  true
 	;   Begin = TB
 	),
-	rdf(URI, PredE, literal(TE), Source:_),
+	rdf(URI, PredE, literal(TE), Source3),
+	(   Source3 = Source:_
+	->  true
+	;   Source3 = Source
+	),
 	(   TE = type(_,End)
 	->  true
 	;   End = TE
 	).
 sem_time_candidate(URI, interval(T,T), Source) :-
-	rdf_has(URI, sem:hasTimeStamp, literal(T), Pred),
-	rdf(URI, Pred, literal(T), Source:_),
+	rdf(URI, sem:hasTimeStamp, literal(T), Source:_),
 	(   T = type(_,TimeStamp)
 	->  true
 	;   TimeStamp = T
 	).
+
+owl_time_xsd_candidate(URI, interval(T,T), Source) :-
+        rdf_has(URI, owltime:inXSDDateTime, literal(T), Pred),
+	rdf(URI, Pred, literal(T), Source:_),
+        (   T = type(_,TimeStamp)
+        ->  true
+        ;   TimeStamp = T
+        ).
 
 %%	parse_timestamp(?TimeStampAtom, ?EpochTimeStamp) is det.
 %
@@ -341,7 +424,7 @@ parse_timestamp(TimeStamp, Epoch) :-
 	var(TimeStamp),
 	number(Epoch),
 	stamp_date_time(Epoch, Date, 'UTC'),
-	format_time(atom(TimeStamp), '%FT%T UTC', Date).
+	format_time(atom(TimeStamp), '%FT%TZ', Date), !.
 parse_timestamp(TimeStamp, Epoch) :- parse_timestamp(TimeStamp, Epoch, 0).
 
 %%	parse_timestamp(+TimeStampAtom, -Epoch, +EpochOffset) is det.
@@ -355,8 +438,9 @@ parse_timestamp(TimeStamp, Epoch, EpochOffset) :-
 	nonvar(TimeStamp),
 	(   number(TimeStamp)
 	->  E = TimeStamp
-	;   iso_timestamp_epoch(TimeStamp, E), !
-	;   sic_timestamp_epoch(TimeStamp, E), !
+	;   atom(TimeStamp), iso_timestamp_epoch(TimeStamp, E), !
+	;   atom(TimeStamp), sic_timestamp_epoch(TimeStamp, E), !
+	;   \+atom(TimeStamp), timex_timestamp_epoch(TimeStamp, E), !
 	% extend here
 	),
 	Epoch is E - EpochOffset.
@@ -368,5 +452,11 @@ iso_timestamp_epoch(TimeStamp, T) :-
 sic_timestamp_epoch(TimeStamp, T) :-
 	atom_number(TimeStamp, T).
 
-
+timex_timestamp_epoch(type('http://www.w3.org/1999/02/22-rdf-syntax-ns#XMLLiteral',TimeStamp), T) :-
+	(   xpath(TimeStamp, //(timex2), element(_,Attr,_)) % plain XML timex2 tag
+	->  true
+	;   xpath(TimeStamp, //(_:timex2), element(_,Attr,_)) % timex2 in some namespace
+	),
+	memberchk('VAL'=ISO, Attr),
+	parse_time(ISO, T). % Doesn't deal with local time
 

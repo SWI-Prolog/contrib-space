@@ -62,9 +62,25 @@ georss_candidate(URI, Shape) :-
 %	that was loaded from a certain Source.
 
 georss_candidate(URI, Shape, Source) :-
+	var(Source),
 	georss_simple_candidate(URI, Shape, Source).
 georss_candidate(URI, Shape, Source) :-
+	var(Source),
 	georss_gml_candidate(URI, Shape, Source).
+
+% work around for bug in rdf_db graph queries
+georss_candidate(URI, Shape, Source) :-
+	nonvar(Source),
+	georss_simple_candidate(URI, Shape, Source2),
+	(   Source2 = Source
+	;   Source2 = Source:_
+	).
+georss_candidate(URI, Shape, Source) :-
+	nonvar(Source),
+	georss_gml_candidate(URI, Shape, Source2),
+	(   Source2 = Source
+	;   Source2 = Source:_
+	).
 
 
 %
