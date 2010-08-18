@@ -84,6 +84,30 @@
 
 :- dynamic time_indices/4.
 
+:- rdf_meta  time_index(r),
+	     time_index(r,?,?,?),
+	     time_setting(r,?),
+	     time_assert(r,?,r),
+	     time_assert(r,?),
+	     time_retract(r,?,r),
+	     time_retract(r,?),
+	     time_clear(r,?),
+	     time_clear(r),
+	     time_index_all(r),
+	     time_bulkload(?,r),
+	     time_intersects(?,r,r),
+	     time_intersects(?,r),
+	     time_contains(?,r,r),
+	     time_contains(?,r),
+	     time_prev_end(?,r,r),
+	     time_prev_end(?,r),
+	     time_next_begin(?,r,r),
+	     time_next_begin(?,r),
+	     uri_time(r,?,t,?),
+	     uri_time(r,?,t),
+	     uri_time(r,?).
+
+
 time_index(Index) :- time_indices(Index,_,_,_).
 
 time_index(Index, IdxB, IdxE, Epoch) :-
@@ -94,7 +118,7 @@ time_index(Index, IdxB, IdxE, Epoch) :-
 	time_indices(Index, IdxB, IdxE, Epoch), !.
 time_index(Index, IdxB, IdxE, Epoch) :-
 	var(Epoch),
-	time_new(Index),
+%	time_new(Index),
 	time_indices(Index, IdxB, IdxE, Epoch), !.
 
 %%	time_setting(?Option) is det.
@@ -138,9 +162,13 @@ time_new(Index, EpochOffset) :-
 %
 time_assert(URI, T) :- time_assert(URI, T, default).
 time_assert(URI, interval(TB, TE), Index) :-
+	(   time_index(Index)
+	->  true
+	;   time_clear(Index, TB)
+	),
 	time_index(Index, IdxB, IdxE, EpochOffset),
-	TBE is TB - EpochOffset,
-	TEE is -1 * (TE - EpochOffset),
+	TBE is integer(TB - EpochOffset),
+	TEE is integer(-1 * (TE - EpochOffset)),
 	rdf_insert_literal_map(IdxB, TBE, URI),
 	rdf_insert_literal_map(IdxE, TEE, URI).
 
@@ -152,8 +180,8 @@ time_assert(URI, interval(TB, TE), Index) :-
 time_retract(URI, T) :- time_retract(URI, T, default).
 time_retract(URI, interval(TB, TE), Index) :-
 	time_indices(Index, IdxB, IdxE, EpochOffset),
-	TBE is TB - EpochOffset,
-	TEE is -1 * (TE - EpochOffset),
+	TBE is integer(TB - EpochOffset),
+	TEE is integer(-1 * (TE - EpochOffset)),
 	rdf_delete_literal_map(IdxB, TBE, URI),
 	rdf_delete_literal_map(IdxE, TEE, URI).
 
@@ -173,10 +201,12 @@ time_clear(Index) :-
 	time_new(Index, OldEpochOffset).
 time_clear(Index, NewEpochOffset) :-
 	number(NewEpochOffset),
-	time_index(Index, IdxB, IdxE, _OldEpochOffset),
-	retractall(time_indices(Index, _, _, _)),
-	rdf_destroy_literal_map(IdxB),
-	rdf_destroy_literal_map(IdxE),
+	(   time_index(Index, IdxB, IdxE, _OldEpochOffset)
+	->  retractall(time_indices(Index, _, _, _)),
+	    rdf_destroy_literal_map(IdxB),
+	    rdf_destroy_literal_map(IdxE)
+	;   true
+	),
 	time_new(Index, NewEpochOffset), !.
 
 %%	time_index_all(+IndexName) is det.
@@ -234,8 +264,8 @@ time_intersects(interval(TB, TE), URI, Index) :-
 	rdf_litindex:list_to_or(BeginMatch, between(TBE, TEE), BeginOr),
 	rdf_litindex:lookup(BeginOr, IdxB, B2, B3),
 	match_results(B2, B3, B4),
-	TBR is -1 * TBE,
-	TER is -1 * TEE,
+	TBR is integer(-1 * TBE),
+	TER is integer(-1 * TEE),
 	rdf_keys_in_literal_map(IdxE, between(TER, TBR), EndMatch),
 	rdf_litindex:list_to_or(EndMatch, between(TER, TBR), EndOr),
 	rdf_litindex:lookup(EndOr, IdxE, E2, E3),
@@ -261,8 +291,8 @@ time_contains(interval(TB, TE), URI, Index) :-
 	rdf_litindex:list_to_or(BeginMatch, between(TBE, TEE), BeginOr),
 	rdf_litindex:lookup(BeginOr, IdxB, B2, B3),
 	match_results(B2, B3, B4),
-	TBR is -1 * TBE,
-	TER is -1 * TEE,
+	TBR is integer(-1 * TBE),
+	TER is integer(-1 * TEE),
 	rdf_keys_in_literal_map(IdxE, between(TER, TBR), EndMatch),
 	rdf_litindex:list_to_or(EndMatch, between(TER, TBR), EndOr),
 	rdf_litindex:lookup(EndOr, IdxE, E2, E3),

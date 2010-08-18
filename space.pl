@@ -387,7 +387,10 @@ space_shape_nearest_bounded(Shape, Near, WithinRange, _IndexName) :-
 space_shape_nearest_bounded(Shape, Near, WithinRange, IndexName) :-
         space_index(IndexName),
         rtree_incremental_nearest_neighbor_query(Shape, Near, IndexName),
-        uri_shape(Near,NearShape),
+	(   uri_shape(Near,NearShape,IndexName)
+	->  true
+	;   uri_shape(Near,NearShape)
+	),
         space_distance(Shape,NearShape,Distance),
 	(   ground(WithinRange)
 	->  (	Distance > WithinRange
@@ -516,11 +519,11 @@ space_distance(A, B, D) :-
 space_distance(X, X, 0, _).
 space_distance(A, B, D, IndexName) :-
 	(   atom(A)
-	->  uri_shape(A, As)
+	->  uri_shape(A, As, IndexName)
 	;   As = A
 	),
 	(   atom(B)
-	->  uri_shape(B, Bs)
+	->  uri_shape(B, Bs, IndexName)
 	;   Bs = B
 	),
 	space_shape_distance(As, Bs, D, IndexName).
