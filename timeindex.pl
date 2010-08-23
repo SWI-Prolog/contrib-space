@@ -170,7 +170,16 @@ time_assert(URI, interval(TB, TE), Index) :-
 	TBE is integer(TB - EpochOffset),
 	TEE is integer(-1 * (TE - EpochOffset)),
 	rdf_insert_literal_map(IdxB, TBE, URI),
-	rdf_insert_literal_map(IdxE, TEE, URI).
+	rdf_insert_literal_map(IdxE, TEE, URI), !.
+time_assert(URI, point(T), Index) :-
+	time_assert(URI, interval(T,T), Index), !.
+time_assert(URI, TimeExpr, Index) :-
+	atom(TimeExpr),
+	parse_timestamp(TimeExpr, T),
+	time_assert(URI, point(T), Index), !.
+time_assert(URI, TimeExpr, Index) :-
+	number(TimeExpr),
+	time_assert(URI, point(TimeExpr), Index), !.
 
 %%	time_retract(+URI,+Time) is det.
 %%	time_retract(+URI,+Time,+IndexName) is det.

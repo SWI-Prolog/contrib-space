@@ -69,7 +69,9 @@
 	   space_distance/4,              % +Feature1, +Feature2, -Distance, +IndexName
 	   space_distance_pythagorean/3,  % +Feature1, +Feature2, -Distance
 	   space_distance_greatcircle/4,  % +Feature1, +Feature2, -Distance, +Unit
-	   space_distance_greatcircle/3   % +Feature1, +Feature2, -Distance (nm)
+	   space_distance_greatcircle/3,  % +Feature1, +Feature2, -Distance (nm)
+
+	   space_bearing/3	      % +Point, +Point, -Heading (degrees)
 
           ]).
 
@@ -620,11 +622,19 @@ space_distance_greatcircle_aux(point(Lat1deg, Long1deg), point(Lat2deg, Long2deg
 
 deg2rad(Deg,Rad) :-
 	Rad is (Deg * pi) / 180.
+rad2deg(Rad,Deg) :-
+	Deg is (Rad * 180) / pi.
 
-
-
-
-
+space_bearing(point(Lat1deg, Long1deg), point(Lat2deg, Long2deg), Bearing) :-
+	deg2rad(Lat1deg,Lat1),
+	deg2rad(Lat2deg,Lat2),
+	deg2rad(Long1deg,Long1),
+	deg2rad(Long2deg,Long2),
+	DLong is Long2 - Long1,
+	Y is sin(DLong) * cos(Lat2),
+	X is cos(Lat1) * sin(Lat2) - sin(Lat1) * cos(Lat2) * cos(DLong),
+	Bearing0 is atan(Y, X),
+	rad2deg(Bearing0, Bearing).
 
 
 
