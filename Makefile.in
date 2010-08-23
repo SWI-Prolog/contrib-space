@@ -45,7 +45,7 @@ INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
-LIBPL=		space.pl wkt.pl kml.pl gml.pl georss.pl wgs84.pl freebase.pl dbpedia.pl space_web_loader.pl timeindex.pl
+LIBPL=		space.pl wkt.pl kml.pl gml.pl georss.pl wgs84.pl freebase.pl dbpedia.pl space_web_loader.pl timeindex.pl spacetimeindex.pl
 TARGETS=	space.@SO@
 
 OBJ=		src/space.o src/globals.o src/Index.o src/Search.o src/Shapes.o src/lock.o src/debug.o
@@ -127,6 +127,8 @@ spacewebloader.tex:	space_web_loader.pl
 		$(PLTOTEX) --out=$@ --subsection 'library(space/space_web_loader)'
 timeindex.tex:	timeindex.pl
 		$(PLTOTEX) --out=$@ --subsection 'library(space/timeindex)'
+spacetimeindex.tex:	spacetimeindex.pl
+		$(PLTOTEX) --out=$@ --subsection 'library(space/spacetimeindex)'
 
 .doc.tex:
 		$(DOCTOTEX) $*.doc > $*.tex
