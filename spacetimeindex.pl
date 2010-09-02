@@ -1,5 +1,6 @@
 :- module(spacetimeindex,
 	  [ spacetime_candidate/2,
+	    spacetime_index/1,
 	    spacetime_clear/1,
 	    spacetime_clear/0,
 	    spacetime_assert/4,
@@ -22,6 +23,8 @@
 :- use_module(library(space/timeindex)).
 
 :- dynamic spacetime_index/4.
+
+spacetime_index(I) :- spacetime_index(_,_,_,I).
 
 spacetime_candidate(URI, time_shape(Time,Shape)) :-
         uri_time(URI,Time),

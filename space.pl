@@ -152,6 +152,7 @@ set_space(Option) :-
 space_setting(Option) :-
         with_mutex(space_mutex,space_setting_aux(Option)).
 
+
 %%	space_assert(+URI,+Shape,+IndexName) is det.
 %%	space_assert(+URI,+Shape) is det.
 %
@@ -202,18 +203,28 @@ space_index :-
 	space_index(I).
 space_index(IndexName) :-
 	(   space_queue(IndexName,assert,_,_)
-	->  (   findall(object(URI,Shape),
-			space_queue(IndexName,assert,URI,Shape),
+	->  (   empty_nb_set(Assertions),
+	        findall(object(URI,Shape),
+			(   space_queue(IndexName,assert,URI,Shape),
+			    add_nb_set(space_assert(URI,Shape),Assertions)
+			),
 			List),
 	        rtree_insert_list(IndexName,List),
-	        retractall(space_queue(IndexName,assert,_,_))
+	        retractall(space_queue(IndexName,assert,_,_)),
+		size_nb_set(Assertions,N),
+		format('% Added ~w URI-Shape pairs to ~w\n',[N,IndexName])
 	    )
 	;   (   space_queue(IndexName,retract,_,_)
-	    ->  (   findall(object(URI,Shape),
-			    space_queue(IndexName,retract,URI,Shape),
+	    ->  (   empty_nb_set(Retractions),
+		    findall(object(URI,Shape),
+			    (	space_queue(IndexName,retract,URI,Shape),
+				add_nb_set(space_retract(URI,Shape),Retractions)
+			    ),
 			    List),
 		    rtree_delete_list(IndexName,List),
-	            retractall(space_queue(IndexName,retract,_,_))
+	            retractall(space_queue(IndexName,retract,_,_)),
+		    size_nb_set(Retractions,N),
+		    format('% Removed ~w URI-Shape pairs from ~w\n',[N,IndexName])
 	        )
 	    ;   true
 	    )

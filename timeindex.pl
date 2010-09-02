@@ -269,8 +269,10 @@ time_intersects(interval(TB, TE), URI, Index) :-
 	time_index(Index, IdxB, IdxE, EO),
 	parse_timestamp(TB, TBE, EO),
 	parse_timestamp(TE, TEE, EO),
-	rdf_keys_in_literal_map(IdxB, between(TBE, TEE), BeginMatch),
-	rdf_litindex:list_to_or(BeginMatch, between(TBE, TEE), BeginOr),
+	TBI is integer(TBE),
+	TEI is integer(TEE),
+	rdf_keys_in_literal_map(IdxB, between(TBI, TEI), BeginMatch),
+	rdf_litindex:list_to_or(BeginMatch, between(TBI, TEI), BeginOr),
 	rdf_litindex:lookup(BeginOr, IdxB, B2, B3),
 	match_results(B2, B3, B4),
 	TBR is integer(-1 * TBE),
@@ -292,16 +294,24 @@ time_intersects(interval(TB, TE), URI, Index) :-
 %	that are contained by the interval Time = interval(Begin,End).
 %
 time_contains(T, URI) :- time_contains(T, URI, default).
+time_contains(interval(-,-), URI, Index) :- !,
+	time_contains_all(interval(-,-), URI, Index).
+time_contains(interval(-,End), URI, Index) :- !,
+	time_contains_le(interval(-,End), URI, Index).
+time_contains(interval(Begin,-), URI, Index) :- !,
+	time_contains_ge(interval(Begin,-), URI, Index).
 time_contains(interval(TB, TE), URI, Index) :-
 	time_index(Index, IdxB, IdxE, EO),
 	parse_timestamp(TB, TBE, EO),
+	TBI is integer(TBE),
+	TBR is integer(-1 * TBE),
 	parse_timestamp(TE, TEE, EO),
-	rdf_keys_in_literal_map(IdxB, between(TBE, TEE), BeginMatch),
-	rdf_litindex:list_to_or(BeginMatch, between(TBE, TEE), BeginOr),
+	TEI is integer(TEE),
+	TER is integer(-1 * TEE),
+	rdf_keys_in_literal_map(IdxB, between(TBI, TEI), BeginMatch),
+	rdf_litindex:list_to_or(BeginMatch, between(TBI, TEI), BeginOr),
 	rdf_litindex:lookup(BeginOr, IdxB, B2, B3),
 	match_results(B2, B3, B4),
-	TBR is integer(-1 * TBE),
-	TER is integer(-1 * TEE),
 	rdf_keys_in_literal_map(IdxE, between(TER, TBR), EndMatch),
 	rdf_litindex:list_to_or(EndMatch, between(TER, TBR), EndOr),
 	rdf_litindex:lookup(EndOr, IdxE, E2, E3),
@@ -312,6 +322,27 @@ time_contains(interval(TB, TE), URI, Index) :-
 	pairs_values(ES, ESValues),
 	ord_intersection(BSValues, ESValues, Matches), !,
 	member(URI, Matches).
+
+lookup(Index,Key,A,B) :-
+       rdf_litindex:lookup(Key, Index, [A], [B]).
+
+time_contains_all(interval(-,-), URI, Index) :-
+	time_index(Index, IdxB, IdxE, _EO),
+	rdf_keys_in_literal_map(IdxB, all, BeginMatch),
+	rdf_keys_in_literal_map(IdxE, all, EndMatch),
+	maplist(lookup(IdxB),BeginMatch,BM1,BM2),
+	maplist(lookup(IdxB),EndMatch,EM1,EM2),
+	match_results(BM1, BM2, BMatches),
+	match_results(EM1, EM2, EMatches),
+	pairs_values(BMatches, BSValues),
+	pairs_values(EMatches, ESValues),
+	append(BSValues, ESValues, Matches2),
+	list_to_set(Matches2,Matches), !,
+	member(URI, Matches).
+time_contains_le(interval(-, TE), URI, Index) :-
+	time_prev_end(point(TE), URI, Index).
+time_contains_ge(interval(TB, -), URI, Index) :-
+	time_next_begin(point(TB), URI, Index).
 
 %%	time_prev_end(+Time,-URI,+Index) is nondet.
 %%	time_prev_end(+Time,-URI) is nondet.
@@ -326,7 +357,7 @@ time_prev_end(point(T), URI, Index) :- time_prev_end(interval(T,T), URI, Index).
 time_prev_end(interval(T,_), URI, Index) :-
 	time_index(Index, _, IdxE, EO),
 	parse_timestamp(T, TE, EO),
-	TER is -1 * TE,
+	TER is integer(-1 * TE),
 	rdf_keys_in_literal_map(IdxE, ge(TER), EndMatch),
 	rdf_litindex:list_to_or(EndMatch, ge(TER), EndOr),
 	rdf_litindex:lookup(EndOr, IdxE, E2, E3),
@@ -345,8 +376,9 @@ time_next_begin(point(T), URI, Index) :- time_next_begin(interval(T,T), URI, Ind
 time_next_begin(interval(_,T), URI, Index) :-
 	time_index(Index, IdxB, _, EO),
 	parse_timestamp(T, TE, EO),
-	rdf_keys_in_literal_map(IdxB, ge(TE), BeginMatch),
-	rdf_litindex:list_to_or(BeginMatch, ge(TE), BeginOr),
+	TEI is integer(TE),
+	rdf_keys_in_literal_map(IdxB, ge(TEI), BeginMatch),
+	rdf_litindex:list_to_or(BeginMatch, ge(TEI), BeginOr),
 	rdf_litindex:lookup(BeginOr, IdxB, B2, B3),
 	match_result(B2, B3, _-URI).
 
@@ -363,6 +395,7 @@ zip_tree_member([[H0]], [H1|T1], R) :-
 
 zip_tree(_, [], []).
 zip_tree(A, B, A-B) :- \+is_list(A).
+zip_tree([], [B], nil-B).
 zip_tree([H0], [H1|T1], [H|T]) :-
 	\+is_list(H0),
 	zip_tree(H0, H1, H),
@@ -411,32 +444,39 @@ uri_time(URI, interval(Begin, End), Source, EpochOffset) :-
 
 time_candidate(URI, TimeStamp) :- time_candidate(URI, TimeStamp, _Source).
 time_candidate(URI, TimeStamp, Source) :-
-	sem_time_candidate(URI, TimeStamp, Source).
-time_candidate(URI, TimeStamp, Source) :-
 	owl_time_xsd_candidate(URI, TimeStamp, Source).
+time_candidate(URI, TimeStamp, Source) :-
+	sem_time_candidate(URI, TimeStamp, Source).
 
 sem_time_candidate(URI, TimeStamp) :- sem_time_candidate(URI, TimeStamp, _Source).
 sem_time_candidate(URI, interval(Begin,End), Source) :-
-	rdf_has(URI, sem:hasBeginTimeStamp, literal(TB), PredB),
-	rdf_has(URI, sem:hasEndTimeStamp, literal(TE), PredE),
-	rdf(URI, PredB, literal(TB), Source2),
-	(   Source2 = Source:_ % work around
-	->  true
-	;   Source2 = Source
+	(   rdf(URI, sem:hasBeginTimeStamp, literal(TB), Source1)
+	->  (   Source1 = Source:_ % work around
+	    ->  true
+	    ;   Source1 = Source
+	    ),
+	    (   TB = type(_,Begin)
+	    ->  true
+	    ;   Begin = TB
+	    )
+	;   Begin = -
 	),
-	(   TB = type(_,Begin)
-	->  true
-	;   Begin = TB
+        (   rdf(URI, sem:hasEndTimeStamp, literal(TE), Source2)
+	->  (   Source2 = Source:_ % work around
+	    ->  true
+	    ;   Source2 = Source
+	    ),
+	    (   TE = type(_,End)
+	    ->  true
+	    ;   End = TE
+	    )
+	;   End = -
 	),
-	rdf(URI, PredE, literal(TE), Source3),
-	(   Source3 = Source:_
-	->  true
-	;   Source3 = Source
-	),
-	(   TE = type(_,End)
-	->  true
-	;   End = TE
+	(   Begin = -, End = -
+	->  fail
+	;   true
 	).
+
 sem_time_candidate(URI, interval(T,T), Source) :-
 	rdf(URI, sem:hasTimeStamp, literal(T), Source:_),
 	(   T = type(_,TimeStamp)
@@ -445,8 +485,11 @@ sem_time_candidate(URI, interval(T,T), Source) :-
 	).
 
 owl_time_xsd_candidate(URI, interval(T,T), Source) :-
-        rdf_has(URI, owltime:inXSDDateTime, literal(T), Pred),
-	rdf(URI, Pred, literal(T), Source:_),
+        rdf(URI, owltime:inXSDDateTime, literal(T), Source1),
+	(   Source1 = Source:_ % work around
+	->  true
+	;   Source1 = Source
+	),
         (   T = type(_,TimeStamp)
         ->  true
         ;   TimeStamp = T
@@ -498,4 +541,7 @@ timex_timestamp_epoch(type('http://www.w3.org/1999/02/22-rdf-syntax-ns#XMLLitera
 	),
 	memberchk('VAL'=ISO, Attr),
 	parse_time(ISO, T). % Doesn't deal with local time
+
+
+
 

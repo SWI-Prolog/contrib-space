@@ -66,7 +66,7 @@ wgs84_candidate(URI,point(Lat,Long),Source) :-
 	lat(URI,Lat,Source1),
 	long(URI,Long,Source2),
 	Source1 = Source:_,
-	Source2	= Source:_.
+	Source2 = Source:_.
 
 wgs84_candidate(URI,point(Lat,Long),Source) :-
 	(   \+lat(URI,Lat,Source1),
@@ -74,8 +74,8 @@ wgs84_candidate(URI,point(Lat,Long),Source) :-
 	->  (   \+alt(URI,_,_),
 	        lat(URI,Lat,Source2),
 		long(URI,Long,Source3),
-	    	Source2 = Source:_,
-		Source3	= Source:_
+		Source2 = Source:_,
+		Source3 = Source:_
 	    )
 	).
 
@@ -85,7 +85,7 @@ wgs84_candidate(URI,point(Lat,Long,Alt),Source) :-
 	alt(URI,Alt,Source3),
 	Source1 = Source:_,
 	Source2 = Source:_,
-	Source3	= Source:_.
+	Source3 = Source:_.
 
 wgs84_candidate(URI,point(Lat,Long,Alt),Source) :-
 	(   \+lat(URI,Lat,Source1),
@@ -95,7 +95,7 @@ wgs84_candidate(URI,point(Lat,Long,Alt),Source) :-
 		alt(URI,Alt,Source4),
 		Source2 = Source:_,
 		Source3 = Source:_,
-		Source4	= Source:_
+		Source4 = Source:_
 	    )
 	).
 
