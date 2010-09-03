@@ -74,7 +74,34 @@
 	     uri_time/3,          % ?URI, ?Time, ?Source (uses offset 0)
 	     uri_time/2,          % ?URI, ?Time (uses offset 0)
 	     parse_timestamp/3,   % +TimeStamp, -Epoch, +EpochOffset
-	     parse_timestamp/2    % ?TimeStamp, ?Epoch (uses offset 0)
+	     parse_timestamp/2,   % ?TimeStamp, ?Epoch (uses offset 0)
+
+             % Allen's Interval Algebra
+	     time_before/2,       % +Time, +Time
+	     time_after/2,
+	     time_meets/2,
+	     time_meets_inverse/2,
+	     time_overlaps/2,
+	     time_overlaps_inverse/2,
+	     time_starts/2,
+	     time_starts_inverse/2,
+	     time_during/2,
+	     time_during_inverse/2,
+	     time_finishes/2,
+	     time_finishes_inverse/2,
+	     time_equal/2,
+
+	     % Time operations
+	     time_expand_before/3,   % +Time, +Duration, -Time
+	     time_expand_after/3,    % +Time, +Duration, -Time
+	     time_expand/3,	     % +Time, +Duration, -Time
+	     time_duration/2,        % +Time, -Duration
+	     time_duration_before/3, % +Time, +Duration, -Time
+	     time_duration_after/3,  % +Time, +Duration, -Time
+	     time_duration/3,        % +Time, +Time, -Duration (epoch)
+	     time_between/3,         % +Time, +Time, -Duration (epoch)
+
+	     timestamp_duration/2   % +TimeStamp, -Duration (duration(Y,M,D,H,Min,S))
 	  ]).
 
 :- use_module(library(semweb/rdf_db)).
@@ -541,6 +568,161 @@ timex_timestamp_epoch(type('http://www.w3.org/1999/02/22-rdf-syntax-ns#XMLLitera
 	),
 	memberchk('VAL'=ISO, Attr),
 	parse_time(ISO, T). % Doesn't deal with local time
+
+
+/*
+ *  Allen's interval algebra
+ */
+
+% assumes point(T) is equal to interval(T,T)
+
+time_to_interval(interval(T1,T2), interval(T1,T2)) :-
+	number(T1), number(T2), !.
+time_to_interval(point(T), interval(T,T)) :-
+	number(T), !.
+time_to_interval(interval(T1,T2), interval(T3,T4)) :-
+	parse_timestamp(T1,T3),
+	parse_timestamp(T2,T4), !.
+time_to_interval(point(T1), interval(T2,T2)) :-
+	parse_timestamp(T1,T2), !.
+time_to_interval(T1, interval(T2,T2)) :-
+	parse_timestamp(T1,T2), !.
+
+
+time_overlaps(Ta, Tb) :-
+	time_to_interval(Ta,interval(T1,T2)),
+	time_to_interval(Tb,interval(T3,T4)),
+	T1 =< T4,
+	T2 >= T3.
+
+time_overlaps_inverse(T1,T2) :- time_overlaps(T2,T1).
+
+time_during(Ta, Tb) :-
+	time_to_interval(Ta, interval(T1,T2)),
+	time_to_interval(Tb, interval(T3,T4)),
+	T1 =< T3,
+	T2 >= T4.
+
+time_during_inverse(T1,T2) :- time_during(T2,T1).
+
+time_before(Ta, Tb) :-
+	time_to_interval(Ta, interval(_,T1)),
+	time_to_interval(Tb, interval(T2,_)),
+	T1 < T2.
+
+time_after(T1,T2) :- time_before(T2,T1).
+
+time_meets(Ta, Tb) :-
+	time_to_interval(Ta, interval(_,T)),
+	time_to_interval(Tb, interval(T,_)).
+
+time_meets_inverse(T1,T2) :- time_meets_inverse(T2,T1).
+
+time_starts(Ta, Tb) :-
+	time_to_interval(Ta, interval(T,T1)),
+	time_to_interval(Tb, interval(T,T2)),
+	T1 =< T2.
+
+time_starts_inverse(T1,T2) :- time_starts(T2,T1).
+
+time_finishes(Ta, Tb) :-
+	time_to_interval(Ta, interval(T1,T)),
+	time_to_interval(Tb, interval(T2,T)),
+	T1 >= T2.
+
+time_finishes_inverse(T1,T2) :- time_finishes(T2,T1).
+
+time_equal(T,T) :- time_to_interval(T,_).
+
+
+/*
+ *  Operations on Time points and intervals
+ */
+
+time_expand_before(T, Margin, interval(T1,Tb)) :-
+	time_to_interval(T, interval(Ta,Tb)),
+	T1 is Ta - Margin.
+
+time_expand_after(T, Margin, interval(Ta,T1)) :-
+	time_to_interval(T, interval(Ta,Tb)),
+	T1 is Tb + Margin.
+
+time_expand(T, Margin, interval(T1,T2)) :-
+	time_to_interval(T, interval(Ta,Tb)),
+	T1 is Ta - Margin,
+	T2 is Tb + Margin.
+
+time_duration(T, D) :-
+	time_to_interval(T, interval(Ta,Tb)),
+	D is Tb - Ta.
+
+time_duration_before(T, D, point(T2)) :-
+	time_to_interval(T,interval(T1,_)),
+	T2 is T1 - D.
+
+time_duration_after(T, D, point(T2)) :-
+	time_to_interval(T,interval(_,T1)),
+	T2 is T1 + D.
+
+time_duration(Ta, Tb, D) :-
+	time_to_interval(Ta, interval(T0,T1)),
+	time_to_interval(Tb, interval(T2,T3)),
+	(   time_before(interval(T0,T1), interval(T2,T3))
+	->  time_duration(interval(T0,T3), D)
+	;   time_duration(interval(T2,T1), D0),
+	    D is -1 * D0
+	).
+
+time_between(Ta, Tb, D) :-
+	time_to_interval(Ta, interval(T0,T1)),
+	time_to_interval(Tb, interval(T2,T3)),
+	(   time_before(interval(T0,T1), interval(T2,T3))
+	->  time_duration(interval(T1,T2), D)
+	;   time_duration(interval(T3,T0), D0),
+	    D is -1 * D0
+	).
+
+timestamp_duration(TimeStamp, duration(Years,Months,Days,Hours,Minutes,Seconds)) :-
+	abs(TimeStamp,T),
+%	sign(TimeStamp,Sign),
+	stamp_date_time(0, date(Y0,M0,D0,H0,Mi0,S0,_,_,_), 0),
+	stamp_date_time(T, date(Y1,M1,D1,H1,Mi1,S1,_,_,_), 0),
+	Years is Y1 - Y0,
+	Months is M1 - M0,
+	Days is D1 - D0,
+	Hours is H1 - H0,
+	Minutes is Mi1 - Mi0,
+	Seconds is S1 - S0.
+
+parse_duration(ISO, duration(Y,M,D,H,Mi,S)) :-
+	phrase(duration(Y,M,D,H,Mi,S),Ts),
+	atom_codes(ISO,Ts), !.
+
+
+% does not follow the entire ISO 8601 spec yet
+duration(Y,M,D,H,Mi,S) -->
+	{ nonvar(Y),
+	  number_codes(Y,Yc),
+	  number_codes(M,Mc),
+	  number_codes(D,Dc),
+	  number_codes(H,Hc),
+	  number_codes(Mi,Mic),
+	  number_codes(S,Sc)
+	},
+	"P", Yc, "Y", Mc, "M", Dc, "D", "T", Hc, "H", Mic, "M", Sc, "S".
+
+duration(Y,M,D,H,Mi,S) -->
+	{ var(Y) },
+	"P", Yc, "Y", Mc, "M", Dc, "D", "T", Hc, "H", Mic, "M", Sc, "S",
+	{
+	  number_codes(Y,Yc),
+	  number_codes(M,Mc),
+	  number_codes(D,Dc),
+	  number_codes(H,Hc),
+	  number_codes(Mi,Mic),
+	  number_codes(S,Sc)
+	}.
+
 
 
 

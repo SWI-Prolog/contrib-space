@@ -11,8 +11,8 @@
 	    spacetime_index_all/1,
 	    spacetime_within_range/5,
 	    spacetime_within_range/4,
-	    spacetime_intersects/4,
 	    spacetime_intersects/3,
+	    spacetime_intersects/2,
 	    bucket/3,
 	    buckets/3
 	  ]
@@ -49,11 +49,9 @@ bucket_indexname(Bucket,BaseName,IndexName) :-
        atom_number(BucketAtom,Bucket),
        atomic_list_concat([BaseName,BucketAtom],'_',IndexName).
 
-spacetime_index_in_interval(point(T),IntervalSize,spacetime_index(Bucket,IS,BN,IndexName)) :-
-	spacetime_index_in_interval(interval(T,T),IntervalSize,spacetime_index(Bucket,IS,BN,IndexName)).
-spacetime_index_in_interval(interval(T1,T2),IntervalSize,spacetime_index(Bucket,IS,BN,IndexName)) :-
-	From is T1 - IntervalSize,
-	To is T2 + IntervalSize,
+spacetime_index_in_interval(point(T),spacetime_index(Bucket,IS,BN,IndexName)) :-
+	spacetime_index_in_interval(interval(T,T),spacetime_index(Bucket,IS,BN,IndexName)).
+spacetime_index_in_interval(interval(From,To),spacetime_index(Bucket,IS,BN,IndexName)) :-
 	spacetime_index(Bucket,IS,BN,IndexName),
 	UBND is Bucket + IS,
 	Bucket =< To,
@@ -98,19 +96,25 @@ spacetime_index_all(IntervalSize,BaseName) :-
 	spacetime_bulkload(spacetime_candidate,IntervalSize,BaseName).
 
 
-
 spacetime_within_range(time_shape(Time,Shape),Target,TimeInterval,SpaceRadius) :-
 	spacetime_within_range(time_shape(Time,Shape),Target,TimeInterval,SpaceRadius,st_default).
 spacetime_within_range(time_shape(Time,Shape),Target,TimeInterval,SpaceRadius,BaseName) :-
-	spacetime_index_in_interval(Time,TimeInterval,spacetime_index(_Bucket,_IntervalSize,BaseName,IndexName)),
-	space_within_range(Shape,Target,SpaceRadius,IndexName).
+	time_expand(Time,TimeInterval,Time2),
+	spacetime_index_in_interval(Time2,spacetime_index(_Bucket,_IntervalSize,BaseName,IndexName)),
+	space_within_range(Shape,Target,SpaceRadius,IndexName),
+	once((   event_timestamp(Target,Time3),
+		 time_overlaps(Time2,Time3)
+	     )).
 
-spacetime_intersects(time_shape(Time,Shape), Target, TimeInterval) :-
-	spacetime_intersects(time_shape(Time,Shape), Target, TimeInterval, st_default).
-spacetime_intersects(time_shape(Time,Shape), Target, TimeInterval, BaseName) :-
-	spacetime_index_in_interval(Time,TimeInterval,spacetime_index(_Bucket,_IntervalSize,BaseName,IndexName)),
-	space_intersects(Shape,Target,IndexName).
 
+spacetime_intersects(time_shape(Time,Shape), Target) :-
+	spacetime_intersects(time_shape(Time,Shape), Target, st_default).
+spacetime_intersects(time_shape(Time,Shape), Target, BaseName) :-
+	spacetime_index_in_interval(Time,spacetime_index(_Bucket,_IntervalSize,BaseName,IndexName)),
+	space_intersects(Shape,Target,IndexName),
+	once((   event_timestamp(Target,Time2),
+		 time_overlaps(Time,Time2)
+	     )).
 
 
 
