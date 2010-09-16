@@ -88,13 +88,9 @@ spacetime_bulkload(Candidate,IntervalSize,BaseName) :-
 	       (   spacetime_assert(URI, TimeShape, IntervalSize, BaseName),
 		   add_nb_set(space_assert(URI,TimeShape),Assertions)
 	       )),
-	forall(spacetime_index(_,_,_,I),
-	       thread_create((   format('% Starting indexing thread ~w\n',[I]),
-				 space_index(I),
-				 size_nb_set(Assertions,N),
-				 format('% Added ~w URI-Time/Shape pairs to ~w\n',
-					[N,BaseName])),
-			     _Id,[])).
+	forall(spacetime_index(_,_,_,I), space_index(I)),
+	size_nb_set(Assertions,N),
+	format('% Added ~w URI-Time/Shape pairs to ~w\n', [N,BaseName]).
 
 
 spacetime_index_all(IntervalSize) :- spacetime_index_all(IntervalSize,st_default).
