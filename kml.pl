@@ -97,8 +97,7 @@ georss_to_kml_file(KMLfile) :-
 	georss_to_kml_file(KMLfile, []).
 georss_to_kml_file(KMLfile, Options) :-
 	option(graph(Graph),Options,-),
-	expand_file_search_path(KMLfile,KMLfileExp),
-	open(KMLfileExp, write, Stream, Options),
+	open(KMLfile, write, Stream, Options),
 	kml_save_header(Stream, Options),
 	forall((   Graph \= -
 	       ->  georss:georss_candidate(U,S,Graph)
@@ -196,8 +195,7 @@ kml_uri_shape(KML, URI, Shape) :-
 
 kml_file_shape(File, Geom) :- kml_file_shape(File, Geom, _A, _C).
 kml_file_shape(File, Geom, Attributes, Content) :-
-	expand_file_search_path(File,FileExp),
-	load_structure(FileExp, XML,
+	load_structure(File, XML,
 		       [ dialect(xmlns),
 %			 xmlns('http://www.opengis.net/kml/2.2'),
 			 xmlns(kml, 'http://www.opengis.net/kml/2.2')
@@ -210,9 +208,8 @@ kml_file_shape(File, Geom, Attributes, Content) :-
 %	Reads URI-shape pairs from File using kml_uri_shape/2.
 
 kml_file_uri_shape(File, URI, Shape) :-
-	expand_file_search_path(File,FileExp),
-	kml_file_shape(FileExp, Geom, _Attributes, _Content),
-	get_uri_shape(Geom, URI, Shape, FileExp).
+	kml_file_shape(File, Geom, _Attributes, _Content),
+	get_uri_shape(Geom, URI, Shape, File).
 
 % work-around hack to avoid implementing geometry collections in C++
 non_geometrycollection_member(Shape, Geoms) :-

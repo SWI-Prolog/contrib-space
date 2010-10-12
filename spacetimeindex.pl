@@ -18,21 +18,20 @@
 	  ]
 	 ).
 
-:- use_module('../../sem/sem').
+:- use_module(library(semweb/rdf_db)).
 :- use_module(library(space/space)).
 :- use_module(library(space/timeindex)).
 
 :- dynamic spacetime_index/4.
+:- multifile spacetime_candidate/2.
+
+:- rdf_register_ns(sem,'http://semanticweb.cs.vu.nl/2009/11/sem/').
 
 spacetime_index(I) :- spacetime_index(_,_,_,I).
 
 spacetime_candidate(URI, time_shape(Time,Shape)) :-
         uri_time(URI,Time),
         uri_shape(URI,Shape).
-spacetime_candidate(URI, time_shape(Time,Shape)) :-
-	property(URI,sem:hasPlace,Place),
-	uri_time(URI,Time),
-        uri_shape(Place,Shape).
 
 bucket(Time,IntervalSize,Bucket) :-
        Bucket is floor(Time/IntervalSize) * IntervalSize.
@@ -83,15 +82,14 @@ spacetime_bulkload(Candidate,IntervalSize) :-
 	spacetime_bulkload(Candidate,IntervalSize,st_default).
 spacetime_bulkload(Candidate,IntervalSize,BaseName) :-
 	empty_nb_set(Assertions),
-	format('% Gathering candidates\n'),
 	forall(call(Candidate, URI, TimeShape),
 	       (   spacetime_assert(URI, TimeShape, IntervalSize, BaseName),
 		   add_nb_set(space_assert(URI,TimeShape),Assertions)
 	       )),
-	forall(spacetime_index(_,_,_,I), space_index(I)),
-	size_nb_set(Assertions,N),
-	format('% Added ~w URI-Time/Shape pairs to ~w\n', [N,BaseName]).
-
+	forall(spacetime_index(_,_,_,I),
+               space_index(I)),
+        size_nb_set(Assertions,N),
+        format('% Added ~w URI-Time/Shape pairs to ~w\n',[N,BaseName]).
 
 spacetime_index_all(IntervalSize) :- spacetime_index_all(IntervalSize,st_default).
 spacetime_index_all(IntervalSize,BaseName) :-
@@ -104,7 +102,7 @@ spacetime_within_range(time_shape(Time,Shape),Target,TimeInterval,SpaceRadius,Ba
 	time_expand(Time,TimeInterval,Time2),
 	spacetime_index_in_interval(Time2,spacetime_index(_Bucket,_IntervalSize,BaseName,IndexName)),
 	space_within_range(Shape,Target,SpaceRadius,IndexName),
-	once((   event_timestamp(Target,Time3),
+	once((   spacetime_candidate(Target,time_shape(Time3,_)),
 		 time_overlaps(Time2,Time3)
 	     )).
 
@@ -114,10 +112,9 @@ spacetime_intersects(time_shape(Time,Shape), Target) :-
 spacetime_intersects(time_shape(Time,Shape), Target, BaseName) :-
 	spacetime_index_in_interval(Time,spacetime_index(_Bucket,_IntervalSize,BaseName,IndexName)),
 	space_intersects(Shape,Target,IndexName),
-	once((   event_timestamp(Target,Time2),
+	once((   spacetime_candidate(Target,time_shape(Time2,_)),
 		 time_overlaps(Time,Time2)
 	     )).
-
 
 
 

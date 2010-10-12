@@ -477,23 +477,15 @@ time_candidate(URI, TimeStamp, Source) :-
 
 sem_time_candidate(URI, TimeStamp) :- sem_time_candidate(URI, TimeStamp, _Source).
 sem_time_candidate(URI, interval(Begin,End), Source) :-
-	(   rdf(URI, sem:hasBeginTimeStamp, literal(TB), Source1)
-	->  (   Source1 = Source:_ % work around
-	    ->  true
-	    ;   Source1 = Source
-	    ),
-	    (   TB = type(_,Begin)
+	(   rdf(URI, sem:hasBeginTimeStamp, literal(TB), Source:_)
+	->  (   TB = type(_,Begin)
 	    ->  true
 	    ;   Begin = TB
 	    )
 	;   Begin = -
 	),
-        (   rdf(URI, sem:hasEndTimeStamp, literal(TE), Source2)
-	->  (   Source2 = Source:_ % work around
-	    ->  true
-	    ;   Source2 = Source
-	    ),
-	    (   TE = type(_,End)
+        (   rdf(URI, sem:hasEndTimeStamp, literal(TE), Source:_)
+	->  (   TE = type(_,End)
 	    ->  true
 	    ;   End = TE
 	    )
@@ -512,11 +504,7 @@ sem_time_candidate(URI, interval(T,T), Source) :-
 	).
 
 owl_time_xsd_candidate(URI, interval(T,T), Source) :-
-        rdf(URI, owltime:inXSDDateTime, literal(T), Source1),
-	(   Source1 = Source:_ % work around
-	->  true
-	;   Source1 = Source
-	),
+        rdf(URI, owltime:inXSDDateTime, literal(T), Source:_),
         (   T = type(_,TimeStamp)
         ->  true
         ;   TimeStamp = T
