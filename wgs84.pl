@@ -63,40 +63,26 @@ wgs84_candidate(URI,point(Lat,Long,Alt)) :-
 
 wgs84_candidate(URI,point(Lat,Long),Source) :-
 	\+alt(URI,_,_),
-	lat(URI,Lat,Source1),
-	long(URI,Long,Source2),
-	Source1 = Source:_,
-	Source2 = Source:_.
+	lat(URI,Lat,Source),
+	long(URI,Long,Source).
 
 wgs84_candidate(URI,point(Lat,Long),Source) :-
-	(   \+lat(URI,Lat,Source1),
-	    Source1 = Source:_
-	->  (   \+alt(URI,_,_),
-	        lat(URI,Lat,Source2),
-		long(URI,Long,Source3),
-		Source2 = Source:_,
-		Source3 = Source:_
-	    )
+	(   \+lat(URI,Lat,Source)
+	->  \+alt(URI,_,_),
+	    lat(URI,Lat,Source),
+	    long(URI,Long,Source)
 	).
 
 wgs84_candidate(URI,point(Lat,Long,Alt),Source) :-
-	lat(URI,Lat,Source1),
-	long(URI,Long,Source2),
-	alt(URI,Alt,Source3),
-	Source1 = Source:_,
-	Source2 = Source:_,
-	Source3 = Source:_.
+	lat(URI,Lat,Source),
+	long(URI,Long,Source),
+	alt(URI,Alt,Source).
 
 wgs84_candidate(URI,point(Lat,Long,Alt),Source) :-
-	(   \+lat(URI,Lat,Source1),
-	    Source1 = Source:_
-	->  (   lat(URI,Lat,Source2),
-	        long(URI,Long,Source3),
-		alt(URI,Alt,Source4),
-		Source2 = Source:_,
-		Source3 = Source:_,
-		Source4 = Source:_
-	    )
+	(   \+lat(URI,Lat,Source)
+	->  lat(URI,Lat,Source),
+	    long(URI,Long,Source),
+	    alt(URI,Alt,Source)
 	).
 
 %%	lat(?URI,?Lat) is nondet.
