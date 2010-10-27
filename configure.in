@@ -20,7 +20,7 @@ if test "$si" = 0; then
 fi
 
 AC_CHECK_HEADERS(geos_c.h,[geos=1],[geos=0])
-if test $si == 0; then
+if test "$si" = 0; then
    AC_ERROR("Cannot find GEOS library. GEOS must be installed first (http://trac.osgeo.org/geos/)")
 fi
 
