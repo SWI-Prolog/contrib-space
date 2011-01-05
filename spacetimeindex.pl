@@ -25,8 +25,6 @@
 :- dynamic spacetime_index/4.
 :- multifile spacetime_candidate/2.
 
-:- rdf_register_ns(sem,'http://semanticweb.cs.vu.nl/2009/11/sem/').
-
 spacetime_index(I) :- spacetime_index(_,_,_,I).
 
 spacetime_candidate(URI, time_shape(Time,Shape)) :-
