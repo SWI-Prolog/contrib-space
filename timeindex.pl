@@ -230,11 +230,13 @@ time_retract(URI, interval(TB, TE), Index) :-
 %
 time_clear :- time_clear(default).
 time_clear(Index) :-
-	time_index(Index, IdxB, IdxE, OldEpochOffset),
-	retractall(time_indices(Index, _, _, _)),
-	rdf_destroy_literal_map(IdxB),
-	rdf_destroy_literal_map(IdxE),
-	time_new(Index, OldEpochOffset).
+	(   time_index(Index, IdxB, IdxE, OldEpochOffset)
+	->  retractall(time_indices(Index, _, _, _)),
+	    rdf_destroy_literal_map(IdxB),
+	    rdf_destroy_literal_map(IdxE),
+	    time_new(Index, OldEpochOffset)
+	;   true
+	).
 time_clear(Index, NewEpochOffset) :-
 	number(NewEpochOffset),
 	(   time_index(Index, IdxB, IdxE, _OldEpochOffset)
