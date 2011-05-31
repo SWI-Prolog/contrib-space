@@ -285,6 +285,11 @@ time_bulkload(CandidatePred, Index) :-
 %       is currently a misnomer.
 %
 time_intersects(T, URI) :- time_intersects(T, URI, default).
+
+time_intersects(point(T), URI, Index) :-
+	time_intersects(interval(T,T), URI, Index).
+time_intersects(interval(TB, TE), URI, Index) :-
+	time_intersects_impl1(interval(TB, TE), URI, Index).
 % FIXME: buggy implementation, does not find intervals that start
 % before the query interval and end after the query interval.
 % The obvious solution would be to compute the intersection of the
@@ -294,7 +299,7 @@ time_intersects(T, URI) :- time_intersects(T, URI, default).
 % As soon as there is a nondet version of rdf_keys_in_literal_map
 % this implementation could become viable if the hard solutions are
 % delayed until after all easy solutions have been found.
-time_intersects(interval(TB, TE), URI, Index) :-
+time_intersects_impl1(interval(TB, TE), URI, Index) :-
 	time_index(Index, IdxB, IdxE, EO),
 	parse_timestamp(TB, TBE, EO),
 	parse_timestamp(TE, TEE, EO),
@@ -383,7 +388,7 @@ time_contains_ge(interval(TB, -), URI, Index) :-
 time_prev_end(point(T), URI) :- time_prev_end(interval(T,T), URI, default).
 time_prev_end(interval(T,T1), URI) :- time_prev_end(interval(T,T1), URI, default).
 time_prev_end(point(T), URI, Index) :- time_prev_end(interval(T,T), URI, Index).
-time_prev_end(interval(T,_), URI, Index) :-
+time_prev_end(interval(_,T), URI, Index) :-
 	time_index(Index, _, IdxE, EO),
 	parse_timestamp(T, TE, EO),
 	TER is integer(-1 * TE),
@@ -402,7 +407,7 @@ time_prev_end(interval(T,_), URI, Index) :-
 time_next_begin(point(T), URI) :- time_next_begin(interval(T,T), URI, default).
 time_next_begin(interval(T0,T), URI) :- time_next_begin(interval(T0,T), URI, default).
 time_next_begin(point(T), URI, Index) :- time_next_begin(interval(T,T), URI, Index).
-time_next_begin(interval(_,T), URI, Index) :-
+time_next_begin(interval(T,_), URI, Index) :-
 	time_index(Index, IdxB, _, EO),
 	parse_timestamp(T, TE, EO),
 	TEI is integer(TE),
@@ -479,12 +484,37 @@ time_candidate(URI, TimeStamp, Source) :-
 
 sem_time_candidate(URI, TimeStamp) :- sem_time_candidate(URI, TimeStamp, _Source).
 sem_time_candidate(URI, interval(Begin,End), Source) :-
+	nonvar(Source),
 	(   rdf(URI, sem:hasBeginTimeStamp, literal(TB), Source)
 	->  (   TB = type(_,Begin)
 	    ->  true
 	    ;   Begin = TB
 	    )
 	;   Begin = -
+	),
+        (   rdf(URI, sem:hasEndTimeStamp, literal(TE), Source)
+	->  (   TE = type(_,End)
+	    ->  true
+	    ;   End = TE
+	    )
+	;   End = -
+	),
+	(   Begin = -, End = -
+	->  fail
+	;   true
+	).
+sem_time_candidate(URI, interval(Begin,End), Source) :-
+	var(Source),
+	(   rdf(URI, sem:hasBeginTimeStamp, literal(TB), Source1)
+	->  (   TB = type(_,Begin)
+	    ->  true
+	    ;   Begin = TB
+	    )
+	;   Begin = -
+	),
+	(   Source1 = Source:_
+	->  true
+	;   Source = Source1
 	),
         (   rdf(URI, sem:hasEndTimeStamp, literal(TE), Source)
 	->  (   TE = type(_,End)
