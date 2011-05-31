@@ -62,28 +62,24 @@ wgs84_candidate(URI,point(Lat,Long,Alt)) :-
 %	From RDF that was loaded from a certain Source.
 
 wgs84_candidate(URI,point(Lat,Long),Source) :-
+	nonvar(Source),
 	\+alt(URI,_,_),
 	lat(URI,Lat,Source),
 	long(URI,Long,Source).
-
 wgs84_candidate(URI,point(Lat,Long),Source) :-
-	(   \+lat(URI,Lat,Source)
-	->  \+alt(URI,_,_),
-	    lat(URI,Lat,Source),
-	    long(URI,Long,Source)
-	).
+	var(Source),
+	\+alt(URI,_,_),
+	lat(URI,Lat,Source1),
+	(   Source1 = Source:_
+	->  true
+	;   Source = Source1
+	),
+	long(URI,Long,Source).
 
 wgs84_candidate(URI,point(Lat,Long,Alt),Source) :-
 	lat(URI,Lat,Source),
 	long(URI,Long,Source),
 	alt(URI,Alt,Source).
-
-wgs84_candidate(URI,point(Lat,Long,Alt),Source) :-
-	(   \+lat(URI,Lat,Source)
-	->  lat(URI,Lat,Source),
-	    long(URI,Long,Source),
-	    alt(URI,Alt,Source)
-	).
 
 %%	lat(?URI,?Lat) is nondet.
 %
