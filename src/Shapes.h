@@ -45,6 +45,7 @@
 #include <geos/io/WKBReader.h>
 #include <geos/io/WKBWriter.h>
 #include <geos/io/WKTWriter.h>
+#include <cmath>
 #include <cstdlib>
 #include <vector>
 #include <sstream>
