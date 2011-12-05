@@ -9,51 +9,24 @@
 # Author: Willem Robert van Hage (wrvhage@few.vu.nl)
 ################################################################
 
-.SUFFIXES: .tex .dvi .doc .pl
-
-PL=@PL@
-PLBASE=@PLBASE@
-PLARCH=@PLARCH@
-PLINCL=@PLINCL@
-PKGDOC=$(PLBASE)/doc/packages
-PCEHOME=../xpce
-LIBDIR=$(PLBASE)/library/space
-EXDIR=$(PKGDOC)/examples/space
-
-COFLAGS=@COFLAGS@
-CWFLAGS=@CWFLAGS@
-CMFLAGS=@CMFLAGS@
-CIFLAGS=@CIFLAGS@ -I../cpp -I.
-CFLAGS=-g $(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) @DEFS@
-LIBS=@LIBS@
-CC=@CC@ $(CFLAGS)
-CXX=@CXX@ $(CFLAGS)
-
-PUBLICPL=swipl
-DOCTOTEX=$(PCEHOME)/bin/doc2tex
-PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
+PACKAGE=space
 DOC=space
-TEX=$(DOC).tex spacepl.tex georss.tex wgs84.tex freebase.tex dbpedia.tex wkt.tex kml.tex gml.tex space_web_loader.tex
-DVI=$(DOC).dvi
-PDF=$(DOC).pdf
-RUNTEX=../../man/runtex
+include ../Makefile.defs
+CFLAGS+= -I.
+LIBS=@LIBS@
 
-LD=@LD@
-LDFLAGS=-g -ld $(CXX) @LDSOFLAGS@
-
-INSTALL=@INSTALL@
-INSTALL_PROGRAM=@INSTALL_PROGRAM@
-INSTALL_DATA=@INSTALL_DATA@
-
-LIBPL=		space.pl wkt.pl kml.pl gml.pl georss.pl wgs84.pl freebase.pl dbpedia.pl space_web_loader.pl timeindex.pl spacetimeindex.pl
+LIBPL=		space.pl wkt.pl kml.pl gml.pl georss.pl wgs84.pl \
+		freebase.pl dbpedia.pl space_web_loader.pl timeindex.pl \
+		spacetimeindex.pl
 TARGETS=	space.@SO@
 
-OBJ=		src/space.o src/globals.o src/Index.o src/Search.o src/Shapes.o src/lock.o src/debug.o
+OBJ=		src/space.o src/globals.o src/Index.o src/Search.o \
+		src/Shapes.o src/lock.o src/debug.o
 
 all:		$(TARGETS)
 
 space.@SO@:	$(OBJ)
-		$(LD) $(LDFLAGS) -o $@ $(OBJ) $(LIBS)
+		$(LD) $(LDSOFLAGS) -o $@ $(OBJ) $(LIBS)
 
 install:	$(LIBPL)
 		mkdir -p $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
@@ -78,7 +51,7 @@ pdf-install::
 
 uninstall::
 		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))
-		(cd $(LIBDIR) && rm -f $(LIBPL))
+		(cd $(LIBDIR) && rm -f $(LIBPL))on
 		$(PL) -f none -g make -t halt
 
 ################################################################
@@ -92,20 +65,9 @@ check::
 # Documentation
 ################################################################
 
-pdf:		$(PDF)
-
-$(DVI):		$(TEX)
-		$(RUNTEX) $(DOC)
-
-$(PDF):		$(TEX)
-		$(RUNTEX) --pdf $(DOC)
-
-html:		$(TEX)
-		latex2html $(DOC)
-		mv html/index.html $(DOC).html
-		rm -r html
-
-$(TEX):		$(DOCTOTEX)
+TEXEXTRA=	spacepl.tex georss.tex wgs84.tex freebase.tex \
+		dbpedia.tex wkt.tex kml.tex gml.tex spacewebloader.tex
+$(TEX):		$(TEXEXTRA)
 
 spacepl.tex:	space.pl
 		$(PLTOTEX) --out=$@ --subsection 'library(space/space)'
@@ -130,10 +92,6 @@ timeindex.tex:	timeindex.pl
 spacetimeindex.tex:	spacetimeindex.pl
 		$(PLTOTEX) --out=$@ --subsection 'library(space/spacetimeindex)'
 
-.doc.tex:
-		$(DOCTOTEX) $*.doc > $*.tex
-.pl.tex:
-		$(PLTOTEX) $*.pl > $*.tex
 
 ################################################################
 # Clean
