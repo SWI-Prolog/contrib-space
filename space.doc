@@ -9,8 +9,8 @@
 \newcommand{\curversion}{0.1.2}
 
 \onefile
-\htmloutput{html}				% Output directory
-\htmlmainfile{index}				% Main document file
+\htmloutput{.}					% Output directory
+\htmlmainfile{space}				% Main document file
 \bodycolor{white}				% Page colour
 
 \begin{document}
@@ -95,7 +95,7 @@ true.
 % If the KML Geometry elements have an ID attribute,
 % you can load them from a file, e.g. 'office.kml', like this:
 ?- space_bulkload(kml_file_uri_shape('office.kml'), 'demo_index').
-% Added 12 URI-Shape pairs to demo_index 
+% Added 12 URI-Shape pairs to demo_index
 true.
 
 % You can insert the same objects one by one like this:
