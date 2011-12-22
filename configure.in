@@ -8,19 +8,17 @@ m4_include([../ac_swi_c.m4])
 
 AC_PROG_CXX
 AC_LANG_CPLUSPLUS
-CXX="$PLLD -c++ $CXX -ld $CXX"
 
 AC_CHECK_LIB(geos_c, main)
 AC_CHECK_LIB(spatialindex, main)
 
 AC_CHECK_HEADERS(spatialindex/SpatialIndex.h,[si=1],[si=0])
-#AC_TRY_LINK([#include <spatialindex/SpatialIndex.h>],[SpatialIndex::Point *p=new SpatialIndex::Point();],[si=1],[si=0])
 if test "$si" = 0; then
    AC_ERROR("Cannot find spatialindex. Spatialindex must be installed first (http://trac.gispython.org/spatialindex/)")
 fi
 
 AC_CHECK_HEADERS(geos_c.h,[geos=1],[geos=0])
-if test "$si" = 0; then
+if test "$geos" = 0; then
    AC_ERROR("Cannot find GEOS library. GEOS must be installed first (http://trac.osgeo.org/geos/)")
 fi
 
