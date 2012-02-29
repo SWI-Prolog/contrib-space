@@ -14,6 +14,7 @@ DOC=space
 include ../Makefile.defs
 CFLAGS+= -I.
 LIBS=@LIBS@
+SPACEDIR=$(PLLIBDIR)/space
 
 LIBPL=		space.pl wkt.pl kml.pl gml.pl georss.pl wgs84.pl \
 		freebase.pl dbpedia.pl space_web_loader.pl timeindex.pl \
@@ -31,9 +32,9 @@ space.@SO@:	$(OBJ)
 install:	$(LIBPL)
 		mkdir -p $(DESTDIR)$(SOLIBDIR)
 		$(INSTALL_PROGRAM) $(TARGETS) $(DESTDIR)$(SOLIBDIR)
-		mkdir -p $(DESTDIR)$(PLLIBDIR)
-		$(INSTALL_DATA) $(LIBPL) $(DESTDIR)$(PLLIBDIR)
-		$(INSTALL_DATA) README $(DESTDIR)$(PLLIBDIR)
+		mkdir -p $(DESTDIR)$(SPACEDIR)
+		$(INSTALL_DATA) $(LIBPL) $(DESTDIR)$(SPACEDIR)
+		$(INSTALL_DATA) README $(DESTDIR)$(SPACEDIR)
 		$(MKINDEX)
 
 ln-install::	$(LIBPL)
