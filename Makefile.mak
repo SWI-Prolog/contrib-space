@@ -45,8 +45,8 @@ check::
 
 idll::
 		copy space.dll "$(BINDIR)"
-		copy $(PLHOME)\lib\spatialindex1.dll "$(BINDIR)"
-		copy $(PLHOME)\lib\geos.dll "$(BINDIR)"
+		copy $(PLHOME)\$(TARGET_OS_ARCH)\lib\spatialindex1.dll "$(BINDIR)"
+		copy $(PLHOME)\$(TARGET_OS_ARCH)\lib\geos.dll "$(BINDIR)"
 !IF "$(PDB)" == "true"
 		copy space.pdb "$(BINDIR)"
 !ENDIF
