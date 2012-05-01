@@ -12,7 +12,7 @@ PLHOME=..\..
 !include $(PLHOME)\src\rules.mk
 CFLAGS=$(CFLAGS) /D__SWI_PROLOG__ -I $(PLHOME)\packages\cpp
 
-LIBS=	$(PLHOME)\lib\spatialindex_i.lib $(PLHOME)\lib\geos.lib user32.lib
+LIBS=	spatialindex_i.lib geos.lib user32.lib
 LIBPL=	dbpedia.pl demo_space.pl freebase.pl georss.pl gml.pl kml.pl \
 	space.pl space_web_loader.pl wgs84.pl wkt.pl
 
