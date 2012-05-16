@@ -25,7 +25,7 @@ fails with your setup) is listed below:
 ---++ Install spatialindex
 
   ==
-  $ svn checkout http://github.com/libspatialindex/libspatialindex
+  $ git clone http://github.com/libspatialindex/libspatialindex
   $ cd libspatialindex
   $ ./autogen.sh
   $ ./configure --prefix=[...]
