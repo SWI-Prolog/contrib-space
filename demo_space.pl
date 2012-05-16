@@ -1,7 +1,7 @@
 /*  $Id$
 
     Author:        Willem Robert van Hage
-    E-mail:        wrvhage@few.vu.nl
+    E-mail:        W.R.van.Hage@vu.nl
     WWW:           http://www.few.vu.nl/~wrvhage
     Copyright (C): 2009, Vrije Universiteit Amsterdam
     
@@ -81,5 +81,5 @@ nearest_harbors(point(Lat,Long), Name, point(HarborLat,HarborLong)) :-
 :- writef("?- contained_features(box(point(51.93,4.10),point(51.96,4.19)), Name).\n\n").
 :- writef("Have fun experimenting with the \"space\" package!\n").
 :- writef("If you have questions, please e-mail me.\n\n").
-:- writef("Willem Robert van Hage <wrvhage@few.vu.nl>\n\n").
+:- writef("Willem Robert van Hage <W.R.van.Hage@vu.nl>\n\n").
 

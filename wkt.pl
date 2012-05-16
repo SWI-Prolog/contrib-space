@@ -1,7 +1,7 @@
 /*  $Id$
 
     Author:        Willem Robert van Hage
-    E-mail:        wrvhage@few.vu.nl
+    E-mail:        W.R.van.Hage@vu.nl
     WWW:           http://www.few.vu.nl/~wrvhage
     Copyright (C): 2009, Vrije Universiteit Amsterdam
     

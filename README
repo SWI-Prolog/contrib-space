@@ -25,8 +25,8 @@ fails with your setup) is listed below:
 ---++ Install spatialindex
 
   ==
-  $ svn checkout http://svn.gispython.org/svn/spatialindex/spatialindex spatialindex
-  $ cd spatialindex/trunk
+  $ svn checkout http://github.com/libspatialindex/libspatialindex
+  $ cd libspatialindex
   $ ./autogen.sh
   $ ./configure --prefix=[...]
   $ make
@@ -72,7 +72,7 @@ you with instructions.
 
 If it does not work, please contact me.
 
-Willem Robert van Hage <wrvhage@few.vu.nl>
+Willem Robert van Hage <W.R.van.Hage@vu.nl>
 
 ---++ Ubuntu/Debian
 
