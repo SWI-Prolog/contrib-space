@@ -581,12 +581,23 @@ iso_timestamp_epoch(TimeStamp, T) :-
 sic_timestamp_epoch(TimeStamp, T) :-
 	atom_number(TimeStamp, T).
 
-timex_timestamp_epoch(type('http://www.w3.org/1999/02/22-rdf-syntax-ns#XMLLiteral',TimeStamp), T) :-
+timex_timestamp_epoch(type(Type,TimeStamp), T) :-
+	rdf_equal(Type, rdf:'XMLLiteral'),
+	xml_timestamp(TimeStamp, T).
+
+xml_timestamp(TimeStamp, T) :-
 	(   xpath(TimeStamp, //(timex2), element(_,Attr,_)) % plain XML timex2 tag
 	->  true
 	;   xpath(TimeStamp, //(_:timex2), element(_,Attr,_)) % timex2 in some namespace
-	),
+	), !,
 	memberchk('VAL'=ISO, Attr),
+	parse_time(ISO, T). % Doesn't deal with local time
+xml_timestamp(TimeStamp, T) :-
+	(   xpath(TimeStamp, //(timex3), element(_,Attr,_)) % plain XML timex3 tag
+	->  true
+	;   xpath(TimeStamp, //(_:timex3), element(_,Attr,_)) % timex3 in some namespace
+	), !,
+	memberchk(value=ISO, Attr),
 	parse_time(ISO, T). % Doesn't deal with local time
 
 
