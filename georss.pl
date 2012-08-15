@@ -36,7 +36,7 @@
 	  ]).
 
 :- use_module(library(semweb/rdf_db)).
-:- use_module(library(http/dcg_basics)).
+:- use_module(library(dcg/basics)).
 :- use_module(gml).
 
 :- rdf_meta(georss_simple_candidate(r,?,?)).

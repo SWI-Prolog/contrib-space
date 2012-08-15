@@ -32,7 +32,7 @@
 	  ]).
 
 :- use_module(library(http/html_write)).
-:- use_module(library(http/dcg_basics)).
+:- use_module(library(dcg/basics)).
 :- use_module(library(memfile)).
 :- use_module(library(xpath)).
 :- use_module(library(sgml)).
