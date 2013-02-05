@@ -52,7 +52,7 @@ pdf-install::
 
 uninstall::
 		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))
-		(cd $(LIBDIR) && rm -f $(LIBPL))
+		(cd $(SPACEDIR) && rm -f $(LIBPL) README)
 		$(MKINDEX)
 
 ################################################################
