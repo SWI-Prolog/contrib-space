@@ -647,3 +647,6 @@ PREDICATE(geos_test,0) {
 }
 
 
+extern "C" install_t install_space()
+{ /* work is done in the static initializers */
+}
