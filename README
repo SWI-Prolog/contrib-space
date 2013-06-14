@@ -13,6 +13,14 @@ fails with your setup) is listed below:
 
 ---++ Install GEOS
 
+Debian/Ubuntu systems can install the package libgeos++-dev using
+
+  ==
+  $ sudo apt-get install libgeos++-dev
+  ==
+
+The fragment below describes installation from source.
+
   ==
   $ svn checkout http://svn.osgeo.org/geos/trunk geos-svn
   $ cd geos-svn/trunk
@@ -80,7 +88,9 @@ This explains getting the prerequisites on Ubuntu/Debian. Tested on
 Ubuntu Jaunty (9.04, 64-bits). Install the following packages (in
 addition to what you need to build SWI-Prolog in the first place):
 
-	sudo apt-get install libtool subversion libgeos-dev
+  ==
+  $ sudo apt-get install libtool subversion libgeos++-dev
+  ==
 
 Fetch and install spatialindex using the instructions above.
 
