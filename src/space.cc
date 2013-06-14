@@ -4,7 +4,7 @@
     E-mail:        wrvhage@few.vu.nl
     WWW:           http://www.few.vu.nl/~wrvhage
     Copyright (C): 2009, Vrije Universiteit Amsterdam
-    
+
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
     as published by the Free Software Foundation; either version 2
@@ -95,7 +95,7 @@ static RTreeIndex* assert_rtree_index(PlTerm indexname, double util, int nodesz)
   #ifdef DEBUGGING
     cout << "did not find " << (char*)indexname << " creating new empty index" << endl;
   #endif
-    rv = new RTreeIndex(indexname,util,nodesz);  
+    rv = new RTreeIndex(indexname,util,nodesz);
     if (index_map.size() == 0) {
       init_geos();
     }
@@ -121,7 +121,7 @@ static RTreeIndex* assert_rtree_index(PlTerm indexname) {
   #ifdef DEBUGGING
     cout << "did not find " << (char*)indexname << " creating new empty index" << endl;
   #endif
-    rv = new RTreeIndex(indexname);  
+    rv = new RTreeIndex(indexname);
     if (index_map.size() == 0) {
       init_geos();
     }
@@ -184,9 +184,9 @@ PREDICATE_NONDET(rtree_uri_shape,3)
       RTreeIndex *idx = NULL;
       IteratorState *state = NULL;
 
-      switch( PL_foreign_control((control_t)handle) ) 
+      switch( PL_foreign_control((control_t)handle) )
         {
-        case PL_FIRST_CALL: 
+        case PL_FIRST_CALL:
           idx = dynamic_cast<RTreeIndex*>(assert_rtree_index(A3));
           if (idx->tree == NULL) PL_fail;
 	  state = new IteratorState();
@@ -199,11 +199,11 @@ PREDICATE_NONDET(rtree_uri_shape,3)
             state->uri_id_iter = state->uri_id_range.first;
 	  }
           goto iterate;
-          
-        case PL_REDO: 
+
+        case PL_REDO:
           idx = dynamic_cast<RTreeIndex*>(assert_rtree_index(A3));
           if (idx->tree == NULL) PL_fail;
-          state = (IteratorState*)PL_foreign_context_address((control_t)handle); 
+          state = (IteratorState*)PL_foreign_context_address((control_t)handle);
         iterate:
           if (state->uri_id_iter == state->uri_id_range.second) {
             delete state;
@@ -217,18 +217,18 @@ PREDICATE_NONDET(rtree_uri_shape,3)
 	    } else {
               delete state;
               PL_fail;
-            } 
+            }
             ++(state->uri_id_iter);
-            PL_retry_address(state); 
+            PL_retry_address(state);
 	  }
-          
-        case PL_CUTTED: 
-          state = (IteratorState*)PL_foreign_context_address((control_t)handle); 
+
+        case PL_CUTTED:
+          state = (IteratorState*)PL_foreign_context_address((control_t)handle);
           delete state;
-          PL_succeed; 
-        } 
-      
-      
+          PL_succeed;
+        }
+
+
     }
   catch (Tools::Exception& e)
     {
@@ -279,7 +279,7 @@ PREDICATE(rtree_insert_list,2)
   PlTerm head = PL_new_term_ref();
   PlTerm uri_term = PL_new_term_ref();
   PlTerm shape_term = PL_new_term_ref();
-  while( PL_get_list(list, head, list) ) { 
+  while( PL_get_list(list, head, list) ) {
     atom_t name_atom;
     int arity;
     if (!PL_get_name_arity(head,&name_atom,&arity)) PL_fail;
@@ -287,7 +287,7 @@ PREDICATE(rtree_insert_list,2)
         !PL_get_arg(2,head,shape_term)) PL_fail;
     RTreeIndex *idx = dynamic_cast<RTreeIndex*> (assert_rtree_index(A1));
     if (!idx->insert_single_object(uri_term,shape_term)) PL_fail;
-  } 
+  }
   PL_succeed;
 }
 
@@ -311,7 +311,7 @@ PREDICATE(rtree_delete_list,2)
   PlTerm head = PL_new_term_ref();
   PlTerm uri_term = PL_new_term_ref();
   PlTerm shape_term = PL_new_term_ref();
-  while( PL_get_list(list, head, list) ) { 
+  while( PL_get_list(list, head, list) ) {
     atom_t name_atom;
     int arity;
     if (!PL_get_name_arity(head,&name_atom,&arity)) PL_fail;
@@ -319,7 +319,7 @@ PREDICATE(rtree_delete_list,2)
         !PL_get_arg(2,head,shape_term)) PL_fail;
     RTreeIndex *idx = dynamic_cast<RTreeIndex*> (assert_rtree_index(A1));
     if (!idx->delete_single_object(uri_term,shape_term)) PL_fail;
-  } 
+  }
   PL_succeed;
 }
 
@@ -330,37 +330,37 @@ PREDICATE_NONDET(rtree_incremental_intersection_query,3)
     {
       IncrementalRangeStrategy* qs;
       RTreeIndex *idx = NULL;
-      switch( PL_foreign_control((control_t)handle) ) 
+      switch( PL_foreign_control((control_t)handle) )
         {
-        case PL_FIRST_CALL: 
+        case PL_FIRST_CALL:
           idx = dynamic_cast<RTreeIndex*>(assert_rtree_index(A3));
           if (idx->tree == NULL) PL_fail;
           qs = new IncrementalRangeStrategy(IntersectionQuery,idx->interpret_shape(A1),NULL,idx);
           goto iterate;
-          
-        case PL_REDO: 
+
+        case PL_REDO:
           idx = dynamic_cast<RTreeIndex*>(assert_rtree_index(A3));
           if (idx->tree == NULL) PL_fail;
-          qs = (IncrementalRangeStrategy*)PL_foreign_context_address((control_t)handle); 
+          qs = (IncrementalRangeStrategy*)PL_foreign_context_address((control_t)handle);
         iterate:
           idx->tree->queryStrategy(*qs);
           if (!qs->result_found) {
             delete qs;
-            PL_fail; 
+            PL_fail;
           }
           {
             PlAtom result_atom(qs->result);
             A2 = result_atom;
           }
-          PL_retry_address(qs); 
+          PL_retry_address(qs);
 
-        case PL_CUTTED: 
-          qs = (IncrementalRangeStrategy*)PL_foreign_context_address((control_t)handle); 
+        case PL_CUTTED:
+          qs = (IncrementalRangeStrategy*)PL_foreign_context_address((control_t)handle);
           delete qs;
-          PL_succeed; 
-        } 
+          PL_succeed;
+        }
 
-      
+
     }
   catch (Tools::Exception& e)
     {
@@ -375,7 +375,7 @@ PREDICATE_NONDET(rtree_incremental_intersection_query,3)
       cerr << "other exception " << e.what() << endl;
       return -1;
     }
-  
+
   PL_succeed;
 
 }
@@ -388,18 +388,18 @@ PREDICATE_NONDET(rtree_incremental_containment_query,3)
     {
       IncrementalRangeStrategy* qs;
       RTreeIndex *idx = NULL;
-      switch( PL_foreign_control((control_t)handle) ) 
+      switch( PL_foreign_control((control_t)handle) )
         {
-        case PL_FIRST_CALL: 
+        case PL_FIRST_CALL:
           idx = dynamic_cast<RTreeIndex*>(assert_rtree_index(A3));
           if (idx->tree == NULL) PL_fail;
           qs = new IncrementalRangeStrategy(ContainmentQuery,idx->interpret_shape(A1),NULL,idx);
           goto iterate;
-          
-        case PL_REDO: 
+
+        case PL_REDO:
           idx = dynamic_cast<RTreeIndex*>(assert_rtree_index(A3));
           if (idx->tree == NULL) PL_fail;
-          qs = (IncrementalRangeStrategy*)PL_foreign_context_address((control_t)handle); 
+          qs = (IncrementalRangeStrategy*)PL_foreign_context_address((control_t)handle);
         iterate:
           idx->tree->queryStrategy(*qs);
           if (!qs->result_found) {
@@ -410,14 +410,14 @@ PREDICATE_NONDET(rtree_incremental_containment_query,3)
             PlAtom result_atom(qs->result);
             A2 = result_atom;
           }
-          PL_retry_address(qs);           
-      case PL_CUTTED: 
-        qs = (IncrementalRangeStrategy*)PL_foreign_context_address((control_t)handle); 
+          PL_retry_address(qs);
+      case PL_CUTTED:
+        qs = (IncrementalRangeStrategy*)PL_foreign_context_address((control_t)handle);
         delete qs;
-        PL_succeed; 
-      } 
+        PL_succeed;
+      }
 
-      
+
     }
   catch (Tools::Exception& e)
     {
@@ -432,7 +432,7 @@ PREDICATE_NONDET(rtree_incremental_containment_query,3)
       cerr << "other exception " << e.what() << endl;
       return -1;
     }
-  
+
   PL_succeed;
 
 }
@@ -445,19 +445,19 @@ PREDICATE_NONDET(rtree_incremental_nearest_neighbor_query,3)
       IncrementalNearestNeighborStrategy* qs;
       RTreeIndex *idx = NULL;
 
-      switch( PL_foreign_control((control_t)handle) ) 
+      switch( PL_foreign_control((control_t)handle) )
         {
-        case PL_FIRST_CALL: 
+        case PL_FIRST_CALL:
           idx = dynamic_cast<RTreeIndex*>(assert_rtree_index(A3));
           if (idx->tree == NULL) PL_fail;
           qs = new IncrementalNearestNeighborStrategy(idx->interpret_shape(A1),NULL,idx);
           goto iterate;
-          
-        case PL_REDO: 
+
+        case PL_REDO:
           idx = dynamic_cast<RTreeIndex*>(assert_rtree_index(A3));
           if (idx->tree == NULL) PL_fail;
 
-          qs = (IncrementalNearestNeighborStrategy*)PL_foreign_context_address((control_t)handle); 
+          qs = (IncrementalNearestNeighborStrategy*)PL_foreign_context_address((control_t)handle);
         iterate:
           idx->tree->queryStrategy(*qs);
           if (!qs->result_found) {
@@ -468,15 +468,15 @@ PREDICATE_NONDET(rtree_incremental_nearest_neighbor_query,3)
             PlAtom result_atom(qs->result);
             A2 = result_atom;
           }
-          PL_retry_address(qs); 
-          
-        case PL_CUTTED: 
-          qs = (IncrementalNearestNeighborStrategy*)PL_foreign_context_address((control_t)handle); 
+          PL_retry_address(qs);
+
+        case PL_CUTTED:
+          qs = (IncrementalNearestNeighborStrategy*)PL_foreign_context_address((control_t)handle);
           delete qs;
-          PL_succeed; 
-        } 
-      
-      
+          PL_succeed;
+        }
+
+
     }
   catch (Tools::Exception& e)
     {
@@ -492,7 +492,7 @@ PREDICATE_NONDET(rtree_incremental_nearest_neighbor_query,3)
       cerr << e.what() << endl;
       return -1;
     }
-  
+
   PL_succeed;
 }
 
@@ -579,7 +579,7 @@ PREDICATE(geos_test,0) {
   cout << "before intersection with MBR" << endl;
   if (p->intersectsShape(r))
     cout << "intersects Region!" << endl;
-  
+
   geos::geom::Polygon *cp = create_square_polygon(3.5,1.5,5.0);
   GEOSPolygon *gcp = new GEOSPolygon(*cp);
   cout << "GEOSPolygon containment test with Region 1=" << gcp->containsShape(r) << endl;
@@ -590,15 +590,15 @@ PREDICATE(geos_test,0) {
   cout << "created polygon" << endl;
   if (gpoly->intersectsShape(*p))
     cout << "polygon intersects GEOSPoint!" << endl;
-  else 
+  else
     cout << "polygon does not intersect GEOSPoint!" << endl;
   if (gpoly->containsShape(*p))
     cout << "polygon contains GEOSPoint!" << endl;
-  else 
+  else
     cout << "polygon does not contain GEOSPoint!" << endl;
   if (gpoly->touchesShape(*p))
     cout << "polygon touches GEOSPoint!" << endl;
-  else 
+  else
     cout << "polygon does not touch GEOSPoint!" << endl;
 
   cout << "point MBR " << r << endl;
@@ -616,7 +616,7 @@ PREDICATE(geos_test,0) {
   SpatialIndex::Point *p3 = new SpatialIndex::Point();
   gpoly->getCenter(*p3);
   cout << "center of " << *gpoly << " is " << *p3 << endl;
-  
+
   cout << "before store" << endl;
 
   byte* buffer;
@@ -624,7 +624,7 @@ PREDICATE(geos_test,0) {
   p2->storeToByteArray(&buffer,length);
 
   cout << "after store, before load" << endl;
-  
+
   GEOSPoint *p4 = new GEOSPoint();
   p4->loadFromByteArray((const byte*)buffer);
 
@@ -635,7 +635,7 @@ PREDICATE(geos_test,0) {
   gpoly->storeToByteArray(&buffer,length);
 
   cout << "after store, before load" << endl;
-  
+
   GEOSPolygon *gpoly2 = new GEOSPolygon();
   gpoly2->loadFromByteArray((const byte*)buffer);
 
