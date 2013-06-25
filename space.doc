@@ -40,11 +40,15 @@ Simple, GeoRSS GML, and W3C WGS84 vocabulary properties.\\
 \newpage
 
 \section{Introduction}
+\label{sec:space-intro}
+
 The Space package~\cite{vanHage:2009} provides spatial indexing for SWI-Prolog. It is based on
 \url[Geometry Engine Open Source]{http://geos.refractions.net/} and the \url[Spatial
 Index Library]{http://trac.gispython.org/spatialindex/}.
 
 \section{Shapes as Prolog Terms}
+\label{sec:space-shapes}
+
 The central objects of the Space package are pairs, $\langle u, s\rangle$ of a URI, $u$, and its associated shape, $s$.
 The URIs are linked to the shapes with the uri_shape/2 predicate. We will support all OpenGIS Simple Features, points, linestrings, polygons (with $\geq0$ holes), multi-points, multi-polygons, and geometry collections; and some utility shapes like box and circle regions.\footnote{The current version of the Space package, \curversion, only supports points, linestrings, and polygons (with holes) and box regions. Development on the other (multi-)shape types is underway.}
 
@@ -68,6 +72,8 @@ Shape = point(52.3325,4.8673).
 \end{code}
 
 \section{Adding, Removing, and Bulkloading Shapes}
+\label{sec:space-modify}
+
 The spatial index can be modified in two ways: By inserting or retracting single URI-shape pairs respectively using the space_assert/3, or the space_retract/3 predicate; or by loading many pairs at once using the space_bulkload/3 predicate or its parameterless counterpart space_index_all/0 which simply loads all the shapes it can find with the uri_shape/2 predicate into the default index.
 The former method is best for small manipulations of indices, while the latter method is best for the loading of large numbers of URI-shape pairs into an index.
 The Space package can deal with multiple indices to make it possible to divide sets of features. Indices are identified with a name handle, which can be any Prolog atom.\footnote{Every predicate in the Space package that must be given an index handle also has an abbreviated version without the index handle argument which automatically uses the default index.}
@@ -106,6 +112,8 @@ true.
 
 
 \section{Query types}
+\label{sec:space-query-types}
+
 We chose three basic spatial query types as our basic building blocks: \emph{containment}, \emph{intersection}, and \emph{nearest neighbor}.
 These three query types are implemented as pure Prolog predicates, respectively space_contains/3, space_intersects/3, and space_nearest/3.
 These predicates work completely analogously, taking an index handle and a query shape to retrieve the URI of a shape matching the query, which is bound to the second argument. Any successive calls to the predicate try to re-instantiate the second argument with a different matching URI. The results of containment and intersection queries are instantiated in no particular order, while the nearest neighbor results are instantiated in order of increasing distance to the query shape.
@@ -121,6 +129,8 @@ N = 'http://sws.geonames.org/2754074/' .      % cut, satisfied
 \end{code}
 
 \section{Importing and Exporting Shapes}
+\label{sec:space-import-export}
+
 Besides supporting input from RDF we support input and output for other standards, like\url[GML]{http://www.opengeospatial.org/standards/gml}, \url[KML]{http://code.google.com/apis/kml/} and \url[WKT]{http://en.wikipedia.org/wiki/Well-known_text}. All shapes can be converted from and to these standards with the gml_shape/2, kml_shape/2, and wkt_shape/2 predicates.
 
 \begin{code}
@@ -134,6 +144,8 @@ KML = '<Point><coordinates>4.8673,52.3325</coordinates></Point>' .
 \end{code}
 
 \section{Integration of Space and Semantics}
+\label{sec:space-semantics}
+
 The non-deterministic implementation of the queries makes them behave like a lazy stream of solutions. This allows tight integration with other types of reasoning, like RDF(S) and OWL reasoning or other Prolog rules. An example of combined RDF and spatial reasoning is shown below.
 
 \begin{code}
@@ -179,6 +191,8 @@ The Space package consists of C++ and Prolog code.
 The main component is the Prolog module space.pl. All parsing and generation of input and output formats is done in Prolog. All index manipulation is done through the foreign language interface (FLI) from Prolog to C++. The space_bulkload/3 predicate also communicates back across the FLI from C++ to Prolog, allowing the indexing functions to ask for candidates to index from the Prolog database, for example, by calling the uri_shape/2 predicate.
 
 \subsection{Incremental Search and Non-determinism}
+\label{sec:space-search-incremental}
+
 The three search operations provided by the Space package all yield their results incrementally, \textit{i.e.} one at a time. Prolog predicates actually do not have return values, but instantiate parameters. Multiple return values are returned by subsequently instantiating the same variable, so the first call to a predicate can make different variable instantiations than the second call. This standard support of non-deterministic behavior makes it easy to write incremental algorithms in Prolog.
 
 Internally, the search operations are handled by C++ functions that work on an R*-tree index from the Spatial Index Library \cite{Hadjieleftheriou:2005rz}. The C++ functions are accessed with the SWI-Prolog foreign language interface. To implement non-deterministic behavior the query functions have to store their state between successive calls and Prolog has to be aware which state is relevant to every call.
@@ -197,6 +211,7 @@ An alternative implementation would be to take the exact IncNearest algorithm de
 
 
 \section{Documentation}
+\label{sec:space-predicates}
 
 \input{spacepl}
 \input{georss}
