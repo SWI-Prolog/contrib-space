@@ -4,7 +4,7 @@
     E-mail:        wrvhage@few.vu.nl
     WWW:           http://www.few.vu.nl/~wrvhage
     Copyright (C): 2009, Vrije Universiteit Amsterdam
-    
+
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
     as published by the Free Software Foundation; either version 2
@@ -81,7 +81,7 @@ public:
       cerr << __FUNCTION__ << " could not acquire write lock" << endl;
       return NULL;
     }
-    if (!cached && !PL_next_solution(q)) { 
+    if (!cached && !PL_next_solution(q)) {
       rv = NULL;
     } else {
       cached = false;
@@ -112,14 +112,14 @@ public:
     cached = false;
     return false;
   }
-  
+
   virtual uint32_t size() throw (Tools::NotSupportedException)
   {
     throw Tools::NotSupportedException("Operation not supported.");
     return 0;
   }
-  
-  virtual void rewind() throw (Tools::NotSupportedException)  
+
+  virtual void rewind() throw (Tools::NotSupportedException)
   {
     cerr << "rewinding a RTreePrologStream does nothing" << endl;
   }
@@ -132,7 +132,7 @@ public:
  */
 
 
-RTreeIndex::RTreeIndex(PlTerm indexname) :  storage(MEMORY), distance_function(PYTHAGOREAN), baseName(indexname), utilization(0.7), nodesize(4),  storage_manager(NULL), buffer(NULL), tree(NULL) { 
+RTreeIndex::RTreeIndex(PlTerm indexname) :  storage(MEMORY), distance_function(PYTHAGOREAN), baseName(indexname), utilization(0.7), nodesize(4),  storage_manager(NULL), buffer(NULL), tree(NULL) {
   bulkload_tmp_id_cnt = -1;
   INIT_LOCK(&lock);
   PL_register_atom(PlAtom(indexname).handle);
@@ -165,7 +165,7 @@ void RTreeIndex::clear_tree() {
     delete tree;
     tree = NULL;
   }
-  if (buffer != NULL) { 
+  if (buffer != NULL) {
     delete buffer;
     buffer = NULL;
   }
@@ -180,7 +180,7 @@ void RTreeIndex::clear_tree() {
     if (s != NULL) {
       global_factory->destroyGeometry(s->g);
       s->g = NULL;
-    }    
+    }
     delete id_shape_iter->second.first;
     PL_erase(id_shape_iter->second.second);
   }
@@ -225,9 +225,9 @@ void RTreeIndex::deleteShape(id_type id) {
     if (s != NULL) {
       global_factory->destroyGeometry(s->g);
       s->g = NULL;
-    }    
+    }
     delete shape_iter->second.first;
-    PL_erase(shape_iter->second.second);    
+    PL_erase(shape_iter->second.second);
   }
   id_shape_map.erase(id);
   WRUNLOCK(&lock);
@@ -253,7 +253,7 @@ id_type  RTreeIndex::get_new_id(PlTerm uri) {
   id_type id = -1;
   if ( !WRLOCK(&lock, FALSE) ) {
     cerr << __FUNCTION__ << " could not acquire write lock" << endl;
-    return NULL;
+    return (id_type(0);
   }
   PlAtom uri_atom(uri);
   PL_register_atom(uri_atom.handle); // FIXME: unregister somewhere...
@@ -274,7 +274,7 @@ id_type  RTreeIndex::get_new_id(PlTerm uri) {
   WRUNLOCK(&lock);
   return id;
 }
- 
+
 void RTreeIndex::create_tree(uint32_t dimensionality) {
   if ( !WRLOCK(&lock,FALSE) ) {
     cerr << __FUNCTION__ << " could not acquire write lock" << endl;
@@ -301,7 +301,7 @@ void RTreeIndex::create_tree(uint32_t dimensionality, double util, int nodesz) {
   }
   buffer = StorageManager::createNewRandomEvictionsBuffer(*storage_manager, 4096, false);
   tree = RTree::createNewRTree(*buffer, utilization,
-                               nodesize, nodesize, dimensionality, 
+                               nodesize, nodesize, dimensionality,
                                SpatialIndex::RTree::RV_RSTAR, indexIdentifier);
   WRUNLOCK(&lock);
 }
@@ -329,9 +329,9 @@ RTreeIndex::bulk_load(PlTerm goal,uint32_t dimensionality) {
   }
   buffer = StorageManager::createNewRandomEvictionsBuffer(*storage_manager, 4096, false);
   id_type indexIdentifier;
-  tree = RTree::createAndBulkLoadNewRTree(RTree::BLM_STR, 
+  tree = RTree::createAndBulkLoadNewRTree(RTree::BLM_STR,
                                           stream, *buffer, utilization,
-                                          nodesize, nodesize, dimensionality, 
+                                          nodesize, nodesize, dimensionality,
                                           SpatialIndex::RTree::RV_RSTAR, indexIdentifier);
   WRUNLOCK(&lock);
   if ( !RDLOCK(&lock) ) {
@@ -363,7 +363,7 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
       return NULL;
     } else if (!PL_is_list(shape_term[1])) {
       cout << "first argument not a list: linestring must have one argument, a list containing a list of points" << endl;
-      return NULL;    
+      return NULL;
     }
     geos::geom::CoordinateSequence *cl = new geos::geom::CoordinateArraySequence();
     PlTail list(shape_term[1]);
@@ -397,7 +397,7 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
       return NULL;
     } else if (!PL_is_list(shape_term[1])) {
       cout << "first argument not a list: polygon must have one argument, a list containing a list of points representing the shell, and an second argument, a list containing lists of points representing the holes" << endl;
-      return NULL;    
+      return NULL;
     }
     geos::geom::CoordinateSequence *cl = new geos::geom::CoordinateArraySequence();
     PlTail linearrings(shape_term[1]);
@@ -422,7 +422,7 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
       }
     }
     // assuming linear ring is already closed
-    //    cl->add(cl->getAt(0)); 
+    //    cl->add(cl->getAt(0));
     geos::geom::LinearRing *lr = global_factory->createLinearRing(*cl);
     vector<geos::geom::Geometry*> *holes = new vector<geos::geom::Geometry*>;
     while (linearrings.next(ring)) {
@@ -536,9 +536,9 @@ bool RTreeIndex::insert_single_object(PlTerm uri,PlTerm shape_term) {
     WRUNLOCK(&lock);
     return FALSE;
   }
-  try { 
+  try {
     PlAtom uri_atom(uri);
-    tree->insertData(sizeof(uri_atom.handle), (byte*)&uri_atom.handle, *shape, id);    
+    tree->insertData(sizeof(uri_atom.handle), (byte*)&uri_atom.handle, *shape, id);
   } catch (...) {
     WRUNLOCK(&lock);
     return FALSE;
@@ -573,7 +573,7 @@ bool RTreeIndex::delete_single_object(PlTerm uri,PlTerm shape_term) {
       PlTerm st = PlTerm(t);
       if (st == shape_term) {
         // FIXME: improve error handling. rv should be dependent on all frees
-        uri_id_multimap.erase(state->uri_id_iter);        
+        uri_id_multimap.erase(state->uri_id_iter);
 	IShape *shape = (*id_shape_iter).second.first;
 	rv = tree->deleteData(*shape, id);
         //deleteShape(id);
@@ -581,9 +581,9 @@ bool RTreeIndex::delete_single_object(PlTerm uri,PlTerm shape_term) {
         if (s != NULL) {
           global_factory->destroyGeometry(s->g);
           s->g = NULL;
-        }    
+        }
         delete shape;
-        PL_erase(id_shape_iter->second.second);    
+        PL_erase(id_shape_iter->second.second);
         id_shape_map.erase(id);
         break;
       }
