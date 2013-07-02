@@ -253,7 +253,7 @@ id_type  RTreeIndex::get_new_id(PlTerm uri) {
   id_type id = -1;
   if ( !WRLOCK(&lock, FALSE) ) {
     cerr << __FUNCTION__ << " could not acquire write lock" << endl;
-    return (id_type(0);
+    return (id_type)0;
   }
   PlAtom uri_atom(uri);
   PL_register_atom(uri_atom.handle); // FIXME: unregister somewhere...
