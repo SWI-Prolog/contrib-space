@@ -535,11 +535,11 @@ sem_time_candidate(URI, interval(T,T), Source) :-
 	;   TimeStamp = T
 	).
 
-owl_time_xsd_candidate(URI, interval(T,T), Source) :-
-        rdf(URI, owltime:inXSDDateTime, literal(T), Source),
-        (   T = type(_,TimeStamp)
+owl_time_xsd_candidate(URI, interval(TimeStamp,TimeStamp), Source) :-
+        rdf(URI, owltime:inXSDDateTime, literal(L), Source),
+        (   L = type(_,TimeStamp)
         ->  true
-        ;   TimeStamp = T
+        ;   L = TimeStamp
         ).
 
 %%	parse_timestamp(?TimeStampAtom, ?EpochTimeStamp) is det.
