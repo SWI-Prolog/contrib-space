@@ -528,11 +528,11 @@ sem_time_candidate(URI, interval(Begin,End), Source) :-
 	;   true
 	).
 
-sem_time_candidate(URI, interval(T,T), Source) :-
-	rdf(URI, sem:hasTimeStamp, literal(T), Source),
-	(   T = type(_,TimeStamp)
+sem_time_candidate(URI, interval(TimeStamp,TimeStamp), Source) :-
+	rdf(URI, sem:hasTimeStamp, literal(L), Source),
+	(   L = type(_,TimeStamp)
 	->  true
-	;   TimeStamp = T
+	;   L = TimeStamp
 	).
 
 owl_time_xsd_candidate(URI, interval(TimeStamp,TimeStamp), Source) :-
