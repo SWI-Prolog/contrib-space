@@ -270,36 +270,27 @@ store_element(URI, Prop, Element, Graph) :-
 					  syntax_errors(quiet) ]),
 			 free_data(Stream, Memfile)),
 	    memberchk(element(_,_,_),XML)
-	->  Literal = XML,
-	    Plain = false
-	;   Literal = D,
-	    Plain = true
+	->  rdf_equal(rdf:'XMLLiteral', XMLType),
+	    Literal = type(XMLType, XML)
+	;   Literal = D
 	),
-	(   Plain == true
-	->  (   nonvar(Graph)
-	    ->  rdf_assert(URI, Prop, literal(Literal), Graph)
-	    ;   rdf_assert(URI, Prop, literal(Literal))
-	    )
-	;   (   nonvar(Graph)
-	    ->  rdf_assert(URI, Prop, literal(type(rdf:'XMLLiteral',XML)), Graph)
-	    ;   rdf_assert(URI, Prop, literal(type(rdf:'XMLLiteral',XML)))
-	    )
+	(   nonvar(Graph)
+	->  rdf_assert(URI, Prop, literal(Literal), Graph)
+	;   rdf_assert(URI, Prop, literal(Literal))
 	).
 
-uri(URI) --> string(_), string("http://"), nonuri(Rest), { append("http://", Rest, URI) }.
+uri(URI) --> string(_), "http://", nonuri(Rest), { append("http://", Rest, URI) }.
 
 nonuri([H|T]) -->
 	[H],
 	{ code_type(H, graph),
-	  [H] \= "<",
-	  [H] \= ")" % FIXME: make this a bit more subtle
+	  H \== 0'<,
+	  H \== 0')			% FIXME: make this a bit more subtle
 	}, !,
 	nonuri(T).
 nonuri([]) -->
 	[].
 
-
-kml_ns(kml, 'http://www.opengis.net/kml/2.2/', _).
 
 free_data(Stream, Memfile) :-
 	close(Stream),
