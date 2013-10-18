@@ -43,16 +43,8 @@
 %	DBpedia's coordinatenProperty notation that capture
 %	WGS84 latitude/longitude positions.
 
-dbpedia_candidate(URI,point(Lat,Long)) :-
-	rdf_has(URI,dbp:coordinateProperty,literal(lang(nl,Atom))),
-	atom_codes(Atom,Codes),
-	append("_type:",_,End),
-	append(Coords,End,Codes),
-	phrase(split([LatDeg,LatMin,LatSec,NS,
-		      LongDeg,LongMin,LongSec,EW]),Coords),
-	Lat is NS * (LatDeg + (LatMin / 60) + (LatSec / 3600)),
-	Long is EW * (LongDeg + (LongMin / 60) + (LongSec / 3600)).
-
+dbpedia_candidate(URI,Point) :-
+	dbpedia_candidate(URI,Point,_).
 
 %%	dbpedia_candidate(?URI,?Point,?Source) is nondet.
 %
@@ -62,10 +54,14 @@ dbpedia_candidate(URI,point(Lat,Long)) :-
 %	From RDF that was loaded from a certain Source.
 
 dbpedia_candidate(URI,point(Lat,Long),Source) :-
-	rdf_has(URI,dbp:coordinateProperty,literal(lang(nl,Atom)),Source),
-	atom_codes(Atom,Codes),
-	append("_type:",_,End),
-	append(Coords,End,Codes),
+	rdf_has(URI,dbp:coordinateProperty,literal(lang(nl,Atom)),RealPred),
+	(   var(Source)
+	->  true
+	;   rdf(URI, RealPred, literal(lang(nl,Atom)), Source)
+	),
+	sub_atom(Atom, B, _, _, '_type:'), !,
+	sub_atom(Atom, 0, B, _, Before),
+	atom_codes(Before, Coords),
 	phrase(split([LatDeg,LatMin,LatSec,NS,
 		      LongDeg,LongMin,LongSec,EW]),Coords),
 	Lat is NS * (LatDeg + (LatMin / 60) + (LatSec / 3600)),

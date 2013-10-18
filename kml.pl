@@ -279,7 +279,11 @@ store_element(URI, Prop, Element, Graph) :-
 	;   rdf_assert(URI, Prop, literal(Literal))
 	).
 
-uri(URI) --> string(_), "http://", nonuri(Rest), { append("http://", Rest, URI) }.
+uri(URI) -->
+	string(_), "http://", nonuri(Rest),
+	{ string_codes("http://", Prefix),
+	  append(Prefix, Rest, URI)
+	}.
 
 nonuri([H|T]) -->
 	[H],
