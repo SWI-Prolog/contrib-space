@@ -7,6 +7,7 @@
 :- asserta(user:file_search_path(library, '../clib')).
 :- asserta(user:file_search_path(foreign, '../clib')).
 :- asserta(user:file_search_path(foreign, '../semweb')).
+:- asserta(user:file_search_path(foreign, '../http')).
 :- asserta(user:file_search_path(foreign, '.')).
 :- asserta(user:file_search_path(library, '../RDF')).
 :- asserta(user:file_search_path(library, '..')).
