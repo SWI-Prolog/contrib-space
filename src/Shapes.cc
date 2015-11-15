@@ -167,10 +167,10 @@ regionToBox(const Region& r) {
     box->normalize();
   } else if (r.m_dimension == 3) {
     cerr << "polygon - 3d region containment not implemented yet" << endl;
-    return false;
+    return NULL;
   } else {
     cerr << "polygon - " << r.m_dimension << " dimensional region containment not implemented" << endl;
-    return false;
+    return NULL;
   }
   return box;
 }

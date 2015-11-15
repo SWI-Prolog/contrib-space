@@ -32,6 +32,7 @@
  * TODO: add uri_shape(U,S,Source) from index
  */
 
+#include <config.h>
 #include "Index.h"
 
 
@@ -346,7 +347,7 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
   if (shape_term.name() == ATOM_point) {
 
     double *point = new double[shape_term.arity()];
-    for (int i = 1; i <= shape_term.arity(); i++) {
+    for (size_t i = 1; i <= shape_term.arity(); i++) {
       point[i-1] = (double)shape_term[i];
     }
     GEOSPoint *p = new GEOSPoint(point,shape_term.arity()); // testing GEOS points

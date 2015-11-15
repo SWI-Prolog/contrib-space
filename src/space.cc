@@ -281,7 +281,7 @@ PREDICATE(rtree_insert_list,2)
   PlTerm shape_term = PL_new_term_ref();
   while( PL_get_list(list, head, list) ) {
     atom_t name_atom;
-    int arity;
+    size_t arity;
     if (!PL_get_name_arity(head,&name_atom,&arity)) PL_fail;
     if (!PL_get_arg(1,head,uri_term) ||
         !PL_get_arg(2,head,shape_term)) PL_fail;
@@ -313,7 +313,7 @@ PREDICATE(rtree_delete_list,2)
   PlTerm shape_term = PL_new_term_ref();
   while( PL_get_list(list, head, list) ) {
     atom_t name_atom;
-    int arity;
+    size_t arity;
     if (!PL_get_name_arity(head,&name_atom,&arity)) PL_fail;
     if (!PL_get_arg(1,head,uri_term) ||
         !PL_get_arg(2,head,shape_term)) PL_fail;

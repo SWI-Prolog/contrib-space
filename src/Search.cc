@@ -28,6 +28,7 @@
 */
 
 
+#include <config.h>
 #include "Search.h"
 
 //class PrintVisitor : public IVisitor
@@ -327,7 +328,7 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
         if (!queue.empty())
           cout << queue.top()->m_id << endl;
 	else
- 	  cout << "queue empty" << endl;
+	  cout << "queue empty" << endl;
 #endif
       }
 
@@ -347,7 +348,7 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
           uint32_t length;
           (dynamic_cast<const IData&>(*(queue.top()->m_pEntry))).getData(length,&data);
           result = *(atom_t*)data;
-#ifdef DEBUGGING          
+#ifdef DEBUGGING
           cout << "result atom " << result << " str " << (char*)PlTerm(PlAtom(result)) << endl;
 #endif
           result_found = true;
@@ -425,7 +426,7 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
     }
 
   }
-  
+
   // This takes care that the nextEntry is never data,
   // to circumvent the readNode call in the queryStrategy method.
   if (!queue.empty() && queue.top()->m_pEntry != NULL) {
@@ -450,7 +451,7 @@ IncrementalNearestNeighborStrategy::~IncrementalNearestNeighborStrategy() {
     delete e;
     queue.pop();
   }
-  
+
 }
 
 
