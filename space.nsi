@@ -25,8 +25,7 @@ InstallDirRegKey HKLM ${REGKEY} "home"
 ComponentText "This will install the SWI-Prolog spatial indexing package"
 DirText "Please select the SWI-Prolog installation to install in"
 
-LicenseData pl\COPYING.TXT
-LicenseText "The SWI-Prolog spatial index package is governed by the LGPL"
+LicenseText "The SWI-Prolog spatial index package is governed by the BSD-2 license"
 
 !ifdef WIN64
 Page custom Check64 "" ": Checking for AMD64 architecture"
