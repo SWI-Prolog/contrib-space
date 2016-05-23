@@ -640,14 +640,11 @@ unlock_misc(rwlock *lock)
 
 int
 init_lock(rwlock *lock)
-{ if ( !pthread_mutex_init(&lock->mutex, NULL) == 0 ||
-       !pthread_mutex_init(&lock->misc_mutex, NULL) == 0 ||
-       !pthread_cond_init(&lock->wrcondvar, NULL) == 0 ||
-       !pthread_cond_init(&lock->rdcondvar, NULL) == 0 ||
-       !pthread_cond_init(&lock->upcondvar, NULL) == 0 )
-  {					/* TBD: System error */
-    return FALSE;
-  }
+{ pthread_mutex_init(&lock->mutex, NULL);
+  pthread_mutex_init(&lock->misc_mutex, NULL);
+  pthread_cond_init(&lock->wrcondvar, NULL);
+  pthread_cond_init(&lock->rdcondvar, NULL);
+  pthread_cond_init(&lock->upcondvar, NULL);
 
   lock->writer          = -1;
   lock->readers	        = 0;
@@ -668,12 +665,11 @@ init_lock(rwlock *lock)
 
 int
 destroy_lock(rwlock *lock)
-{ if ( !pthread_mutex_destroy(&lock->mutex) ||
-       !pthread_mutex_destroy(&lock->misc_mutex) ||
-       !pthread_cond_destroy(&lock->wrcondvar) ||
-       !pthread_cond_destroy(&lock->rdcondvar) ||
-       !pthread_cond_destroy(&lock->upcondvar) )
-    return FALSE;
+{ pthread_mutex_destroy(&lock->mutex);
+  pthread_mutex_destroy(&lock->misc_mutex);
+  pthread_cond_destroy(&lock->wrcondvar);
+  pthread_cond_destroy(&lock->rdcondvar);
+  pthread_cond_destroy(&lock->upcondvar);
 
   free(lock->read_by_thread);
 
