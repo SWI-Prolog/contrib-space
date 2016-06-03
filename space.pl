@@ -16,10 +16,11 @@
     space_index/1,            % +Index
     space_clear/0,            
     space_clear/1,            % +Index
+    space_queue/4,            % ?Index, +Mode, ?Res, ?Shape
                               
     space_bulkload/0,         
-    space_bulkload/1,         % +Goal_0
-    space_bulkload/2,         % :Goal_0, +Index
+    space_bulkload/1,         % :Goal_2
+    space_bulkload/2,         % :Goal_2, +Index
                               
     space_contains/2,         % +Query, -Res
     space_contains/3,         % +Query, -Res, +Index
@@ -46,6 +47,15 @@
   ]
 ).
 
+/** <module> Core spatial database
+
+@author Willem van Hage
+@version 2009-2012
+
+@author Wouter Beek
+@version 2016/06
+*/
+
 :- use_module(library(error)).
 :- use_module(library(shlib)).
 
@@ -57,8 +67,13 @@
 
 :- use_foreign_library(space).
 
+%! space_queue(?Index, ?Mode:oneof([assert,retract]), ?Res, ?Shape) is nondet.
+
+space_queue(Index, Mode, Res, Shape) :-
+  space_queue0(Index, Mode, Res, Shape).
+
 :- dynamic
-    space_queue/4,
+    space_queue0/4,
     % allows you to adapt space_index_all.
     shape/1,
     % allows you to adapt space_index_all.
@@ -71,31 +86,23 @@
     space_bulkload(2,+).
 
 :- rdf_meta
-   space_nearest(t,?),
-   space_nearest(t,?,?),
-   space_intersects(t,?),
-   space_intersects(t,?,?),
-   space_contains(t,?),
-   space_contains(t,?,?),
-   space_nearest_bounded(t,?,?),
-   space_nearest_bounded(t,?,?,?),
-   space_within_range(t,?,?),
-   space_within_range(t,?,?,?),
-   space_assert(r,?),
-   space_assert(r,?,?),
-   space_retract(r,?),
-   space_retract(r,?,?),
-   uri_shape(r,?),
-   uri_shape(r,?,?).
-
-/** <module> Core spatial database
-
-@author Willem van Hage
-@version 2009-2012
-
-@author Wouter Beek
-@version 2016/06
-*/
+   space_assert(r, ?),
+   space_assert(r, ?, ?),
+   space_contains(r, r),
+   space_contains(r, r, +),
+   space_intersects(r, r),
+   space_intersects(r, r, ?),
+   space_nearest(r, ?),
+   space_nearest(r, r, ?),
+   space_nearest_bounded(r, r, ?),
+   space_nearest_bounded(r, r, r, ?),
+   space_queue(?, ?, r, ?),
+   space_retract(r, ?),
+   space_retract(r, ?, ?),
+   uri_shape(r, ?),
+   uri_shape(r, ?, ?),
+   space_within_range(r, r, ?),
+   space_within_range(r, r, ?, ?).
 
 :- dynamic
     space_setting_aux/1.
@@ -155,8 +162,8 @@ space_assert(Res, Shape) :-
 space_assert(Res, Shape, I) :-
   shape(Shape),
   % @tdb Why conditional?  Why update index before assert?
-  (space_queue(I,retract,_,_) -> space_index(I) ; true),
-  assert(space_queue(I,assert,Res,Shape)).
+  (space_queue0(I,retract,_,_) -> space_index(I) ; true),
+  assert(space_queue0(I,assert,Res,Shape)).
 
 
 
@@ -175,8 +182,8 @@ space_retract(Res, Shape) :-
 
 space_retract(Res, Shape, I) :-
   shape(Shape),
-  (space_queue(I, assert, _, _) -> space_index(I) ; true),
-  assert(space_queue(I,retract,Res,Shape)).
+  (space_queue0(I, assert, _, _) -> space_index(I) ; true),
+  assert(space_queue0(I,retract,Res,Shape)).
 
 
 
@@ -192,34 +199,34 @@ space_index :-
 
 
 space_index(I) :-
-  space_queue(I, assert ,_ ,_), !,
+  space_queue0(I, assert ,_ ,_), !,
   empty_nb_set(Assertions),
   findall(
     object(Res,Shape),
     (
-      space_queue(I, assert, Res, Shape),
+      space_queue0(I, assert, Res, Shape),
       add_nb_set(space_assert(Res,Shape), Assertions)
     ),
     L
   ),
   rtree_insert_list(I, L),
-  retractall(space_queue(I,assert,_,_)),
+  retractall(space_queue0(I,assert,_,_)),
   size_nb_set(Assertions,N),
   format(user_output, "% Added ~w Res-Shape pairs to ~w~n", [N,I]),
   space_index(I).
 space_index(I) :-
-  space_queue(I, retract, _, _), !,
+  space_queue0(I, retract, _, _), !,
   empty_nb_set(Retractions),
   findall(
     object(Res,Shape),
     (
-      space_queue(I, retract, Res, Shape),
+      space_queue0(I, retract, Res, Shape),
       add_nb_set(space_retract(Res,Shape), Retractions)
     ),
     L
   ),
   rtree_delete_list(I, L),
-  retractall(space_queue(I,retract,_,_)),
+  retractall(space_queue0(I,retract,_,_)),
   size_nb_set(Retractions, N),
   format(user_output, "% Removed ~w Res-Shape pairs from ~w~n", [N,I]),
   space_index(I).
@@ -238,14 +245,14 @@ space_clear :-
 
 
 space_clear(I) :-
-  retractall(space_queue(I,_,_,_)),
+  retractall(space_queue0(I,_,_,_)),
   rtree_clear(I).
 
 
 
 %! space_bulkload is det.
-%! space_bulkload(:Goal_0) is det.
-%! space_bulkload(:Goal_0, +Index) is det.
+%! space_bulkload(:Goal_2) is det.
+%! space_bulkload(:Goal_2, +Index) is det.
 %
 % Fast loading of many Shapes into the given Index.  Goal_2 finds
 % candidate Res-Shape pairs to add to the Index.
@@ -285,7 +292,7 @@ space_contains(Query, Cont, I) :-
   space_index(I),
   (   ground(Cont)
   ->  bagof(Con, rtree_incremental_containment_query(Shape, Con, I), Cons),
-      Cons = [Cont|_]
+      memberchk(Cont, Cons)
   ;   rtree_incremental_containment_query(Shape, Cont, I)
   ).
 
@@ -309,7 +316,7 @@ space_intersects(Query, Inter, I) :-
   space_index(I),
   (   ground(Inter)
   ->  bagof(In, rtree_incremental_intersection_query(Shape, In, I), Ins),
-      Ins = [Inter|_]
+      memberchk(Inter, Ins)
   ;   rtree_incremental_intersection_query(Shape, Inter, I)
   ).
 
