@@ -109,35 +109,37 @@
 	     timestamp_duration/2   % +TimeStamp, -Duration (duration(Y,M,D,H,Min,S))
 	  ]).
 
-:- use_module(library(semweb/rdf_db)).
-:- use_module(library(semweb/rdf_litindex)).
 :- use_module(library(ordsets)).
 :- use_module(library(pairs)).
+:- use_module(library(semweb/rdf11)).
+:- use_module(library(semweb/rdf_litindex)).
 
-:- dynamic time_indices/4.
+:- dynamic
+    time_indices/4.
 
-:- rdf_meta  time_index(r),
-	     time_index(r,?,?,?),
-	     time_setting(r,?),
-	     time_assert(r,?,r),
-	     time_assert(r,?),
-	     time_retract(r,?,r),
-	     time_retract(r,?),
-	     time_clear(r,?),
-	     time_clear(r),
-	     time_index_all(r),
-	     time_bulkload(?,r),
-	     time_intersects(?,r,r),
-	     time_intersects(?,r),
-	     time_contains(?,r,r),
-	     time_contains(?,r),
-	     time_prev_end(?,r,r),
-	     time_prev_end(?,r),
-	     time_next_begin(?,r,r),
-	     time_next_begin(?,r),
-	     uri_time(r,?,t,?),
-	     uri_time(r,?,t),
-	     uri_time(r,?).
+:- rdf_meta
+   time_index(r),
+   time_index(r,?,?,?),
+   time_setting(r,?),
+   time_assert(r,?,r),
+   time_assert(r,?),
+   time_retract(r,?,r),
+   time_retract(r,?),
+   time_clear(r,?),
+   time_clear(r),
+   time_index_all(r),
+   time_bulkload(?,r),
+   time_intersects(?,r,r),
+   time_intersects(?,r),
+   time_contains(?,r,r),
+   time_contains(?,r),
+   time_prev_end(?,r,r),
+   time_prev_end(?,r),
+   time_next_begin(?,r,r),
+   time_next_begin(?,r),
+   uri_time(r,?,t,?),
+   uri_time(r,?,t),
+   uri_time(r,?).
 
 
 time_index(Index) :- time_indices(Index,_,_,_).

@@ -18,12 +18,16 @@
 	  ]
 	 ).
 
-:- use_module(library(semweb/rdf_db)).
-:- use_module(library(space/space)).
-:- use_module(library(space/timeindex)).
+:- use_module(library(semweb/rdf11)).
 
-:- dynamic spacetime_index/4.
-:- multifile spacetime_candidate/2.
+:- use_module(library(space)).
+:- use_module(library(timeindex)).
+
+:- dynamic
+    spacetime_index/4.
+
+:- multifile
+    spacetime_candidate/2.
 
 spacetime_index(I) :- spacetime_index(_,_,_,I).
 
@@ -113,8 +117,3 @@ spacetime_intersects(time_shape(Time,Shape), Target, BaseName) :-
 	once((   spacetime_candidate(Target,time_shape(Time2,_)),
 		 time_overlaps(Time,Time2)
 	     )).
-
-
-
-
-

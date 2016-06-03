@@ -32,48 +32,46 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-% load the Prolog module that uses the space shared object file
-:- use_module(library(space/space)).
+:- use_module(library(rdf/rdf_io)).
+:- use_module(library(semweb/rdf11)).
 
-% load the semantic web package
-:- use_module(library('semweb/rdf_db.pl')).
+:- use_module(space).
 
 % eye candy, declare shorthand for namespaces
-:- rdf_register_ns(geo, 'http://www.geonames.org/ontology#').
-:- rdf_register_ns(wgs84, 'http://www.w3.org/2003/01/geo/wgs84_pos#').
+:- rdf_register_prefix(geo, 'http://www.geonames.org/ontology#').
+:- rdf_register_prefix(wgs84, 'http://www.w3.org/2003/01/geo/wgs84_pos#').
 
-:- writef("\n----\n\nLoading demo RDF file of Geonames features in the Rotterdam harbor.\n").
-% load the demo RDF file containing Geonames features around the Rotterdam harbor
-:- rdf_load('demo_geonames.rdf').
-
-% this adds all URIs with associated coordinates to the space indexing queue
-:- writef("Selecting features with coordinates to put in the spatial index.\n").
-:- space_bulkload(uri_shape,'demo_index').
+:- writef("Loading demo RDF file of GeoNames features in the Rotterdam harbor.\n").
+:- rdf_load_file('demo_geonames.nt').
+:- writef("Selecting features with coordinates to put into the spatial index.\n").
+:- space_bulkload(uri_shape, demo_index).
 :- writef("done loading demo\n\n----\n\n").
 
-% find Features in order of proximity to the point Lat Long
-nearest_features(point(Lat,Long), Name) :-
-        space_nearest(point(Lat,Long), Nearest,'demo_index'),
-        rdf(Nearest, rdf:type, geo:'Feature'), % atoms starting with capitals have to be quoted.
-        rdf(Nearest, geo:name, literal(Name)).
+% Find features in order of proximity to the point 〈Lat,Long〉.
+nearest_features(Point, Name) :-
+  space_nearest(Point, Nearest, demo_index),
+  rdfs_instance(Nearest, geo:'Feature'),
+  rdf_pref_lex(Nearest, geo:name, Name).
 
-% find Features contained in the box defined by the two points        
+% Find features contained in the box defined by the two points.
 contained_features(box(point(NWLat,NWLong),point(SELat,SELong)), Name) :-
-        space_contains(box(point(NWLat,NWLong),point(SELat,SELong)), Contained, 'demo_index'),
-        rdf(Contained, rdf:type, geo:'Feature'),
-        rdf(Contained, geo:name, literal(Name)).
+  space_contains(
+    box(point(NWLat,NWLong),point(SELat,SELong)),
+    Contained,
+    demo_index
+  ),
+  rdfs_instance(Contained, geo:'Feature'),
+  rdf_pref_lex(Contained, geo:name, Name).
 
-% find Features in order of proximity, but restrict them to those with featureCode harbor
-% also, fetch and show their coordinates
-nearest_harbors(point(Lat,Long), Name, point(HarborLat,HarborLong)) :-
-        space_nearest(point(Lat,Long), Nearest,'demo_index'),
-        rdf(Nearest, rdf:type, geo:'Feature'),
-        rdf(Nearest, geo:featureCode, geo:'H.HBR'),
-        rdf(Nearest, geo:name, literal(Name)),
-        rdf(Nearest, wgs84:lat, literal(HarborLat)),
-        rdf(Nearest, wgs84:long, literal(HarborLong)).
-
-
+% Find Features in order of proximity, but restrict them to those with
+% featureCode harbor.  Also fetch and show their coordinates.
+nearest_harbors(Point, Name, point(HarborLat,HarborLong)) :-
+  space_nearest(Point, Nearest, 'demo_index'),
+  rdfs_instance(Nearest, geo:'Feature'),
+  rdf_has(Nearest, geo:featureCode, geo:'H.HBR'),
+  rdf_pref_lex(Nearest, geo:name, Name),
+  rdf_has(Nearest, wgs84:lat, HarborLat^^xsd:float),
+  rdf_has(Nearest, wgs84:long, HarborLong^^xsd:float).
 
 :- writef("Welcome to the SWI-Prolog \"space\" package demo.\n\n").
 :- writef("Try finding features in the Rotterdam harbor.\n").
@@ -84,7 +82,3 @@ nearest_harbors(point(Lat,Long), Name, point(HarborLat,HarborLong)) :-
 :- writef("To find features in the rectangular area between ").
 :- writef("lat 51.93 long 4.10 and lat 51.96 long 4.19, try the following:\n").
 :- writef("?- contained_features(box(point(51.93,4.10),point(51.96,4.19)), Name).\n\n").
-:- writef("Have fun experimenting with the \"space\" package!\n").
-:- writef("If you have questions, please e-mail me.\n\n").
-:- writef("Willem Robert van Hage <W.R.van.Hage@vu.nl>\n\n").
-

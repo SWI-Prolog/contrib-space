@@ -44,7 +44,7 @@
 	  ]).
 
 :- use_module(library(space/space)).
-:- use_module(library(semweb/rdf_db)).
+:- use_module(library(semweb/rdf11)).
 :- use_module(library(semweb/rdf_turtle)).
 :- use_module(library(semweb/rdf_http_plugin)).
 
@@ -220,9 +220,3 @@ old_link(FromSource,Link,P) :-
 	link_property(P),
 	rdf(_,P,Link,FromSource),
 	once(rdf(_,_,_,Link:_)).
-
-
-
-
-
-

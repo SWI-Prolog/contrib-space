@@ -127,4 +127,3 @@ c(X) --> {nonvar(X), number(X)}, [ X ].
 blank_plus --> [' '], blank_star, !.
 blank_star --> [], !.
 blank_star --> blank_plus, !.
-

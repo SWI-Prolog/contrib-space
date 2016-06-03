@@ -49,16 +49,19 @@
 	    georss_to_kml_file/2
 	  ]).
 
-:- use_module(library(http/html_write)).
 :- use_module(library(dcg/basics)).
-:- use_module(library(option)).
+:- use_module(library(http/html_write)).
 :- use_module(library(lists)).
+:- use_module(library(option)).
+:- use_module(library(semweb/rdf11)).
 :- use_module(library(xpath)).
-:- use_module(library(semweb/rdf_db)).
-:- use_module(library(space/georss)).
 
-:- rdf_register_ns(kml,'http://www.opengis.net/kml/2.2#').
-:- rdf_meta store_element(r,r,?,t).
+:- use_module(georss).
+
+:- rdf_register_prefix(kml, 'http://www.opengis.net/kml/2.2#').
+
+:- rdf_meta
+   store_element(r,r,?,t).
 
 %%	kml_file_to_georss(+KMLfile) is det.
 %%	kml_file_to_georss(+KMLfile,+RDFfile) is det.

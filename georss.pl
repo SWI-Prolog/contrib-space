@@ -40,14 +40,15 @@
 	    georss_uri_shape_triple/5
 	  ]).
 
-:- use_module(library(semweb/rdf_db)).
 :- use_module(library(dcg/basics)).
+:- use_module(library(semweb/rdf11)).
+
 :- use_module(gml).
 
-:- rdf_meta(georss_simple_candidate(r,?,?)).
+:- rdf_meta
+   georss_simple_candidate(r,?,?).
 
-:- rdf_register_ns(georss,'http://www.georss.org/georss/').
-:- rdf_register_ns(foaf,'http://xmlns.com/foaf/0.1/').
+:- rdf_register_prefix(georss,'http://www.georss.org/georss/').
 
 %%	georss_candidate(?URI,?Shape) is nondet.
 %

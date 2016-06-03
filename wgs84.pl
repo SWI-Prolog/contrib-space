@@ -32,127 +32,113 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module(wgs84,
-	  [  wgs84_candidate/2,
-	     wgs84_candidate/3,
-	     coordinates/3,
-	     coordinates/4,
-	     lat/2,
-	     long/2,
-	     alt/2
-	  ]).
+:- module(
+  wgs84,
+  [
+    wgs84_candidate/2, % ?Res, ?Point
+    wgs84_candidate/3, % ?Res, ?Point, ?G
+    alt/2,             % ?Res, ?Alt
+    alt/3,             % ?Res, ?Alt, ?G
+    coords/3,          % ?Res, ?Lat, ?Long
+    coords/4,          % ?Res, ?Lat, ?Long, ?Alt
+    lat/2,             % ?Res, ?Lat
+    lat/3,             % ?Res, ?Lat, ?G
+    long/2,            % ?Res, ?Long
+    long/3             % ?Res, ?Long, ?G
+  ]
+).
 
-:- use_module(library(semweb/rdf_db)).
-:- rdf_register_ns(wgs84, 'http://www.w3.org/2003/01/geo/wgs84_pos#').
+/** <module> WGS84
 
-:- rdf_meta(wgs84_candidate(r,?)).
-:- rdf_meta(wgs84_candidate(r,?,?)).
+@author Willem Robert van Hage
+@version 2009-2012
 
-%%	wgs84_candidate(?URI,?Point) is nondet.
+@author Wouter Beek
+@version 2016/06
+*/
+
+:- use_module(library(semweb/rdf11)).
+
+:- rdf_register_prefix(wgs84, 'http://www.w3.org/2003/01/geo/wgs84_pos#').
+
+:- rdf_meta
+   wgs84_candidate(r,?),
+   wgs84_candidate(r,?,?).
+
+
+
+
+
+%! wgs84_candidate(?Res, ?Point) is nondet.
+%! wgs84_candidate(?Res, ?Point, ?G) is nondet.
 %
-%	Finds URI-Shape pairs of RDF resources that are place-tagged
-%	with W3C WGS84 properties (i.e. lat, long, alt).
-%	Point = point(?Lat,?Long) ; Point = point(?Lat,?Long,?Alt).
-
-wgs84_candidate(URI,point(Lat,Long)) :-
-	wgs84_candidate(URI,point(Lat,Long),_).
-
-wgs84_candidate(URI,point(Lat,Long,Alt)) :-
-	wgs84_candidate(URI,point(Lat,Long,Alt),_).
-
-%%	wgs84_candidate(?URI,?Point,+Source) is nondet.
+% Succeeds if Point denotes a geo-location of resource Res.
 %
-%	Finds URI-Shape pairs of RDF resources that are place-tagged
-%	with W3C WGS84 properties (i.e. lat, long, alt).
-%	From RDF that was loaded from a certain Source.
+% Point is either of the form `point(?Lat,?Long)` or
+% `point(?Lat,?Long,?Alt)`.
 
-wgs84_candidate(URI,point(Lat,Long),Source) :-
-	nonvar(Source),
-	\+alt(URI,_,_),
-	lat(URI,Lat,Source),
-	long(URI,Long,Source).
-wgs84_candidate(URI,point(Lat,Long),Source) :-
-	var(Source),
-	\+alt(URI,_,_),
-	lat(URI,Lat,Source1),
-	(   Source1 = Source:_
-	->  true
-	;   Source = Source1
-	),
-	long(URI,Long,Source).
+wgs84_candidate(Res, Point) :-
+  wgs84_candidate(Res, Point, _).
 
-wgs84_candidate(URI,point(Lat,Long,Alt),Source) :-
-	lat(URI,Lat,Source),
-	long(URI,Long,Source),
-	alt(URI,Alt,Source).
 
-%%	lat(?URI,?Lat) is nondet.
+wgs84_candidate(Res, Point, G) :-
+  lat(Res, Lat, G),
+  long(Res, Long, G),
+  (alt(Res, Alt, G) -> Point = point(Lat,Long,Alt) ; Point = point(Lat,Long)).
+
+
+
+%! alt(?Res, ?Alt) is nondet.
+%! alt(?Res, ?Alt, ?G) is nondet.
 %
-%	Finds the WGS84 latitude of resource URI (and vice versa)
-%	using the rdf_db index. Lat is a number.
+% Succeeds if Alt is the WGS84 altitude of resource Res.
 
-lat(URI,Lat) :-
-	lat(URI,Lat,_).
-lat(URI,Lat,Source) :-
-	rdf(URI,wgs84:lat,literal(LatAtom),Source),
-	(   LatAtom = type(_,LatVal)
-	->  (   atom(LatVal)
-	    ->  atom_number(LatVal,Lat)
-	    ;   Lat = LatVal
-            )
-	;   atom_number(LatAtom,Lat)
-	).
+alt(Res, Alt) :-
+  alt(Res, Alt, _).
 
-%%	long(?URI,?Long) is nondet.
+
+alt(Res, Alt, G) :-
+  rdf(Res, wgs84:alt, Alt^^xsd:float, G).
+
+
+
+%! coords(?Res, ?Lat, ?Long) is nondet.
+%! coords(?Res, ?Lat, ?Long, ?Alt) is nondet.
 %
-%	Finds the WGS84 longitude of resource URI (and vice versa)
-%	using the rdf_db index. Long is a number.
+% Succeeds if 〈Lat,Long〉 or 〈Lat,Long,Alt〉 is a coordinate of
+% resource Res.
 
-long(URI,Long) :-
-	long(URI,Long,_).
-long(URI,Long,Source) :-
-	rdf(URI,wgs84:long,literal(LongAtom),Source),
-	(   LongAtom = type(_,LongVal)
-	->  (   atom(LongVal)
-	    ->  atom_number(LongVal,Long)
-	    ;   Long = LongVal
-	    )
-	;   atom_number(LongAtom,Long)
-	).
+coords(Res, Lat, Long) :-
+  wgs84_candidate(Res, point(Lat, Long)).
 
-%%	alt(?URI,?Alt) is nondet.
+
+coords(Res, Lat, Long, Alt) :-
+  wgs84_candidate(Res, point(Lat, Long, Alt)).
+
+
+
+%! lat(?Res, ?Lat) is nondet.
+%! lat(?Res, ?Lat, ?G) is nondet.
 %
-%	Finds the WGS84 altitude of resource URI (and vice versa)
-%	using the rdf_db index. Alt is a number.
+% Succeeds if Lat is the WGS84 latitude of resource Res.
 
-alt(URI,Alt) :-
-	alt(URI,Alt,_).
-alt(URI,Alt,Source) :-
-	rdf(URI,wgs84:alt,literal(AltAtom),Source),
-	(   AltAtom = type(_,AltVal)
-	->  (   atom(AltVal)
-	    ->  atom_number(AltVal,Alt)
-	    ;   Alt = AltVal
-	    )
-	;   atom_number(AltAtom,Alt)
-	).
+lat(Res, Lat) :-
+  lat(Res, Lat, _).
 
-%%	coordinates(?URI,?Lat,?Long) is nondet.
-%%	coordinates(?URI,?Lat,?Long,?Alt) is nondet.
+
+lat(Res, Lat, G) :-
+  rdf(Res, wgs84:lat, Lat^^xsd:float, G).
+
+
+
+%! long(?Res, ?Long) is nondet.
+%! long(?Res, ?Long, ?G) is nondet.
 %
-%	Finds the WGS84 latitude, longitude and possibly altitude
-%       of resource URI (and vice versa) using the rdf_db index.
-%       Lat, Long, and Alt are numbers.
+% Succeeds if Long is the WGS84 longitude of resource Res.
 
-coordinates(URI,Lat,Long) :-
-	wgs84_candidate(URI,point(Lat,Long)).
-
-coordinates(URI,Lat,Long,Alt) :-
-	wgs84_candidate(URI,point(Lat,Long,Alt)).
+long(Res, Long) :-
+  long(Res, Long, _).
 
 
-
-
-
-
-
+long(Res, Long, G) :-
+  rdf(Res, wgs84:long, Long^^xsd:float, G).
