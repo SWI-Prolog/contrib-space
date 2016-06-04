@@ -11,16 +11,16 @@
 
 :- begin_tests(space, [setup(rdf_load(clearways)),cleanup(rdf_reset_db)]).
 
-test(space_clear, [fail]) :-
-  space_clear(test_index),
-  space_nearest(point(0.0,0.0), _, test_index).
+test(gis_clear, [fail]) :-
+  gis_clear(test_index),
+  gis_nearest(point(0.0,0.0), _, test_index).
 
-test(gis_populate_index, [cleanup(space_clear(test_index))]) :-
+test(gis_populate_index, [cleanup(gis_clear(test_index))]) :-
   gis_populate_index(test_index).
 
-test(space_nearest, [cleanup(space_clear(test_index))]) :-
+test(gis_nearest, [cleanup(gis_clear(test_index))]) :-
   gis_populate_index(test_index),
-  space_nearest(point(0.0,0.0), _, test_index), !.
+  gis_nearest(point(0.0,0.0), _, test_index), !.
 
 test(has_shape1, [Shape == polygon([[
     point(51.8622383341678, 3.190847055031),
@@ -50,97 +50,97 @@ test(has_shape2, [Shape == polygon([[
 ) :-
   has_shape(poseidon:'ScheepvaartrouteMaas_4', Shape), !.
 
-test(space_intersects, [cleanup(space_clear(test_index))]) :-
+test(gis_intersects, [cleanup(gis_clear(test_index))]) :-
   gis_populate_index(test_index),
   has_shape(poseidon:'ScheepvaartrouteMaas_1', Shape1),
   has_shape(poseidon:'ScheepvaartrouteMaas_4', Shape4),
-  \+ space_intersects(
+  \+ gis_intersects(
        Shape1,
        poseidon:'ScheepvaartrouteZuid_richting_noord',
        test_index
      ), !,
-  space_intersects(
+  gis_intersects(
     Shape4,
     poseidon:'ScheepvaartrouteZuid_richting_noord',
     test_index
   ).
 
-test(space_index, [cleanup(space_clear(test_index))]) :-
+test(gis_index, [cleanup(gis_clear(test_index))]) :-
   gis_populate_index(test_index),
-  space_assert(poseidon:testPoint1, point(52.4389,3.07118), test_index),
-  space_assert(poseidon:testPoint2, point(52.3983,3.13086), test_index),
-  space_assert(poseidon:testPoint3, point(52.3254,3.06849), test_index),
-  space_queue(test_index, assert, poseidon:testPoint1, point(52.4389,3.07118)),
+  gis_assert(poseidon:testPoint1, point(52.4389,3.07118), test_index),
+  gis_assert(poseidon:testPoint2, point(52.3983,3.13086), test_index),
+  gis_assert(poseidon:testPoint3, point(52.3254,3.06849), test_index),
+  gis_queue(test_index, assert, poseidon:testPoint1, point(52.4389,3.07118)),
   gis_update_index(test_index),
-  \+ space_queue(test_index, assert, poseidon:testPoint1, point(52.4389,3.07118)),
-  space_retract(poseidon:testPoint1, point(52.4389,3.07118), test_index),
-  space_retract(poseidon:testPoint2, point(52.3983,3.13086), test_index),
-  space_retract(poseidon:testPoint3, point(52.3254,3.06849), test_index),
-  space_queue(test_index, retract, poseidon:testPoint1, point(52.4389,3.07118)),
+  \+ gis_queue(test_index, assert, poseidon:testPoint1, point(52.4389,3.07118)),
+  gis_retract(poseidon:testPoint1, point(52.4389,3.07118), test_index),
+  gis_retract(poseidon:testPoint2, point(52.3983,3.13086), test_index),
+  gis_retract(poseidon:testPoint3, point(52.3254,3.06849), test_index),
+  gis_queue(test_index, retract, poseidon:testPoint1, point(52.4389,3.07118)),
   gis_update_index(test_index),
-  \+ space_queue(test_index, retract, poseidon:testPoint1, point(52.4389,3.07118)),
-  space_assert(poseidon:testPoint1, point(52.4389,3.07118), test_index),
-  space_assert(poseidon:testPoint2, point(52.3983,3.13086), test_index),
-  space_assert(poseidon:testPoint3, point(52.3254,3.06849), test_index),
+  \+ gis_queue(test_index, retract, poseidon:testPoint1, point(52.4389,3.07118)),
+  gis_assert(poseidon:testPoint1, point(52.4389,3.07118), test_index),
+  gis_assert(poseidon:testPoint2, point(52.3983,3.13086), test_index),
+  gis_assert(poseidon:testPoint3, point(52.3254,3.06849), test_index),
   gis_update_index(test_index), !.
 
 
-test(space_contains,[cleanup(space_clear(test_index))]) :-
+test(gis_contains,[cleanup(gis_clear(test_index))]) :-
   gis_populate_index(test_index),
-  space_assert(poseidon:testPoint1, point(52.4389,3.07118), test_index),
-  space_assert(poseidon:testPoint2, point(52.3983,3.13086), test_index),
-  space_assert(poseidon:testPoint3, point(52.3254,3.06849), test_index),
+  gis_assert(poseidon:testPoint1, point(52.4389,3.07118), test_index),
+  gis_assert(poseidon:testPoint2, point(52.3983,3.13086), test_index),
+  gis_assert(poseidon:testPoint3, point(52.3254,3.06849), test_index),
   has_shape(poseidon:'ScheepvaartrouteMaas_4', Shape),
-  \+ space_contains(Shape, poseidon:testPoint3, test_index), !,
-  space_contains(Shape, poseidon:testPoint1, test_index),
-  space_contains(Shape, poseidon:testPoint2, test_index).
+  \+ gis_contains(Shape, poseidon:testPoint3, test_index), !,
+  gis_contains(Shape, poseidon:testPoint1, test_index),
+  gis_contains(Shape, poseidon:testPoint2, test_index).
 
 
-test(space_intersects,[cleanup(space_clear(test_index))]) :-
+test(gis_intersects,[cleanup(gis_clear(test_index))]) :-
   gis_populate_index(test_index),
-  space_assert(poseidon:testPoint1, point(52.4389,3.07118), test_index),
-  space_assert(poseidon:testPoint3, point(52.3254,3.06849), test_index),
+  gis_assert(poseidon:testPoint1, point(52.4389,3.07118), test_index),
+  gis_assert(poseidon:testPoint3, point(52.3254,3.06849), test_index),
   has_shape(poseidon:'ScheepvaartrouteMaas_4', Shape),
-  \+ space_intersects(Shape, poseidon:testPoint3, test_index), !,
-  space_intersects(Shape, poseidon:testPoint1, test_index),
-  space_intersects(
+  \+ gis_intersects(Shape, poseidon:testPoint3, test_index), !,
+  gis_intersects(Shape, poseidon:testPoint1, test_index),
+  gis_intersects(
     Shape,
     poseidon:'ScheepvaartrouteZuid_richting_noord',
     test_index
   ).
 
-test(space_nearest, [true(Pts=[P2,P1,P3]),cleanup(space_clear(test_index))]) :-
+test(gis_nearest, [true(Pts=[P2,P1,P3]),cleanup(gis_clear(test_index))]) :-
   rdf_equal(poseidon:testPoint1, P1),
   rdf_equal(poseidon:testPoint2, P2),
   rdf_equal(poseidon:testPoint3, P3),
   gis_populate_index(test_index),
-  space_assert(poseidon:testPoint1, point(52.4389,3.07118), test_index),
-  space_assert(poseidon:testPoint2, point(52.3983,3.13086), test_index),
-  space_assert(poseidon:testPoint3, point(52.3254,3.06849), test_index),
+  gis_assert(poseidon:testPoint1, point(52.4389,3.07118), test_index),
+  gis_assert(poseidon:testPoint2, point(52.3983,3.13086), test_index),
+  gis_assert(poseidon:testPoint3, point(52.3254,3.06849), test_index),
   has_shape(poseidon:'Deep-draught_anchorage_Aanloopgebied_IJmuiden', Shape),
   findall(
     Pt,
     (
-      space_nearest(Shape, Pt, test_index),
+      gis_nearest(Shape, Pt, test_index),
       rdf_global_id(poseidon:Lt, Pt),
       atom_concat(testPoint, _, Lt)
     ),
     Pts
   ), !.
 
-test(space_retract, [true(Ps = [P2,P3]), cleanup(space_clear(test_index))]) :-
+test(gis_retract, [true(Ps = [P2,P3]), cleanup(gis_clear(test_index))]) :-
   gis_populate_index(test_index),
   rdf_global_id(poseidon:testPoint2, P2),
   rdf_global_id(poseidon:testPoint3, P3),
-  space_assert(poseidon:testPoint1, point(52.4389,3.07118), test_index),
-  space_assert(poseidon:testPoint2, point(52.3983,3.13086), test_index),
-  space_assert(poseidon:testPoint3, point(52.3254,3.06849), test_index),
+  gis_assert(poseidon:testPoint1, point(52.4389,3.07118), test_index),
+  gis_assert(poseidon:testPoint2, point(52.3983,3.13086), test_index),
+  gis_assert(poseidon:testPoint3, point(52.3254,3.06849), test_index),
   has_shape(poseidon:'Deep-draught_anchorage_Aanloopgebied_IJmuiden', Shape),
-  space_retract(poseidon:testPoint1,point(52.4389,3.07118),test_index),
+  gis_retract(poseidon:testPoint1,point(52.4389,3.07118),test_index),
   findall(
     P,
     (
-      space_nearest(Shape, P, test_index),
+      gis_nearest(Shape, P, test_index),
       rdf_global_id(poseidon:L, P),
       atom_concat(testPoint, _, L)
     ),

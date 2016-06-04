@@ -9,29 +9,25 @@
 :- writef("Loading demo RDF file of GeoNames features in the Rotterdam harbor.\n").
 :- rdf_load_file('demo_geonames.nt').
 :- writef("Selecting features with coordinates to put into the spatial index.\n").
-:- gis_populate_index(demo_index).
+:- gis_populate_index(demo).
 :- writef("done loading demo\n\n----\n\n").
 
 % Find features in order of proximity to the point 〈Lat,Long〉.
 nearest_features(Point, Name) :-
-  space_nearest(Point, Nearest, demo_index),
+  gis_nearest(Point, Nearest, demo),
   rdfs_instance(Nearest, geo:'Feature'),
   rdf_pref_lex(Nearest, geo:name, Name).
 
 % Find features contained in the box defined by the two points.
 contained_features(box(point(NWLat,NWLong),point(SELat,SELong)), Name) :-
-  space_contains(
-    box(point(NWLat,NWLong),point(SELat,SELong)),
-    Contained,
-    demo_index
-  ),
+  gis_contains(box(point(NWLat,NWLong),point(SELat,SELong)), Contained, demo),
   rdfs_instance(Contained, geo:'Feature'),
   rdf_pref_lex(Contained, geo:name, Name).
 
 % Find Features in order of proximity, but restrict them to those with
 % featureCode harbor.  Also fetch and show their coordinates.
 nearest_harbors(Point, Name, point(HarborLat,HarborLong)) :-
-  space_nearest(Point, Nearest, 'demo_index'),
+  gis_nearest(Point, Nearest, demo),
   rdfs_instance(Nearest, geo:'Feature'),
   rdf_has(Nearest, geo:featureCode, geo:'H.HBR'),
   rdf_pref_lex(Nearest, geo:name, Name),
