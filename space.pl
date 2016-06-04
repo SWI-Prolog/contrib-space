@@ -56,6 +56,7 @@
 
 :- use_module(library(debug)).
 :- use_module(library(error)).
+:- use_module(library(semweb/rdf11)).
 :- use_module(library(shlib)).
 
 :- use_foreign_library(space).
