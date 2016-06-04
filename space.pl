@@ -2,41 +2,41 @@
   gis,
   [
     set_space/1,            % +Opt
-    set_space/2,            % +G, +Opt
+    set_space/2,            % +Index, +Opt
     gis_setting/1,          % ?Opt
                               
     gis_populate_index/0,        
-    gis_populate_index/1,   % +G
+    gis_populate_index/1,   % +Index
 
-    gis_default_index/1,    % +G
+    gis_default_index/1,    % -Index
     gis_assert/2,           % +Res, +Shape
-    gis_assert/3,           % +Res, +Shape, +G
+    gis_assert/3,           % +Res, +Shape, +Index
     gis_retract/2,          % +Res, +Shape
-    gis_retract/3,          % +Res, +Shape, +G
+    gis_retract/3,          % +Res, +Shape, +Index
     gis_update_index/0,            
-    gis_update_index/1,     % +G
+    gis_update_index/1,     % +Index
     gis_clear/0,            
-    gis_clear/1,            % +G
-    gis_queue/2,            % ?G, +Mode
-    gis_queue/4,            % ?G, +Mode, ?Res, ?Shape
+    gis_clear/1,            % +Index
+    gis_queue/2,            % +Index, +Mode
+    gis_queue/4,            % +Index, +Mode, ?Res, ?Shape
     
     gis_contains/2,         % +Query, -Res
-    gis_contains/3,         % +Query, -Res, +G
+    gis_contains/3,         % +Query, -Res, +Index
     gis_intersects/2,       % +Query, -Res
-    gis_intersects/3,       % +Query, -Res, +G
+    gis_intersects/3,       % +Query, -Res, +Index
     gis_nearest/2,          % +Query, -Res
-    gis_nearest/3,          % +Query, -Res, +G
+    gis_nearest/3,          % +Query, -Res, +Index
     gis_within_range/3,     % +Query, -Res, +WithinRange
-    gis_within_range/4,     % +Query, -Res, +WithinRange, +G
+    gis_within_range/4,     % +Query, -Res, +WithinRange, +Index
     gis_nearest_bounded/3,  % +Query, -Res, +WithinRange
-    gis_nearest_bounded/4,  % +Query, -Res, +WithinRange, +G
+    gis_nearest_bounded/4,  % +Query, -Res, +WithinRange, +Index
     
     gis_is_shape/1,         % +Shape
-    has_shape/2,            % ?Res, ?Shape
-    has_shape/3,            % ?Res, ?Shape, ?G
+    resource_shape/2,       % ?Res, ?Shape
+    resource_shape/4,       % ?Res, ?Shape, ?G, ?Index
     
     gis_dist/3,             % +Feature1, +Feature2, -Dist
-    gis_dist/4,             % +Feature1, +Feature2, -Dist, +G
+    gis_dist/4,             % +Feature1, +Feature2, -Dist, +Index
     gis_dist_pythagorean/3, % +Feature1, +Feature2, -Dist
     gis_dist_greatcircle/3, % +Feature1, +Feature2, -Dist (nm)
     gis_dist_greatcircle/4, % +Feature1, +Feature2, -Dist, +Unit
@@ -64,12 +64,12 @@
 :- use_foreign_library(space).
 
 :- dynamic
-    gis:has_shape_hook/3,
+    gis:resource_shape_hook/3,
     gis:gis_setting/1,
     gis_queue0/4.
 
 :- multifile
-   gis:has_shape_hook/3.
+   gis:resource_shape_hook/3.
 
 gis:gis_setting(rtree_default_index(default)).
 
@@ -80,15 +80,15 @@ gis:gis_setting(rtree_default_index(default)).
    gis_contains(r, r, +),
    gis_intersects(r, r),
    gis_intersects(r, r, ?),
-   gis_nearest(r, ?),
+   gis_nearest(r, r),
    gis_nearest(r, r, ?),
-   gis_nearest_bounded(r, r, ?),
+   gis_nearest_bounded(r, r, r),
    gis_nearest_bounded(r, r, r, ?),
    gis_queue(?, ?, r, ?),
    gis_retract(r, ?),
    gis_retract(r, ?, ?),
-   has_shape(r, ?),
-   has_shape(r, ?, ?),
+   resource_shape(r, ?),
+   resource_shape(r, ?, r, ?),
    gis_within_range(r, r, ?),
    gis_within_range(r, r, ?, ?).
 
@@ -98,223 +98,234 @@ gis:gis_setting(rtree_default_index(default)).
 
 
 
-%! gis_default_index(+G) is det.
+%! gis_default_index(-Index) is det.
 
-gis_default_index(G) :-
-  gis_setting(rtree_default_index(G)).
+gis_default_index(Index) :-
+  gis_setting(rtree_default_index(Index)).
 
 
 
 %! set_space(+Opt) is det.
-%! set_space(+Opt, +G) is det.
+%! set_space(+Opt, +Index) is det.
 %
-% Change the options of index G (or the default index for
-% set_space/1).  Some options, like `rtree_storage(disk)` or
-% `rtree_storage(memory)` only have effect after clearing or
-% bulkloading.  Other options take effect immediately.
+% Change the options of Index (or the default index for set_space/1).
+% Some options, like `rtree_storage(disk)` or `rtree_storage(memory)`
+% only have effect after clearing or bulkloading.  Other options take
+% effect immediately.
 
 set_space(Opt) :-
-  gis_default_index(G),
-  set_space(Opt, G).
+  gis_default_index(Index),
+  set_space(Opt, Index).
 
-set_space(Opt, I) :-
-  rtree_set_space(I, Opt).
+
+set_space(Opt, Index) :-
+  rtree_set_space(Index, Opt).
 
 
 
 %! gis_assert(+Res, +Shape) is det.
-%! gis_assert(+Res, +Shape, +G) is det.
+%! gis_assert(+Res, +Shape, +Index) is det.
 %
 % Insert resource Res with associated Shape into the queue that is to
-% be inserted into the index with name G (or the default
-% index).  Indexing happens lazily at the next call of a query or
-% manually by calling gis_update_index/1.
+% be inserted into the given Index (or the default index).  Indexing
+% happens lazily at the next call of a query or manually by calling
+% gis_update_index/1.
 
 gis_assert(Res, Shape) :-
-  gis_default_index(G),
-  gis_assert(Res, Shape, G).
+  gis_default_index(Index),
+  gis_assert(Res, Shape, Index).
 
 
-gis_assert(Res, Shape, I) :-
+gis_assert(Res, Shape, Index) :-
   gis_is_shape(Shape),
   % First process all queued retracts, since these may otherwise
   % inadvertently remove the newly asserted fact.
-  (gis_queue(I, retract) -> gis_update_index(I) ; true),
-  assert(gis_queue0(I,assert,Res,Shape)).
+  (gis_queue(Index, retract) -> gis_update_index(Index) ; true),
+  assert(gis_queue0(Index,assert,Res,Shape)).
 
 
 
 %! gis_retract(+Res, +Shape) is det.
-%! gis_retract(+Res, +Shape, +G) is det.
+%! gis_retract(+Res, +Shape, +Index) is det.
 %
 % Insert resource Res with associated Shape in the queue that is to be
-% removed from the index with name G (or the default index).
-% Indexing happens lazily at the next call of a query or manually by
-% calling gis_update_index/1.
+% removed from the given Index (or the default index).  Indexing
+% happens lazily at the next call of a query or manually by calling
+% gis_update_index/1.
 
 gis_retract(Res, Shape) :-
-  gis_default_index(G),
-  gis_retract(Res, Shape, G).
+  gis_default_index(Index),
+  gis_retract(Res, Shape, Index).
 
 
-gis_retract(Res, Shape, I) :-
+gis_retract(Res, Shape, Index) :-
   gis_is_shape(Shape),
-  (gis_queue(I, assert) -> gis_update_index(I) ; true),
-  assert(gis_queue0(I,retract,Res,Shape)).
+  (gis_queue(Index, assert) -> gis_update_index(Index) ; true),
+  assert(gis_queue0(Index,retract,Res,Shape)).
 
 
 
 %! gis_update_index is det.
-%! gis_update_index(+G) is det.
+%! gis_update_index(+Index) is det.
 %
-% Processes all asserts or retracts in the space queue for index
-% G (or the default index).
+% Processes all asserts or retracts in the space queue for the given
+% Index (or for the default index).
 
 gis_update_index :-
-  gis_default_index(I),
-  gis_update_index(I).
+  gis_default_index(Index),
+  gis_update_index(Index).
 
 
-gis_update_index(I) :-
-  gis_queue0(I, assert ,_ ,_), !,
+gis_update_index(Index) :-
+  gis_queue0(Index, assert ,_ ,_), !,
   empty_nb_set(Assertions),
   findall(
     object(Res,Shape),
     (
-      gis_queue0(I, assert, Res, Shape),
+      gis_queue0(Index, assert, Res, Shape),
       add_nb_set(gis_assert(Res,Shape), Assertions)
     ),
     L
   ),
-  rtree_insert_list(I, L),
-  retractall(gis_queue0(I,assert,_,_)),
+  rtree_insert_list(Index, L),
+  retractall(gis_queue0(Index,assert,_,_)),
   size_nb_set(Assertions,N),
-  debug(space(index), "% Added ~w Res-Shape pairs to ~w", [N,I]),
-  gis_update_index(I).
-gis_update_index(I) :-
-  gis_queue0(I, retract, _, _), !,
+  debug(space(index), "% Added ~w Res-Shape pairs to ~w", [N,Index]),
+  gis_update_index(Index).
+gis_update_index(Index) :-
+  gis_queue0(Index, retract, _, _), !,
   empty_nb_set(Retractions),
   findall(
     object(Res,Shape),
     (
-      gis_queue0(I, retract, Res, Shape),
+      gis_queue0(Index, retract, Res, Shape),
       add_nb_set(gis_retract(Res,Shape), Retractions)
     ),
     L
   ),
-  rtree_delete_list(I, L),
-  retractall(gis_queue0(I,retract,_,_)),
+  rtree_delete_list(Index, L),
+  retractall(gis_queue0(Index,retract,_,_)),
   size_nb_set(Retractions, N),
-  debug(space(index), "% Removed ~w Res-Shape pairs from ~w", [N,I]),
-  gis_update_index(I).
+  debug(space(index), "% Removed ~w Res-Shape pairs from ~w", [N,Index]),
+  gis_update_index(Index).
 gis_update_index(_).
 
 
 
 %! gis_clear is det.
-%! gis_clear(+G) is det.
+%! gis_clear(+Index) is det.
 %
-% Clears index G (or the default index), removing all of its contents.
+% Clears the given Index (or the default index), removing all of its
+% contents.
 
 gis_clear :-
-  gis_default_index(G),
-  gis_clear(G).
+  gis_default_index(Index),
+  gis_clear(Index).
 
 
-gis_clear(I) :-
-  retractall(gis_queue0(I,_,_,_)),
-  rtree_clear(I).
+gis_clear(Index) :-
+  retractall(gis_queue0(Index,_,_,_)),
+  rtree_clear(Index).
 
 
 
-%! gis_contains(+Query, ?Cont) is nondet.
-%! gis_contains(+Query, ?Cont, +G) is nondet.
+%! gis_contains(+Query, ?Shape) is nondet.
+%! gis_contains(+Query, ?Shape, +Index) is nondet.
 %
 % Containment query, unifying Cont with shapes contained in the Query
 % shape (or shape of Query Res).
 
-gis_contains(Query, Cont) :-
-  gis_default_index(G),
-  gis_contains(Query, Cont, G).
+gis_contains(Query, Shape) :-
+  gis_default_index(Index),
+  gis_contains(Query, Shape, Index).
 
 
-gis_contains(Query, Cont, I) :-
-  has_shape(Query, Shape),
-  gis_update_index(I),
-  (   ground(Cont)
-  ->  bagof(Con, rtree_incremental_containment_query(Shape, Con, I), Cons),
-      memberchk(Cont, Cons)
-  ;   rtree_incremental_containment_query(Shape, Cont, I)
+gis_contains(Query, Shape2, Index) :-
+  resource_shape(Query, Shape1),
+  gis_update_index(Index),
+  (   ground(Shape2)
+  ->  bagof(
+        Shape0,
+        rtree_incremental_containment_query(Shape1, Shape0, Index),
+        Shape0s
+      ),
+      memberchk(Shape2, Shape0s)
+  ;   rtree_incremental_containment_query(Shape1, Shape2, Index)
   ).
 
 
 
 %! gis_intersects(+Query, ?Inter) is nondet.
-%! gis_intersects(+Query, ?Inter, +G) is nondet.
+%! gis_intersects(+Query, ?Inter, +Index) is nondet.
 %
 % Intersection query, unifying Inter with shapes that intersect with
 % the Query shape (or with the shape of Query resource).
 %
 % Intersection subsumes containment.
 
-gis_intersects(Query, Inter) :-
-  gis_default_index(G),
-  gis_intersects(Query, Inter, G).
+gis_intersects(Query, Shape) :-
+  gis_default_index(Index),
+  gis_intersects(Query, Shape, Index).
 
 
-gis_intersects(Query, Inter, I) :-
-  has_shape(Query, Shape),
-  gis_update_index(I),
-  (   ground(Inter)
-  ->  bagof(In, rtree_incremental_intersection_query(Shape, In, I), Ins),
-      memberchk(Inter, Ins)
-  ;   rtree_incremental_intersection_query(Shape, Inter, I)
+gis_intersects(Query, Shape2, Index) :-
+  resource_shape(Query, Shape1),
+  gis_update_index(Index),
+  (   ground(Shape2)
+  ->  % @tbd Apparently C++ cannot receive run-time instantiated
+      % arguments?
+      bagof(
+        Shape0,
+        rtree_incremental_intersection_query(Shape1, Shape0, Index),
+        Shape0s
+      ),
+      memberchk(Shape2, Shape0s)
+  ;   rtree_incremental_intersection_query(Shape1, Shape2, Index)
   ).
 
 
 
-%! gis_nearest(+Query, -Near) is nondet.
-%! gis_nearest(+Query, -Near, +G) is nondet.
+%! gis_nearest(+Query, -Shape) is nondet.
+%! gis_nearest(+Query, -Shape, +Index) is nondet.
 %
-% Incremental Nearest-Neighbor query, unifying Near with shapes in
+% Incremental Nearest-Neighbor query, unifying Shape with shapes in
 % order of increasing distance to the Query shape (or to the shape of
 % the resource Query).
 
-gis_nearest(Query, Near) :-
-  gis_default_index(G),
-  gis_nearest(Query, Near, G).
+gis_nearest(Query, Shape) :-
+  gis_default_index(Index),
+  gis_nearest(Query, Shape, Index).
 
 
-gis_nearest(Query, Near, I) :-
-  has_shape(Query, Shape),
-  gis_update_index(I),
-  rtree_incremental_nearest_neighbor_query(Shape, Near, I).
+gis_nearest(Query, Shape2, Index) :-
+  resource_shape(Query, Shape1),
+  gis_update_index(Index),
+  rtree_incremental_nearest_neighbor_query(Shape1, Shape2, Index).
 
 
 
 %! gis_nearest(+Query, ?Near, +WithinRange) is nondet.
-%! gis_nearest(+Query, ?Near, +WithinRange, +G) is nondet.
+%! gis_nearest(+Query, ?Near, +WithinRange, +Index) is nondet.
 %
 % Incremental Nearest-Neighbor query with a bounded distance scope.
 % Unifies Near with shapes in order of increasing distance to Query
-% Shape (or Shape of Query Res) according to index G or the
-% default index.  Fails when no more objects are within the range
-% WithinRange.
+% Shape (or Shape of Query Res) according to Index or the default
+% index.  Fails when no more objects are within the range WithinRange.
 
 gis_nearest_bounded(Query, Near, WithinRange) :-
-  gis_default_index(G),
-  gis_nearest_bounded(Query, Near, WithinRange, G).
+  gis_default_index(Index),
+  gis_nearest_bounded(Query, Near, WithinRange, Index).
 
 
-gis_nearest_bounded(Query, Near, WithinRange, I) :-
-  has_shape(Query, Shape),
+gis_nearest_bounded(Query, Near, WithinRange, Index) :-
+  resource_shape(Query, Shape),
   (   ground(Near)
-  ->  has_shape(Near, NearShape),
+  ->  resource_shape(Near, NearShape),
       gis_dist(Shape, NearShape, Dist),
       Dist < WithinRange
-  ;   gis_update_index(I),
-      rtree_incremental_nearest_neighbor_query(Shape, Near, I),
-      (has_shape(Near, NearShape, I) -> true ; has_shape(Near,NearShape)), %?
+  ;   gis_update_index(Index),
+      rtree_incremental_nearest_neighbor_query(Shape, Near, Index),
+      resource_shape(Near, NearShape, _, Index),
       gis_dist(Shape, NearShape, Dist),
       (   ground(WithinRange)
       ->  (Dist > WithinRange -> !, fail ; true)
@@ -324,91 +335,85 @@ gis_nearest_bounded(Query, Near, WithinRange, I) :-
 
 
 
-%! gis_queue(?G, ?Mode:oneof([assert,retract])) is nondet.
-%! gis_queue(?G, ?Mode:oneof([assert,retract]), ?Res, ?Shape) is nondet.
+%! gis_queue(+Index, ?Mode:oneof([assert,retract])) is nondet.
+%! gis_queue(+Index, ?Mode:oneof([assert,retract]), ?Res, ?Shape) is nondet.
 
-gis_queue(G, Mode) :-
-  once(gis_queue(G, Mode, _, _)).
+gis_queue(Index, Mode) :-
+  once(gis_queue(Index, Mode, _, _)).
 
 
-gis_queue(G, Mode, Res, Shape) :-
-  gis_queue0(G, Mode, Res, Shape).
+gis_queue(Index, Mode, Res, Shape) :-
+  gis_queue0(Index, Mode, Res, Shape).
 
 
 
 %! gis_nearest(+Query, ?Near, +WithinRange) is nondet.
-%! gis_nearest(+Query, ?Near, +WithinRange, +G) is nondet.
+%! gis_nearest(+Query, ?Near, +WithinRange, +Index) is nondet.
 %
 % Alias for OGC compatibility.
 
 gis_within_range(Query, Near, WithinRange) :-
   gis_nearest_bounded(Query, Near, WithinRange).
-gis_within_range(Query, Near, WithinRange, I) :-
-  gis_nearest_bounded(Query, Near, WithinRange, I).
+
+
+gis_within_range(Query, Near, WithinRange, Index) :-
+  gis_nearest_bounded(Query, Near, WithinRange, Index).
 
 
 
-gis_display(I) :-
-  rtree_display(I).
+gis_display(Index) :-
+  rtree_display(Index).
 
 
 
-gis_display_mbrs(I) :-
-  rtree_display_mbrs(I).
+gis_display_mbrs(Index) :-
+  rtree_display_mbrs(Index).
 
 
 
-%! has_shape(?Res, ?Shape) is nondet.
-%! has_shape(?Res, ?Shape, ?G) is nondet.
+%! resource_shape(?Res, ?Shape) is nondet.
+%! resource_shape(?Res, ?Shape, ?G, ?Index) is nondet.
 %
-% Succeeds if resource Res has geographic Shape.  Shape can be on of
-% the following:
+% Succeeds if resource Res has a geographic Shape.
 %
-%   - WGS84 RDF properties (e.g. `wgs84:lat`)
-%
-%   - GeoRSS Simple properties (e.g. `georss:polygon`)
-%
-%   - GeoRSS GML properties (e.g. `georss:where`)
-%
-% This predicate can be dynamically extended.
-%
-% @tbd Separate dynamicity through hook.
+% This predicate can be dynamically extended through the
+% gis:resource_shape_hook/3.
 
-has_shape(Res, Shape) :-
-  has_shape(Res, Shape, _).
+resource_shape(Res, Shape) :-
+  gis_default_index(Index),
+  resource_shape(Res, Shape, _, Index).
 
 
 % Exceptional case to allow resources and shapes to be supplied as
 % arguments to the same predicates.
-has_shape(Shape, Shape, _) :-
-  ground(Shape),
-  gis_is_shape(Shape).
-has_shape(Res, Shape, G) :-
-  (ground(Res) -> atom(Res) ; true),
-  rdf_subject(Res),
-  gis:has_shape_hook(Res, Shape, G).
-has_shape(Res, Shape, G0) :-
-  (var(G0) -> gis_default_index(G) ; G = G0),
-  rtree_uri_shape(Res, S, G),
-  Shape = S. % @tbd: fix in C++
+resource_shape(Res, Shape, _, _) :-
+  ground(Res),
+  gis_is_shape(Res), !,
+  Shape = Res.
+resource_shape(Res, Shape, G, _) :-
+  gis:resource_shape_hook(Res, Shape, G).
+resource_shape(Res, Shape, _, Index0) :-
+  (var(Index0) -> gis_default_index(Index) ; Index = Index0),
+  rtree_uri_shape(Res, Shape0, Index),
+  Shape = Shape0. % @tbd: fix in C++
 
 
 
 %!  gis_populate_index is det.
-%!  gis_populate_index(+G) is det.
+%!  gis_populate_index(+Index) is det.
 %
-% Loads all resource-shape pairs found with has_shape/2 into index G
-% (or the default index).
+% Loads all resource-shape pairs found with resource_shape/2 into the
+% given Index (or the default index).
 
 gis_populate_index :-
-  gis_default_index(G),
-  gis_populate_index(G).
+  gis_default_index(Index),
+  gis_populate_index(Index).
 
 
-gis_populate_index(G) :-
-  once(has_shape(_, Shape)),
+gis_populate_index(Index) :-
+  once(resource_shape(_, Shape, _, Index)),
   dimensionality(Shape, Dim),
-  rtree_bulkload(G, space:has_shape, Dim).
+  rtree_bulkload(Index, space:resource_shape, Dim).
 
 
 
@@ -467,26 +472,26 @@ gis_dist(X, Y, Dist) :-
 
 gis_dist(X, X, 0, _).
 gis_dist(X, Y, Dist, G) :-
-  has_shape(X, XShape),
-  has_shape(Y, YShape),
+  resource_shape(X, XShape),
+  resource_shape(Y, YShape),
   gis_dist_shape(XShape, YShape, Dist, G).
 
 
 gis_dist_shape(point(X1,X2), point(Y1,Y2), Dist) :-
   gis_dist_pythagorean(point(X1,X2), point(Y1,Y2), Dist), !.
-gis_dist_shape(X, Y, Dist, I) :-
-  rtree_distance(I, X, Y, Dist0),
+gis_dist_shape(X, Y, Dist, G) :-
+  rtree_distance(G, X, Y, Dist0),
   pythagorean_lat_long_to_kms(Dist0, Dist).
 
 
-% for speed, first assume X and Y are shapes, not resources.  If this
+% For speed, first assume X and Y are shapes, not resources.  If this
 % fails, proceed to interpret them as resources.
 gis_dist_pythagorean(X, Y, D) :-
-  gis_dist_pythagorean_fastest(X, Y, D1),
-  pythagorean_lat_long_to_kms(D1, D).
+  gis_dist_pythagorean_fastest(X, Y, D0),
+  pythagorean_lat_long_to_kms(D0, D).
 gis_dist_pythagorean(X, Y, Dist) :-
-  has_shape(X, XShape),
-  has_shape(Y, YShape),
+  resource_shape(X, XShape),
+  resource_shape(Y, YShape),
   gis_dist_pythagorean(XShape, YShape, Dist).
 
 gis_dist_pythagorean_fastest(point(A, B), point(X, Y), D) :-
@@ -505,13 +510,13 @@ pythagorean_lat_long_to_kms(D1, D) :-
 %  or nm (nautical miles). By default, nautical miles are used.
 
 gis_dist_greatcircle(A, B, Dist) :-
-  has_shape(A, AShape),
-  has_shape(B, BShape),
+  resource_shape(A, AShape),
+  resource_shape(B, BShape),
   gis_shape_dist_greatcircle(AShape, BShape, Dist).
 
 gis_dist_greatcircle(A, B, Dist, Unit) :-
-  has_shape(A, AShape),
-  has_shape(B, BShape),
+  resource_shape(A, AShape),
+  resource_shape(B, BShape),
   gis_shape_dist_greatcircle(AShape, BShape, Dist, Unit).
 
 

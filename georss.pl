@@ -24,12 +24,12 @@
 :- use_module(library(xml/xml_dom)).
 
 :- dynamic
-   gis:has_shape_hook/3.
+   gis:resource_shape_hook/3.
 
 :- multifile
-   gis:has_shape_hook/3.
+   gis:resource_shape_hook/3.
 
-gis:has_shape_hook(Res, Shape, G) :-
+gis:resource_shape_hook(Res, Shape, G) :-
   georss_candidate(Res, Shape, G).
 
 :- rdf_meta
