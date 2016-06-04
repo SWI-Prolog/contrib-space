@@ -58,9 +58,6 @@
 :- use_module(library(error)).
 :- use_module(library(shlib)).
 
-:- use_module(georss).
-:- use_module(wgs84).
-
 :- use_foreign_library(space).
 
 :- dynamic
@@ -189,6 +186,7 @@ gis_update_index(Index) :-
   ),
   rtree_insert_list(Index, L),
   retractall(gis_queue0(Index,assert,_,_)),
+  % @tbd Why the need for `Assertions`?
   size_nb_set(Assertions,N),
   debug(space(index), "% Added ~w Res-Shape pairs to ~w", [N,Index]),
   gis_update_index(Index).
