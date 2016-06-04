@@ -44,7 +44,7 @@
 :- writef("Loading demo RDF file of GeoNames features in the Rotterdam harbor.\n").
 :- rdf_load_file('demo_geonames.nt').
 :- writef("Selecting features with coordinates to put into the spatial index.\n").
-:- space_bulkload(uri_shape, demo_index).
+:- space_bulkload(demo_index).
 :- writef("done loading demo\n\n----\n\n").
 
 % Find features in order of proximity to the point 〈Lat,Long〉.

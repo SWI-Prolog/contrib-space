@@ -16,11 +16,11 @@
     space_index/1,            % +Index
     space_clear/0,            
     space_clear/1,            % +Index
+    space_queue/2,            % ?Index, +Mode
     space_queue/4,            % ?Index, +Mode, ?Res, ?Shape
-                              
+    
     space_bulkload/0,         
-    space_bulkload/1,         % :Goal_2
-    space_bulkload/2,         % :Goal_2, +Index
+    space_bulkload/1,         % +Index
                               
     space_contains/2,         % +Query, -Res
     space_contains/3,         % +Query, -Res, +Index
@@ -34,8 +34,8 @@
     space_nearest_bounded/4,  % +Query, -Res, +WithinRange, +Index
     
     shape/1,                  % +Shape
-    uri_shape/2,              % ?Res, ?Shape
-    uri_shape/3,              % ?Res, ?Shape, ?G
+    has_shape/2,              % ?Res, ?Shape
+    has_shape/3,              % ?Res, ?Shape, ?G
     
     space_dist/3,             % +Feature1, +Feature2, -Dist
     space_dist/4,             % +Feature1, +Feature2, -Dist, +Index
@@ -56,6 +56,7 @@
 @version 2016/06
 */
 
+:- use_module(library(debug)).
 :- use_module(library(error)).
 :- use_module(library(shlib)).
 
@@ -67,23 +68,14 @@
 
 :- use_foreign_library(space).
 
-%! space_queue(?Index, ?Mode:oneof([assert,retract]), ?Res, ?Shape) is nondet.
-
-space_queue(Index, Mode, Res, Shape) :-
-  space_queue0(Index, Mode, Res, Shape).
-
 :- dynamic
     space_queue0/4,
     % allows you to adapt space_index_all.
     shape/1,
     % allows you to adapt space_index_all.
-    uri_shape/2,
+    has_shape/2,
     % allows you to adapt space_index_all.
-    uri_shape/3.
-
-:- meta_predicate
-    space_bulkload(2),
-    space_bulkload(2,+).
+    has_shape/3.
 
 :- rdf_meta
    space_assert(r, ?),
@@ -99,18 +91,17 @@ space_queue(Index, Mode, Res, Shape) :-
    space_queue(?, ?, r, ?),
    space_retract(r, ?),
    space_retract(r, ?, ?),
-   uri_shape(r, ?),
-   uri_shape(r, ?, ?),
+   has_shape(r, ?),
+   has_shape(r, ?, ?),
    space_within_range(r, r, ?),
    space_within_range(r, r, ?, ?).
 
 :- dynamic
-    space_setting_aux/1.
+    space:space_setting_aux/1.
 
-space_setting_aux(rtree_default_index(space_index)).
+space:space_setting_aux(rtree_default_index(space_index)).
 
-% foreign language predicate:
-% set_space(Index,Opt)
+:- debug(space(index)).
 
 
 
@@ -131,19 +122,12 @@ set_space(Opt) :-
 set_space(Opt, I) :-
   rtree_set_space(I, Opt).
 
-/*
-set_space(Opt) :-
-  functor(Opt, Name, 1),
-  functor(Term, Name, 1),
-  with_mutex(space_mutex, (
-    retractall(space_setting_aux(Term)),
-    assert(space_setting_aux(Opt))
-  )).
-*/
+
 
 % FIXME: make bidirectional for settings stored in C++
 space_setting(Opt) :-
   with_mutex(space_mutex, space_setting_aux(Opt)).
+
 
 
 %! space_assert(+Res, +Shape) is det.
@@ -161,8 +145,9 @@ space_assert(Res, Shape) :-
 
 space_assert(Res, Shape, I) :-
   shape(Shape),
-  % @tdb Why conditional?  Why update index before assert?
-  (space_queue0(I,retract,_,_) -> space_index(I) ; true),
+  % First process all queued retracts, since these may otherwise
+  % inadvertently remove the newly asserted fact.
+  (space_queue(I, retract) -> space_index(I) ; true),
   assert(space_queue0(I,assert,Res,Shape)).
 
 
@@ -182,7 +167,7 @@ space_retract(Res, Shape) :-
 
 space_retract(Res, Shape, I) :-
   shape(Shape),
-  (space_queue0(I, assert, _, _) -> space_index(I) ; true),
+  (space_queue(I, assert) -> space_index(I) ; true),
   assert(space_queue0(I,retract,Res,Shape)).
 
 
@@ -212,7 +197,7 @@ space_index(I) :-
   rtree_insert_list(I, L),
   retractall(space_queue0(I,assert,_,_)),
   size_nb_set(Assertions,N),
-  format(user_output, "% Added ~w Res-Shape pairs to ~w~n", [N,I]),
+  debug(space(index), "% Added ~w Res-Shape pairs to ~w", [N,I]),
   space_index(I).
 space_index(I) :-
   space_queue0(I, retract, _, _), !,
@@ -228,7 +213,7 @@ space_index(I) :-
   rtree_delete_list(I, L),
   retractall(space_queue0(I,retract,_,_)),
   size_nb_set(Retractions, N),
-  format(user_output, "% Removed ~w Res-Shape pairs from ~w~n", [N,I]),
+  debug(space(index), "% Removed ~w Res-Shape pairs from ~w", [N,I]),
   space_index(I).
 space_index(_).
 
@@ -251,28 +236,20 @@ space_clear(I) :-
 
 
 %! space_bulkload is det.
-%! space_bulkload(:Goal_2) is det.
-%! space_bulkload(:Goal_2, +Index) is det.
+%! space_bulkload(+Index) is det.
 %
-% Fast loading of many Shapes into the given Index.  Goal_2 finds
-% candidate Res-Shape pairs to add to the Index.
-%
-% The default Goal_2 is uri_shape/2.
+% Fast loading of many Shapes into the given Index.  This finds
+% 〈Resource,Shape〉 pairs that are added to the Index.
 
 space_bulkload :-
-  space_bulkload(uri_shape).
-
-
-space_bulkload(Goal_2) :-
   space_setting(rtree_default_index(I)),
-  space_bulkload(Goal_2, I).
+  space_bulkload(I).
 
 
-space_bulkload(Goal_2, I) :-
-  once(call(Goal_2, _, Shape)),
+space_bulkload(I) :-
+  once(has_space(_, Shape)),
   dimensionality(Shape, Dim),
-  % space_clear(I),  % FIXME: is this ok to skip?
-  rtree_bulkload(I, Goal_2, Dim).
+  rtree_bulkload(I, has_space, Dim).
 
 
 
@@ -288,7 +265,7 @@ space_contains(Query, Cont) :-
 
 
 space_contains(Query, Cont, I) :-
-  (shape(Query) -> Shape = Query ; uri_shape(Query, Shape)),
+  has_shape(Query, Shape),
   space_index(I),
   (   ground(Cont)
   ->  bagof(Con, rtree_incremental_containment_query(Shape, Con, I), Cons),
@@ -312,7 +289,7 @@ space_intersects(Query, Inter) :-
 
 
 space_intersects(Query, Inter, I) :-
-  (shape(Query) -> Shape = Query ; uri_shape(Query, Shape)),
+  has_shape(Query, Shape),
   space_index(I),
   (   ground(Inter)
   ->  bagof(In, rtree_incremental_intersection_query(Shape, In, I), Ins),
@@ -335,7 +312,7 @@ space_nearest(Query, Near) :-
 
 
 space_nearest(Query, Near, I) :-
-  (shape(Query) -> Shape = Query ; uri_shape(Query, Shape)),
+  has_shape(Query, Shape),
   space_index(I),
   rtree_incremental_nearest_neighbor_query(Shape, Near, I).
 
@@ -356,20 +333,33 @@ space_nearest_bounded(Query, Near, WithinRange) :-
 
 
 space_nearest_bounded(Query, Near, WithinRange, I) :-
-  (shape(Query) -> Shape = Query ; uri_shape(Query, Shape)),
+  has_shape(Query, Shape),
   (   ground(Near)
-  ->  uri_shape(Near, NearShape),
+  ->  has_shape(Near, NearShape),
       space_dist(Shape, NearShape, Dist),
       Dist < WithinRange
   ;   space_index(I),
       rtree_incremental_nearest_neighbor_query(Shape, Near, I),
-      (uri_shape(Near, NearShape, I) -> true ; uri_shape(Near,NearShape)), %?
+      (has_shape(Near, NearShape, I) -> true ; has_shape(Near,NearShape)), %?
       space_dist(Shape, NearShape, Dist),
       (   ground(WithinRange)
       ->  (Dist > WithinRange -> !, fail ; true)
       ;   WithinRange = Dist
       )
   ).
+
+
+
+%! space_queue(?Index, ?Mode:oneof([assert,retract])) is nondet.
+%! space_queue(?Index, ?Mode:oneof([assert,retract]), ?Res, ?Shape) is nondet.
+
+space_queue(Index, Mode) :-
+  once(space_queue(Index, Mode, _, _)).
+
+
+space_queue(Index, Mode, Res, Shape) :-
+  space_queue0(Index, Mode, Res, Shape).
+
 
 
 %! space_nearest(+Query, ?Near, +WithinRange) is nondet.
@@ -394,8 +384,8 @@ space_display_mbrs(I) :-
 
 
 
-%! uri_shape(?Res, ?Shape) is nondet.
-%! uri_shape(?Res, ?Shape, ?G) is nondet.
+%! has_shape(?Res, ?Shape) is nondet.
+%! has_shape(?Res, ?Shape, ?G) is nondet.
 %
 % Succeeds if resource Res has geographic Shape.  Shape can be on of
 % the following:
@@ -410,19 +400,19 @@ space_display_mbrs(I) :-
 %
 % @tbd Separate dynamicity through hook.
 
-uri_shape(Res, Shape) :-
-  uri_shape(Res, Shape, _).
+has_shape(Res, Shape) :-
+  has_shape(Res, Shape, _).
 
 
-uri_shape(Res, Shape, G) :-
+has_shape(Res, Shape, G) :-
   georss_candidate(Res, Shape, G).
-uri_shape(Res, Shape, G) :-
+has_shape(Res, Shape, G) :-
   wgs84_candidate(Res, Shape, G).
-uri_shape(Res, Shape, G) :-
+has_shape(Res, Shape, G) :-
   freebase_candidate(Res, Shape, G).
-uri_shape(Res, Shape, G) :-
+has_shape(Res, Shape, G) :-
   dbpedia_candidate(Res, Shape, G).
-uri_shape(Res, Shape, G) :-
+has_shape(Res, Shape, G) :-
   (var(G) -> space_setting(rtree_default_index(Index)), G = Index ; true),
   rtree_uri_shape(Res, S, G),
   Shape = S. % @tbd: fix in C++
@@ -432,7 +422,7 @@ uri_shape(Res, Shape, G) :-
 %!  space_index_all is det.
 %!  space_index_all(+Index) is det.
 %
-% Loads all resource-shape pairs found with uri_shape/2 into Index (or
+% Loads all resource-shape pairs found with has_shape/2 into Index (or
 % the default index).
 
 space_index_all :-
@@ -441,7 +431,7 @@ space_index_all :-
 
 
 space_index_all(I) :-
-  space_bulkload(uri_shape,I).
+  space_bulkload(has_shape, I).
 
 
 
@@ -500,9 +490,9 @@ space_dist(X, Y, Dist) :-
 
 space_dist(X, X, 0, _).
 space_dist(X, Y, Dist, G) :-
-  (rdf_is_iri(X) -> uri_shape(X, Xs, G) ; Xs = X),
-  (rdf_is_iri(Y) -> uri_shape(Y, Ys, G) ; Ys = Y),
-  space_dist_shape(Xs, Ys, Dist, G).
+  has_shape(X, XShape),
+  has_shape(Y, YShape),
+  space_dist_shape(XShape, YShape, Dist, G).
 
 
 space_dist_shape(point(X1,X2), point(Y1,Y2), Dist) :-
@@ -517,10 +507,10 @@ space_dist_shape(X, Y, Dist, I) :-
 space_dist_pythagorean(X, Y, D) :-
   space_dist_pythagorean_fastest(X, Y, D1),
   pythagorean_lat_long_to_kms(D1, D).
-space_dist_pythagorean(X, Y, D) :-
-  (atom(X) -> uri_shape(X, Xs) ; Xs = X),
-  (atom(Y) -> uri_shape(Y, Ys) ; Ys = Y),
-  space_dist_pythagorean(Xs, Ys, D).
+space_dist_pythagorean(X, Y, Dist) :-
+  has_shape(X, XShape),
+  has_shape(Y, YShape),
+  space_dist_pythagorean(XShape, YShape, Dist).
 
 space_dist_pythagorean_fastest(point(A, B), point(X, Y), D) :-
   D2 is ((X - A) ** 2) + ((Y - B) ** 2),
@@ -537,27 +527,15 @@ pythagorean_lat_long_to_kms(D1, D) :-
 %  in the specified Unit, which can take as a value km (kilometers)
 %  or nm (nautical miles). By default, nautical miles are used.
 
-space_dist_greatcircle(A, B, D) :-
-  (   atom(A)
-  ->  uri_shape(A, As)
-  ;   As = A
-  ),
-  (   atom(B)
-  ->  uri_shape(B, Bs)
-  ;   Bs = B
-  ),
-  space_shape_dist_greatcircle(As, Bs, D).
+space_dist_greatcircle(A, B, Dist) :-
+  has_shape(A, AShape),
+  has_shape(B, BShape),
+  space_shape_dist_greatcircle(AShape, BShape, Dist).
 
-space_dist_greatcircle(A, B, D, Unit) :-
-  (   atom(A)
-  ->  uri_shape(A, As)
-  ;   As = A
-  ),
-  (   atom(B)
-  ->  uri_shape(B, Bs)
-  ;   Bs = B
-  ),
-  space_shape_dist_greatcircle(As, Bs, D, Unit).
+space_dist_greatcircle(A, B, Dist, Unit) :-
+  has_shape(A, AShape),
+  has_shape(B, BShape),
+  space_shape_dist_greatcircle(AShape, BShape, Dist, Unit).
 
 
 space_shape_dist_greatcircle(point(A1,A2), point(B1,B2), D) :-

@@ -33,7 +33,7 @@ spacetime_index(I) :- spacetime_index(_,_,_,I).
 
 spacetime_candidate(URI, time_shape(Time,Shape)) :-
         uri_time(URI,Time),
-        uri_shape(URI,Shape).
+        has_shape(URI,Shape).
 
 bucket(Time,IntervalSize,Bucket) :-
        Bucket is floor(Time/IntervalSize) * IntervalSize.

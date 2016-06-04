@@ -65,7 +65,7 @@ space_load_url(URL) :- space_load_url(URL,[]).
 %
 %		* graph(+Graph)
 %		Store the URI-Shape pairs in the named graph Graph.
-%		The pairs are recorded as uri_shape(URI,Shape,Graph).
+%		The pairs are recorded as `has_shape(URI,Shape,Graph)`.
 
 space_load_url(URL, Options) :-
 	space_setting(rtree_default_index(DefaultIndex)),
@@ -75,7 +75,7 @@ space_load_url(URL, Options) :-
 	;   rdf_load(URL)
 	),
 	Counter = counter(0),
-	forall(uri_shape(URI, Shape, URL),
+	forall(has_shape(URI, Shape, URL),
 	       (   space_assert(URI, Shape, IndexName),
 		   arg(1, Counter, N0),
 		   N is N0 + 1,
@@ -107,7 +107,7 @@ space_unload_url(URL, Options) :-
 	option(index(IndexName), Options, DefaultIndex),
 	option(graph(Graph), Options, URL),
 	Counter = counter(0),
-	forall(uri_shape(URI, Shape, URL),
+	forall(has_shape(URI, Shape, URL),
 	       (   space_retract(URI, Shape, IndexName),
 		   arg(1, Counter, N0),
 		   N is N0 + 1,
@@ -173,7 +173,7 @@ space_crawl_url(URL) :-	space_crawl_url(URL,[]).
 %
 %		* graph(+Graph)
 %		Store the URI-Shape pairs in the named graph Graph.
-%		The pairs are recorded as uri_shape(URI,Shape,Graph).
+%		The pairs are recorded as `has_shape(URI,Shape,Graph)`.
 
 space_crawl_url(URL,Options) :-
 	with_mutex(message,print_message(informational,space_crawl_url(URL))),

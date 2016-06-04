@@ -1,6 +1,0 @@
-index name -> atom
-uri -> atom
-(use atoms for everything)
-kml.pl use html_write
-store index and resume
-call/3 for bulkloading
