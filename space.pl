@@ -5,23 +5,21 @@
     set_space/2,              % +Index, +Opt
     space_setting/1,          % ?Opt
                               
-    space_index_all/0,        
-    space_index_all/1,        % +Indexs
-                              
+    gis_populate_index/0,        
+    gis_populate_index/1,        % +Indexs
+
+    gis_default_index/1,      % +Index
     space_assert/2,           % +Res, +Shape
     space_assert/3,           % +Res, +Shape, +Index
     space_retract/2,          % +Res, +Shape
     space_retract/3,          % +Res, +Shape, +Index
-    space_index/0,            
-    space_index/1,            % +Index
+    gis_update_index/0,            
+    gis_update_index/1,            % +Index
     space_clear/0,            
     space_clear/1,            % +Index
     space_queue/2,            % ?Index, +Mode
     space_queue/4,            % ?Index, +Mode, ?Res, ?Shape
     
-    space_bulkload/0,         
-    space_bulkload/1,         % +Index
-                              
     space_contains/2,         % +Query, -Res
     space_contains/3,         % +Query, -Res, +Index
     space_intersects/2,       % +Query, -Res
@@ -33,7 +31,7 @@
     space_nearest_bounded/3,  % +Query, -Res, +WithinRange
     space_nearest_bounded/4,  % +Query, -Res, +WithinRange, +Index
     
-    shape/1,                  % +Shape
+    gis_is_shape/1,           % +Shape
     has_shape/2,              % ?Res, ?Shape
     has_shape/3,              % ?Res, ?Shape, ?G
     
@@ -60,22 +58,22 @@
 :- use_module(library(error)).
 :- use_module(library(shlib)).
 
-:- use_module(dbpedia).
-:- use_module(freebase).
 :- use_module(georss). % Also contains GML support.
-:- use_module(kml).
 :- use_module(wgs84).
 
 :- use_foreign_library(space).
 
 :- dynamic
+    gis:has_shape_hook/3,
+    space:space_setting_aux/1,
     space_queue0/4,
-    % allows you to adapt space_index_all.
-    shape/1,
-    % allows you to adapt space_index_all.
-    has_shape/2,
-    % allows you to adapt space_index_all.
-    has_shape/3.
+    % allows you to adapt gis_populate_index.
+    shape/1.
+
+:- multifile
+   gis:has_shape_hook/3.
+
+space:space_setting_aux(rtree_default_index(space_index)).
 
 :- rdf_meta
    space_assert(r, ?),
@@ -96,14 +94,16 @@
    space_within_range(r, r, ?),
    space_within_range(r, r, ?, ?).
 
-:- dynamic
-    space:space_setting_aux/1.
-
-space:space_setting_aux(rtree_default_index(space_index)).
-
 :- debug(space(index)).
 
 
+
+
+
+%! gis_default_index(+Index) is det.
+
+gis_default_index(Index) :-
+  space_setting(rtree_default_index(Index)).
 
 
 
@@ -116,8 +116,8 @@ space:space_setting_aux(rtree_default_index(space_index)).
 % effect immediately.
 
 set_space(Opt) :-
-  space_setting(rtree_default_index(I)),
-  set_space(Opt, I).
+  gis_default_index(Index),
+  set_space(Opt, Index).
 
 set_space(Opt, I) :-
   rtree_set_space(I, Opt).
@@ -136,18 +136,18 @@ space_setting(Opt) :-
 % Insert resource Res with associated Shape into the queue that is to
 % be inserted into the index with name Index (or the default
 % index).  Indexing happens lazily at the next call of a query or
-% manually by calling space_index/1.
+% manually by calling gis_update_index/1.
 
 space_assert(Res, Shape) :-
-  space_setting(rtree_default_index(I)),
-  space_assert(Res, Shape, I).
+  gis_default_index(Index),
+  space_assert(Res, Shape, Index).
 
 
 space_assert(Res, Shape, I) :-
-  shape(Shape),
+  gis_is_shape(Shape),
   % First process all queued retracts, since these may otherwise
   % inadvertently remove the newly asserted fact.
-  (space_queue(I, retract) -> space_index(I) ; true),
+  (space_queue(I, retract) -> gis_update_index(I) ; true),
   assert(space_queue0(I,assert,Res,Shape)).
 
 
@@ -158,32 +158,32 @@ space_assert(Res, Shape, I) :-
 % Insert resource Res with associated Shape in the queue that is to be
 % removed from the index with name Index (or the default index).
 % Indexing happens lazily at the next call of a query or manually by
-% calling space_index/1.
+% calling gis_update_index/1.
 
 space_retract(Res, Shape) :-
-  space_setting(rtree_default_index(I)),
-  space_retract(Res, Shape, I).
+  gis_default_index(Index),
+  space_retract(Res, Shape, Index).
 
 
 space_retract(Res, Shape, I) :-
-  shape(Shape),
-  (space_queue(I, assert) -> space_index(I) ; true),
+  gis_is_shape(Shape),
+  (space_queue(I, assert) -> gis_update_index(I) ; true),
   assert(space_queue0(I,retract,Res,Shape)).
 
 
 
-%! space_index is det.
-%! space_index(+Index) is det.
+%! gis_update_index is det.
+%! gis_update_index(+Index) is det.
 %
 % Processes all asserts or retracts in the space queue for index
 % Index (or the default index).
 
-space_index :-
-  space_setting(rtree_default_index(I)),
-  space_index(I).
+gis_update_index :-
+  gis_default_index(I),
+  gis_update_index(I).
 
 
-space_index(I) :-
+gis_update_index(I) :-
   space_queue0(I, assert ,_ ,_), !,
   empty_nb_set(Assertions),
   findall(
@@ -198,8 +198,8 @@ space_index(I) :-
   retractall(space_queue0(I,assert,_,_)),
   size_nb_set(Assertions,N),
   debug(space(index), "% Added ~w Res-Shape pairs to ~w", [N,I]),
-  space_index(I).
-space_index(I) :-
+  gis_update_index(I).
+gis_update_index(I) :-
   space_queue0(I, retract, _, _), !,
   empty_nb_set(Retractions),
   findall(
@@ -214,8 +214,8 @@ space_index(I) :-
   retractall(space_queue0(I,retract,_,_)),
   size_nb_set(Retractions, N),
   debug(space(index), "% Removed ~w Res-Shape pairs from ~w", [N,I]),
-  space_index(I).
-space_index(_).
+  gis_update_index(I).
+gis_update_index(_).
 
 
 
@@ -225,31 +225,13 @@ space_index(_).
 % Clears Index (or the default index), removing all of its contents.
 
 space_clear :-
-  space_setting(rtree_default_index(I)),
-  space_clear(I).
+  gis_default_index(Index),
+  space_clear(Index).
 
 
 space_clear(I) :-
   retractall(space_queue0(I,_,_,_)),
   rtree_clear(I).
-
-
-
-%! space_bulkload is det.
-%! space_bulkload(+Index) is det.
-%
-% Fast loading of many Shapes into the given Index.  This finds
-% 〈Resource,Shape〉 pairs that are added to the Index.
-
-space_bulkload :-
-  space_setting(rtree_default_index(I)),
-  space_bulkload(I).
-
-
-space_bulkload(I) :-
-  once(has_space(_, Shape)),
-  dimensionality(Shape, Dim),
-  rtree_bulkload(I, has_space, Dim).
 
 
 
@@ -260,13 +242,13 @@ space_bulkload(I) :-
 % shape (or shape of Query Res).
 
 space_contains(Query, Cont) :-
-  space_setting(rtree_default_index(I)),
-  space_contains(Query, Cont, I).
+  gis_default_index(Index),
+  space_contains(Query, Cont, Index).
 
 
 space_contains(Query, Cont, I) :-
   has_shape(Query, Shape),
-  space_index(I),
+  gis_update_index(I),
   (   ground(Cont)
   ->  bagof(Con, rtree_incremental_containment_query(Shape, Con, I), Cons),
       memberchk(Cont, Cons)
@@ -284,13 +266,13 @@ space_contains(Query, Cont, I) :-
 % Intersection subsumes containment.
 
 space_intersects(Query, Inter) :-
-  space_setting(rtree_default_index(I)),
-  space_intersects(Query, Inter, I).
+  gis_default_index(Index),
+  space_intersects(Query, Inter, Index).
 
 
 space_intersects(Query, Inter, I) :-
   has_shape(Query, Shape),
-  space_index(I),
+  gis_update_index(I),
   (   ground(Inter)
   ->  bagof(In, rtree_incremental_intersection_query(Shape, In, I), Ins),
       memberchk(Inter, Ins)
@@ -307,13 +289,13 @@ space_intersects(Query, Inter, I) :-
 % the resource Query).
 
 space_nearest(Query, Near) :-
-  space_setting(rtree_default_index(I)),
-  space_nearest(Query, Near, I).
+  gis_default_index(Index),
+  space_nearest(Query, Near, Index).
 
 
 space_nearest(Query, Near, I) :-
   has_shape(Query, Shape),
-  space_index(I),
+  gis_update_index(I),
   rtree_incremental_nearest_neighbor_query(Shape, Near, I).
 
 
@@ -328,8 +310,8 @@ space_nearest(Query, Near, I) :-
 % WithinRange.
 
 space_nearest_bounded(Query, Near, WithinRange) :-
-  space_setting(rtree_default_index(I)),
-  space_nearest_bounded(Query, Near, WithinRange, I).
+  gis_default_index(Index),
+  space_nearest_bounded(Query, Near, WithinRange, Index).
 
 
 space_nearest_bounded(Query, Near, WithinRange, I) :-
@@ -338,7 +320,7 @@ space_nearest_bounded(Query, Near, WithinRange, I) :-
   ->  has_shape(Near, NearShape),
       space_dist(Shape, NearShape, Dist),
       Dist < WithinRange
-  ;   space_index(I),
+  ;   gis_update_index(I),
       rtree_incremental_nearest_neighbor_query(Shape, Near, I),
       (has_shape(Near, NearShape, I) -> true ; has_shape(Near,NearShape)), %?
       space_dist(Shape, NearShape, Dist),
@@ -404,34 +386,37 @@ has_shape(Res, Shape) :-
   has_shape(Res, Shape, _).
 
 
+% Exceptional case to allow resources and shapes to be supplied as
+% arguments to the same predicates.
+has_shape(Shape, Shape, _) :-
+  ground(Shape),
+  gis_is_shape(Shape).
 has_shape(Res, Shape, G) :-
-  georss_candidate(Res, Shape, G).
-has_shape(Res, Shape, G) :-
-  wgs84_candidate(Res, Shape, G).
-has_shape(Res, Shape, G) :-
-  freebase_candidate(Res, Shape, G).
-has_shape(Res, Shape, G) :-
-  dbpedia_candidate(Res, Shape, G).
-has_shape(Res, Shape, G) :-
-  (var(G) -> space_setting(rtree_default_index(Index)), G = Index ; true),
+  (ground(Res) -> atom(Res) ; true),
+  rdf_subject(Res),
+  gis:has_shape_hook(Res, Shape, G).
+has_shape(Res, Shape, G0) :-
+  (var(G0) -> gis_default_index(G) ; G = G0),
   rtree_uri_shape(Res, S, G),
   Shape = S. % @tbd: fix in C++
 
 
 
-%!  space_index_all is det.
-%!  space_index_all(+Index) is det.
+%!  gis_populate_index is det.
+%!  gis_populate_index(+Index) is det.
 %
 % Loads all resource-shape pairs found with has_shape/2 into Index (or
 % the default index).
 
-space_index_all :-
-  space_setting(rtree_default_index(I)),
-  space_index_all(I).
+gis_populate_index :-
+  gis_default_index(Index),
+  gis_populate_index(Index).
 
 
-space_index_all(I) :-
-  space_bulkload(has_shape, I).
+gis_populate_index(Index) :-
+  once(has_shape(_, Shape)),
+  dimensionality(Shape, Dim),
+  rtree_bulkload(Index, space:has_shape, Dim).
 
 
 
@@ -446,11 +431,11 @@ box_polygon(
 
 
 
-%! shape(+Shape) is det.
+%! gis_is_shape(+Shape) is det.
 %
 % Checks whether Shape is a valid and supported shape.
 
-shape(Shape) :-
+gis_is_shape(Shape) :-
   dimensionality(Shape, Dim),
   must_be(between(1,3), Dim).
 

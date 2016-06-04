@@ -1,21 +1,22 @@
 :- module(kml,
-    [
-      kml_shape/2,
-      kml_shape/4,
-      kml_uri_shape/3,
-      kml_file_shape/2,
-      kml_file_shape/4,
-      kml_file_uri_shape/3,
-      kml_save_header/2,
-      kml_save_shape/3,
-      kml_save_footer/1,
-      kml_file_to_georss/1,
-      kml_file_to_georss/2,
-      georss_to_kml_file/1,
-      georss_to_kml_file/2
-    ]).
+  [
+    kml_shape/2,
+    kml_shape/4,
+    kml_uri_shape/3,
+    kml_file_shape/2,
+    kml_file_shape/4,
+    kml_file_uri_shape/3,
+    kml_save_header/2,
+    kml_save_shape/3,
+    kml_save_footer/1,
+    kml_file_to_georss/1,
+    kml_file_to_georss/2,
+    georss_to_kml_file/1,
+    georss_to_kml_file/2
+  ]
+).
 
-:- use_module(library(dcg/basics)).
+:- use_module(library(dcg/dcg_ext)).
 :- use_module(library(http/html_write)).
 :- use_module(library(lists)).
 :- use_module(library(option)).
@@ -549,22 +550,17 @@ filter_id([H|T],U,[H|V]) :-
   filter_id(T,U,V).
 
 
-poslist(T) --> blank_star, poslist_aux(T), blank_star, !.
+poslist(T) --> *(blank), poslist_aux(T), *(blank), !.
 poslist_aux(L) --> poslist_plus(L).
 poslist_plus([H|T]) --> pos(H), poslist_star(T).
-poslist_star(T) --> blank_plus, poslist_aux(T).
+poslist_star(T) --> +(blank), poslist_aux(T).
 poslist_star([]) --> [], !.
 
-pos(point(X,Y)) --> c(Y), ",", blank_star, c(X), ",", blank_star, "0".
-pos(point(X,Y)) --> c(Y), ",", blank_star, c(X).
-pos(point(X,Y,Z)) --> c(Y), ",", blank_star, c(X), ",", blank_star, c(Z).
-pos(point(X,Y,Z,M)) --> c(Y), ",", blank_star, c(X), ",", blank_star, c(Z), ",", blank_star, c(M).
+pos(X,Y) --> c(Y), ",", *(blank), c(X), ",", *(blank), "0".
+pos(X,Y) --> c(Y), ",", *(blank), c(X).
+pos(X,Y,Z) --> c(Y), ",", *(blank), c(X), ",", *(blank), c(Z).
+pos(X,Y,Z,M) --> c(Y), ",", *(blank), c(X), ",", *(blank), c(Z), ",", *(blank), c(M).
 c(X) --> float(X).
-
-blank_plus --> blank, blank_star, !.
-blank_plus --> " ", !.
-blank_star --> blanks, !.
-blank_star --> [], !.
 
 
 

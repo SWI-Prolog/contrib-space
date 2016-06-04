@@ -27,6 +27,15 @@
 
 :- rdf_register_prefix(wgs84, 'http://www.w3.org/2003/01/geo/wgs84_pos#').
 
+:- dynamic
+   gis:has_shape_hook/3.
+
+:- multifile
+   gis:has_shape_hook/3.
+
+gis:has_shape_hook(Res, Shape, G) :-
+  wgs84_candidate(Res, Shape, G).
+
 :- rdf_meta
    wgs84_candidate(r,?),
    wgs84_candidate(r,?,?).
