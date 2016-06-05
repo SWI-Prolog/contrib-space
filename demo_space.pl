@@ -7,6 +7,7 @@
 @version 2016/06
 */
 
+:- use_module(library(geo/wgs84)).
 :- use_module(library(rdf/rdf_ext)).
 :- use_module(library(rdf/rdf_io)).
 :- use_module(library(rdfs/rdfs_ext)).
@@ -15,7 +16,6 @@
 :- use_module(space).
 
 :- rdf_register_prefix(geo, 'http://www.geonames.org/ontology#').
-:- rdf_register_prefix(wgs84, 'http://www.w3.org/2003/01/geo/wgs84_pos#').
 
 :- initialization(init).
 
@@ -55,12 +55,14 @@ contained_features(box(point(NWLat,NWLong),point(SELat,SELong)), Name) :-
 
 
 
+%! nearest_harbors(+Point1, -Name, -Point2) is nondet.
+%
 % Find Features in order of proximity, but restrict them to those with
 % featureCode harbor.  Also fetch and show their coordinates.
-nearest_harbors(Point, Name, point(HarborLat,HarborLong)) :-
-  gis_nearest(Point, Nearest, demo),
+
+nearest_harbors(Point1, Name, Point2) :-
+  gis_nearest(Point1, Nearest, demo),
   rdfs_instance(Nearest, geo:'Feature'),
   rdf_has(Nearest, geo:featureCode, geo:'H.HBR'),
   rdf_pref_lex(Nearest, geo:name, Name),
-  rdf_has(Nearest, wgs84:lat, HarborLat^^xsd:float),
-  rdf_has(Nearest, wgs84:long, HarborLong^^xsd:float).
+  wgs84_point(Nearest, Point2).

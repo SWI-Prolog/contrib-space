@@ -6,7 +6,7 @@
   ]
 ).
 
-/** <module> WGS84
+/** <module> GeoRSS
 
 @author Willem Robert van Hage
 @version 2009-2012
@@ -227,18 +227,11 @@ get_box(Elts, LBC, UBC) :-
 
 % GRAMMAR %
 
-coords(polygon([Coords|_])) --> !, coordlist(Coords).
-coords(linestring(Coords)) --> !, coordlist(Coords).
-coords(linearing(Coords)) --> !, coordlist(Coords).
-coords(Point) --> point(Point).
+pointlist(Points) --> *(bs), seplist(point, +(bs), Points), !, *(bs).
 
-coordlist(Coords) --> *(blank), seplist(float, +(blank), Coords), !, *(blank).
-
-pointlist(Points) --> *(blank), seplist(point, +(blank), Points), !, *(blank).
-
-point(point(X,Y)) --> float(X), +(blank), float(Y).
-point(point(X,Y,Z)) --> point([X,Y]), +(blank), float(Z).
-point(point(X,Y,Z,M)) --> point([X,Y,Z]), +(blank), float(M).
+point(point(X,Y)) --> float(X), +(bs), float(Y).
+point(point(X,Y,Z)) --> point([X,Y]), +(bs), float(Z).
+point(point(X,Y,Z,M)) --> point([X,Y,Z]), +(bs), float(M).
 
 circle(circle(Center,Radius)) -->
-  *(blank), point(Center), +(blank), float(Radius), *(blank).
+  *(bs), point(Center), +(bs), float(Radius), *(bs).

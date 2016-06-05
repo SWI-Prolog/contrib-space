@@ -412,7 +412,11 @@ gis_populate_index :-
 gis_populate_index(Index) :-
   once(resource_shape(_, Shape, _, Index)),
   dimensionality(Shape, Dim),
-  rtree_bulkload(Index, space:resource_shape, Dim).
+  rtree_bulkload(Index, uri_shape, Dim).
+
+system:uri_shape(X, Y) :-
+  resource_shape(X, Y),
+  format(user_output, "~w-~w~n~n", [X,Y]).
 
 
 

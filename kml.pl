@@ -638,3 +638,12 @@ kml_save_shape(Stream,Shape,Options) :-
 
 kml_save_footer(Stream) :-
   format(Stream,"\n</Document>\n</kml>\n\n",[]).
+
+
+
+coords(polygon([Coords|_])) --> !, coordlist(Coords).
+coords(linestring(Coords)) --> !, coordlist(Coords).
+coords(linearing(Coords)) --> !, coordlist(Coords).
+coords(Point) --> point(Point).
+
+coordlist(Coords) --> *(bs), seplist(float, +(bs), Coords), !, *(bs).
