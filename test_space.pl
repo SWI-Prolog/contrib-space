@@ -7,7 +7,7 @@
 @version 2016/06
 */
 
-:- use_module(library(geo/wgs84)).
+:- use_module(library(geo/rdf_wgs84)).
 :- use_module(library(plunit)).
 :- use_module(library(semweb/rdf11)).
 :- use_module(library(space/georss)).
