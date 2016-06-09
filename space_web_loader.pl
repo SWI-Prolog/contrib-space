@@ -23,7 +23,7 @@
 
 :- use_module(library(dict_ext)).
 :- use_module(library(option)).
-:- use_module(library(rdf/rdf_io)).
+:- use_module(library(rdf/rdfio)).
 :- use_module(library(semweb/rdf11)).
 
 :- use_module(space).
