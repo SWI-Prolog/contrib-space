@@ -8,11 +8,11 @@
 */
 
 :- use_module(library(geo/rdf_wgs84)).
-:- use_module(library(geoindex)).
-:- use_module(library(georss)).
 :- use_module(library(plunit)).
 :- use_module(library(rdf/rdfio)).
 :- use_module(library(semweb/rdf11)).
+:- use_module(library(space/georss)).
+:- use_module(library(space/space)).
 
 :- rdf_register_prefix(poseidon, 'http://semanticweb.cs.vu.nl/poseidon/ns/instances/').
 
