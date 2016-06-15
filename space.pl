@@ -326,7 +326,7 @@ gis_nearest_bounded(Query, Near, WithinRange, Index) :-
       Dist < WithinRange
   ;   gis_update_index(Index),
       rtree_incremental_nearest_neighbor_query(Shape, Near, Index),
-      resource_shape(Near, NearShape, _, Index),
+      resource_shape(Near, _, NearShape, _, Index),
       gis_dist(Shape, NearShape, Dist),
       (   ground(WithinRange)
       ->  (Dist > WithinRange -> !, fail ; true)
@@ -408,7 +408,7 @@ resource_shape(Res, _, Shape, _, Index0) :-
 %!  gis_populate_index is det.
 %!  gis_populate_index(+Index) is det.
 %
-% Loads all resource-shape pairs found with resource_shape/2 into the
+% Loads all resource-shape pairs found with resource_shape/5 into the
 % given Index (or the default index).
 
 gis_populate_index :-
@@ -417,7 +417,7 @@ gis_populate_index :-
 
 
 gis_populate_index(Index) :-
-  once(resource_shape(_, Shape, _, Index)),
+  once(resource_shape(_, _, Shape, _, Index)),
   dimensionality(Shape, Dim),
   rtree_bulkload(Index, uri_shape, Dim).
 
