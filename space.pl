@@ -33,7 +33,8 @@
     
     gis_is_shape/1,         % +Shape
     resource_shape/2,       % ?Res, ?Shape
-    resource_shape/4,       % ?Res, ?Shape, ?G, ?Index
+    resource_shape/3,       % ?Res, ?D, ?Shape
+    resource_shape/5,       % ?Res, ?D, ?Shape, ?G, ?Index
     
     gis_dist/3,             % +Feature1, +Feature2, -Dist
     gis_dist/4,             % +Feature1, +Feature2, -Dist, +Index
@@ -62,12 +63,12 @@
 :- use_foreign_library(space).
 
 :- dynamic
-    gis:resource_shape_hook/3,
+    gis:resource_shape_hook/4,
     gis:gis_setting/1,
     gis_queue0/4.
 
 :- multifile
-   gis:resource_shape_hook/3.
+   gis:resource_shape_hook/4.
 
 gis:gis_setting(rtree_default_index(default)).
 
@@ -86,7 +87,8 @@ gis:gis_setting(rtree_default_index(default)).
    gis_retract(r, ?),
    gis_retract(r, ?, ?),
    resource_shape(r, ?),
-   resource_shape(r, ?, r, ?),
+   resource_shape(r, r, ?),
+   resource_shape(r, r, ?, r, ?),
    gis_within_range(r, r, ?),
    gis_within_range(r, r, ?, ?).
 
@@ -371,27 +373,32 @@ gis_display_mbrs(Index) :-
 
 
 %! resource_shape(?Res, ?Shape) is nondet.
-%! resource_shape(?Res, ?Shape, ?G, ?Index) is nondet.
+%! resource_shape(?Res, ?D, ?Shape) is nondet.
+%! resource_shape(?Res, ?D, ?Shape, ?G, ?Index) is nondet.
 %
 % Succeeds if resource Res has a geographic Shape.
 %
 % This predicate can be dynamically extended through the
-% gis:resource_shape_hook/3.
+% gis:resource_shape_hook/4.
 
 resource_shape(Res, Shape) :-
+  resource_shape(Res, _, Shape).
+
+
+resource_shape(Res, D, Shape) :-
   gis_default_index(Index),
-  resource_shape(Res, Shape, _, Index).
+  resource_shape(Res, D, Shape, _, Index).
 
 
 % Exceptional case to allow resources and shapes to be supplied as
 % arguments to the same predicates.
-resource_shape(Res, Shape, _, _) :-
+resource_shape(Res, _, Shape, _, _) :-
   ground(Res),
   gis_is_shape(Res), !,
   Shape = Res.
-resource_shape(Res, Shape, G, _) :-
-  gis:resource_shape_hook(Res, Shape, G).
-resource_shape(Res, Shape, _, Index0) :-
+resource_shape(Res, D, Shape, G, _) :-
+  gis:resource_shape_hook(Res, D, Shape, G).
+resource_shape(Res, _, Shape, _, Index0) :-
   (var(Index0) -> gis_default_index(Index) ; Index = Index0),
   rtree_uri_shape(Res, Shape0, Index),
   Shape = Shape0. % @tbd: fix in C++
@@ -416,7 +423,7 @@ gis_populate_index(Index) :-
 
 system:uri_shape(X, Y) :-
   resource_shape(X, Y),
-  format(user_output, "~w-~w~n~n", [X,Y]).
+  debug(space(index), "[LOAD] ~w ~w~n", [X,Y]).
 
 
 
