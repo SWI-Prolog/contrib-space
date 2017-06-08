@@ -60,7 +60,7 @@ uninstall::
 ################################################################
 
 check::
-		$(PL) -q -f test_space.pl -g test_space,halt -t 'halt(1)'
+		$(PL) -q -f test_space.pl -g test_space -t halt
 
 ################################################################
 # Documentation
