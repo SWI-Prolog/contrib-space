@@ -42,9 +42,10 @@ Simple, GeoRSS GML, and W3C WGS84 vocabulary properties.\\
 \section{Introduction}
 \label{sec:space-intro}
 
-The Space package~\cite{vanHage:2009} provides spatial indexing for SWI-Prolog. It is based on
-\url[Geometry Engine Open Source]{http://geos.refractions.net/} and the \url[Spatial
-Index Library]{http://trac.gispython.org/spatialindex/}.
+The Space package~\cite{vanHage:2009} provides spatial indexing for
+SWI-Prolog. It is based on \href{http://geos.refractions.net/}{Geometry
+Engine Open Source} and the
+\href{http://trac.gispython.org/spatialindex/}{Spatial Index Library}.
 
 \section{Shapes as Prolog Terms}
 \label{sec:space-shapes}
@@ -53,7 +54,7 @@ The central objects of the Space package are pairs, $\langle u, s\rangle$ of a U
 The URIs are linked to the shapes with the uri_shape/2 predicate. We will support all OpenGIS Simple Features, points, linestrings, polygons (with $\geq0$ holes), multi-points, multi-polygons, and geometry collections; and some utility shapes like box and circle regions.\footnote{The current version of the Space package, \curversion, only supports points, linestrings, and polygons (with holes) and box regions. Development on the other (multi-)shape types is underway.}
 
 Both the URIs and the shapes are represented as Prolog terms. This makes them first-class Prolog citizens, which allows the construction and transformation of shapes using regular Prolog clauses, or Definite Clause Grammars (DCGs).
-We support input from locations encoded in RDF with the \url[W3C WGS84 vocabulary]{http://www.w3.org/2003/01/geo/} and with the \url[GeoRSS]{http://georss.org} Simple properties and the GeoRSS \const{where} property leading to an XML literal consisting of a GML element.
+We support input from locations encoded in RDF with the \href{http://www.w3.org/2003/01/geo/}{W3C WGS84 vocabulary} and with the \href{http://georss.org}{GeoRSS} Simple properties and the GeoRSS \const{where} property leading to an XML literal consisting of a GML element.
 The uri_shape/2 predicate searches for URI-Shape pairs in SWI-Prolog's RDF triple store. It matches URIs to Shapes by using WGS84 and GeoRSS properties. For example, a URI $u$ is associated with the shape $s=$\const{point(}$lat,long$\const{)} if the triple store contains the triples: $\langle u,$ \const{wgs84_pos:lat} $, lat\rangle$ and $\langle u,$ \const{wgs84_pos:long} $, long\rangle$; or when it contains one of the following triples:\\
   $\langle u,$ \const{georss:point}$,$\const{"}$lat$ $long$\const{"}$\rangle$ or $\langle u,$ \const{georss:where}$,$\const{"<gml:Point>}\const{<gml:pos>} $lat$ $long$\\ \const{</gml:pos>}\const{</gml:Point>"}$\rangle$.
 The XML literal containing the GML description of the geometric shape is parsed with a DCG that can also be used to generate GML from Prolog shape terms.
@@ -131,7 +132,7 @@ N = 'http://sws.geonames.org/2754074/' .      % cut, satisfied
 \section{Importing and Exporting Shapes}
 \label{sec:space-import-export}
 
-Besides supporting input from RDF we support input and output for other standards, like\url[GML]{http://www.opengeospatial.org/standards/gml}, \url[KML]{http://code.google.com/apis/kml/} and \url[WKT]{http://en.wikipedia.org/wiki/Well-known_text}. All shapes can be converted from and to these standards with the gml_shape/2, kml_shape/2, and wkt_shape/2 predicates.
+Besides supporting input from RDF we support input and output for other standards, like\href{http://www.opengeospatial.org/standards/gml}{GML}, \href{http://code.google.com/apis/kml/}{KML} and \href{http://en.wikipedia.org/wiki/Well-known_text}{WKT}. All shapes can be converted from and to these standards with the gml_shape/2, kml_shape/2, and wkt_shape/2 predicates.
 
 \begin{code}
 % Convert a WKT shape into GML and KML}
