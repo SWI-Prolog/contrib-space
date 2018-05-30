@@ -1,10 +1,8 @@
 # INSTRUCTIONS
 
-**
-This is the old SWI-Prolog space package as a core package.  New users
+**This is the old SWI-Prolog space package as a core package.  New users
 should use the add-on from https://github.com/JanWielemaker/space.  This
-version will be dropped in the near future.
-**
+version will be dropped in the near future.**
 
 Make sure you have at least SWI-Prolog 5.7.13. This is necessary for
 non-deterministic C++ predicates.
